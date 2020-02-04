@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">MapQuestApp2</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="url_site">Введите адрес сервера</string>
+    <string name="loginTitle">Логин</string>
+    <string name="passwordTitle">Пароль</string>
+    <string name="go">Войти</string>
+    <string name="title_activity_order">Список заявок</string>
+    <string name="title_activity_login">Авторизация</string>
+    <string name="title_activity_map">Карта</string>
+    <string name="auth_ok">Авторизация пройдена</string>
+    <string name="title_activity_order2">Список заявок</string>
+
+
+    <string name="menu_orders">Заявки</string>
+    <string name="menu_checkups">Обследования</string>
+    <string name="menu_map">Карта</string>
+    <string name="title_activity_checkup">Обследования</string>
+    <string name="order_image_description">Состояние заявки</string>
+</resources>
