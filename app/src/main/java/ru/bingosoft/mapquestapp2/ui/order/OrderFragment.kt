@@ -45,13 +45,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        /*homeViewModel =
-            ViewModelProviders.of(this).get(HomeViewModel::class.java)
-        val root = inflater.inflate(R.layout.fragment_order, container, false)
-        val textView: TextView = root.findViewById(R.id.text_home)
-        homeViewModel.text.observe(this, Observer {
-            textView.text = it
-        })*/
         AndroidSupportInjection.inject(this)
 
         val root = inflater.inflate(R.layout.fragment_order, container, false)
@@ -117,7 +110,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun showOrders(orders: List<Orders>) {
         orders_recycler_view.layoutManager = LinearLayoutManager(this.activity)
-        val adapter = OrderListAdapter(orders,this, this.context!!)
+        val adapter = OrderListAdapter(orders,this, this.requireContext())
         orders_recycler_view.adapter = adapter
     }
 
@@ -150,4 +143,5 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             )
         }
     }
+
 }

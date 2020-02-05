@@ -14,6 +14,7 @@ import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
+
 class LoginPresenter @Inject constructor(
     private val apiService: ApiService,
     private val db: AppDatabase
@@ -30,32 +31,21 @@ class LoginPresenter @Inject constructor(
         this.view = view
     }
 
-    fun authorization(stLogin: String, stPassword: String){
+    fun authorization(stLogin: String?, stPassword: String?){
 
         val fingerprint: String = random()
 
-        /*return apiService.getAuthorization(fingerprint,stLogin,stPassword)
-            .map { response ->
-                Log.d(LOGTAG, response.newToken)
-                Log.d(LOGTAG, response.session_id)
-
-                val auth=Models.Auth(response.success,response.newToken,response.session_id)
-
-                sessionId=response.session_id
-
-                return@map auth
-
-            }*/
-
-        disposable=apiService.getAuthorization(fingerprint,stLogin,stPassword)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{ response ->
-                Log.d(LOGTAG, "Авторизация пройдена")
-                this.stLogin=stLogin
-                this.stPassword=stPassword
-                syncDB()
-            }
+        if (stLogin!=null && stPassword!=null) {
+            disposable=apiService.getAuthorization(fingerprint,stLogin,stPassword)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe{ response ->
+                    Log.d(LOGTAG, "Авторизация пройдена")
+                    this.stLogin=stLogin
+                    this.stPassword=stPassword
+                    syncDB()
+                }
+        }
 
     }
 
@@ -88,13 +78,13 @@ class LoginPresenter @Inject constructor(
                 val data: Models.OrderList = response
                 Single.fromCallable{
                     data.orders.forEach{
-                        db.ordersDao()?.insert(it)
+                        db.ordersDao().insert(it)
                     }
 
                 }
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe{ response ->
+                    .subscribe{ _ ->
                         view?.showMessageLogin(R.string.auth_ok)
                         view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
                     }
@@ -107,4 +97,6 @@ class LoginPresenter @Inject constructor(
             })
 
     }
+
+
 }

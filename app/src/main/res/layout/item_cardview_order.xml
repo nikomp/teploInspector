@@ -56,10 +56,9 @@
                 android:layout_marginTop="8dp"
                 android:adjustViewBounds="true"
                 android:contentDescription="@string/order_image_description"
-                android:scaleType="fitXY"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/state_in_work" />
+                app:srcCompat="@drawable/ic_flash_on_black_24dp" />
 
             <TextView
                 android:id="@+id/number"

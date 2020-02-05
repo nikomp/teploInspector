@@ -23,21 +23,20 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
 
     fun loadOrders() {
         Timber.d("loadOrders")
-        disposable=db.ordersDao()!!.getAll()
+        disposable=db.ordersDao().getAll()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 Timber.d("Данные получили")
                 Timber.d(it.toString())
+
+
                 view?.showOrders(it)
             }
 
 
-        /* Запускаем Rx цепочку для получения данных о заявках, после получения данных парсим их gson
-        в OrderList, затем пробегаемся в цикле по OrderList и делаем insert в БД*/
-
-
         Timber.d("ОК")
+
     }
 
     fun importData() {
@@ -55,7 +54,7 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
                 lon = 44.024007,
                 dateCreate = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).parse("30.01.2020")
             )
-            db.ordersDao()?.insert(order1)
+            db.ordersDao().insert(order1)
 
             val order2 = Orders(
                 number="A-002",
@@ -69,7 +68,7 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
                 lon = 44.032029,
                 dateCreate = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).parse("29.01.2020")
             )
-            db.ordersDao()?.insert(order2)
+            db.ordersDao().insert(order2)
         }
             .subscribeOn(Schedulers.io())
             .subscribe()

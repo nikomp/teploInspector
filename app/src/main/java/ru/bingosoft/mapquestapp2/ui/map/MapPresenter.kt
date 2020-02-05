@@ -16,7 +16,7 @@ class MapPresenter (val db: AppDatabase)  {
     }
 
     fun viewIsReady() {
-        disposable=db.ordersDao()!!.getAll()
+        disposable= db.ordersDao().getAll()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {

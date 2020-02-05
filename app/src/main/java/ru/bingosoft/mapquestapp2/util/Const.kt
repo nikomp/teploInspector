@@ -26,5 +26,8 @@ class Const {
 
     object Location {
         val MAPQUEST_HEADQUARTERS: LatLng = LatLng(56.3287, 44.002) //Нижний Новгород
+
+        val DEFAULT_INTERVAL_IN_MILLISECONDS: Long = 1000L
+        val DEFAULT_MAX_WAIT_TIME: Long = DEFAULT_INTERVAL_IN_MILLISECONDS * 5
     }
 }

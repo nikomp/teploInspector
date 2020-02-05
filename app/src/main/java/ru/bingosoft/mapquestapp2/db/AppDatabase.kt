@@ -10,6 +10,6 @@ import ru.bingosoft.mapquestapp2.db.Orders.OrdersDao
 
 @Database(entities=arrayOf(Orders::class, Checkup::class),version = 1,exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun ordersDao(): OrdersDao?
-    abstract fun checkupDao(): CheckupDao?
+    abstract fun ordersDao(): OrdersDao
+    abstract fun checkupDao(): CheckupDao
 }

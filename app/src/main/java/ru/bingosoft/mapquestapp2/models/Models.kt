@@ -20,5 +20,7 @@ class Models {
         @SerializedName("data") var orders: List<Orders> = listOf()
     )
 
+    class Order
+
 
 }

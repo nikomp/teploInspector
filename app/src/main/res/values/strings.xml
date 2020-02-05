@@ -23,4 +23,11 @@
     <string name="menu_map">Карта</string>
     <string name="title_activity_checkup">Обследования</string>
     <string name="order_image_description">Состояние заявки</string>
+
+    <string name="access_token">pk.eyJ1Ijoibmlrb21wIiwiYSI6ImNrNjh3Y2x4dzA4MHczaG8zZnpoM2NwbXoifQ.BD4ONCVZvHrfVf0qIYp3UQ</string>
+    <string name="user_location_permission_explanation">бла-бла-бла</string>
+
+    <string name="not_permissions">Разрешения не выданы, приложение может работать неправильно</string>
+    <string name="not_internet">Нет подключения к сети</string>
+    <string name="server_not_avaliable">Сервер не доступен</string>
 </resources>
