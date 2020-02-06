@@ -6,4 +6,5 @@
 
     <color name="colorCardItem">#CED6DF</color>
     <color name="colorCardSelect">#80CBC4</color>
+    <color name="colorTitle">#ffffff</color>
 </resources>

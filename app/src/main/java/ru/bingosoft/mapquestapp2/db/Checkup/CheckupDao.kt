@@ -9,14 +9,14 @@ interface CheckupDao {
     fun getAll(): Flowable<List<Checkup>>
 
     @Query("SELECT * FROM checkup WHERE id = :id")
-    fun getById(id: Long): Checkup
+    fun getById(id: Long): Flowable<Checkup>
 
-    @Insert
-    fun insert(orders: Checkup)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(checkup: Checkup)
 
     @Update
-    fun update(orders: Checkup)
+    fun update(checkup: Checkup)
 
     @Delete
-    fun delete(orders: Checkup)
+    fun delete(checkup: Checkup)
 }

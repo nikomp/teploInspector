@@ -1,6 +1,7 @@
 package ru.bingosoft.mapquestapp2.ui.login
 
 import android.util.Log
+import io.reactivex.Completable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -24,7 +25,7 @@ class LoginPresenter @Inject constructor(
     private var stLogin: String = ""
     private var stPassword: String = ""
 
-    private var disposable: Disposable? = null
+    lateinit var disposable: Disposable
 
 
     fun attachView(view: LoginContractView) {
@@ -65,9 +66,10 @@ class LoginPresenter @Inject constructor(
 
     fun onDestroy() {
         this.view = null
+        disposable.dispose()
     }
 
-    fun syncDB() {
+    /*fun syncDB() {
         disposable=apiService.getListOrder(action="getAllOrders")
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -82,12 +84,12 @@ class LoginPresenter @Inject constructor(
                     }
 
                 }
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe{ _ ->
-                        view?.showMessageLogin(R.string.auth_ok)
-                        view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
-                    }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe{ _ ->
+                    view?.showMessageLogin(R.string.auth_ok)
+                    view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
+                }
 
 
             },{throwable ->
@@ -96,7 +98,60 @@ class LoginPresenter @Inject constructor(
 
             })
 
+    }*/
+
+    fun syncDB() {
+        disposable = syncOrder()
+            .andThen(apiService.getCheckups(action="getCheckups"))
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ checkups ->
+                Timber.d("Получили обследования")
+                Timber.d(checkups.toString())
+
+                val data: Models.CheckupList = checkups
+                Single.fromCallable{
+                    data.checkups.forEach{
+                        db.checkupDao().insert(it)
+                    }
+                }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe{ _ ->
+                    Timber.d("Сохранили обследования в БД")
+                }
+
+            },{throwable ->
+
+                Timber.d(throwable.message)
+
+            })
+
     }
+
+    fun syncOrder() :Completable =apiService.getListOrder(action="getAllOrders")
+        .subscribeOn(Schedulers.io())
+        //.observeOn(AndroidSchedulers.mainThread())
+        .map{
+            Timber.d("Получили заявки")
+            Timber.d(it.toString())
+
+            val data: Models.OrderList = it
+            Single.fromCallable{
+                data.orders.forEach{
+                    db.ordersDao().insert(it)
+                }
+
+            }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{ _ ->
+                view?.showMessageLogin(R.string.auth_ok)
+                view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
+            }
+
+        }
+        .ignoreElement()
 
 
 }

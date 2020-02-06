@@ -17,6 +17,7 @@ import java.net.InetAddress
 import javax.inject.Inject
 
 
+
 class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
     private var stUrl: String = ""
@@ -60,14 +61,13 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                     } else {
                         toaster.showToast(R.string.not_internet)
                     }
-
-
                 }
             }
         }
 
     }
 
+    @Suppress("DEPRECATION") //activeNetworkInfo, isConnected - deprecated, нужно для старых API
     private fun isNetworkConnected(): Boolean {
         val connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -76,7 +76,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             return when {
                 actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
                 actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                //for other device how are able to connect with Ethernet
+                //для других устройств, которые умеют соединяться с Ethernet
                 actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
                 else -> false
             }
@@ -86,7 +86,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    fun isInternetAvailable(): Boolean {
+    private fun isInternetAvailable(): Boolean {
         return try {
             val ipAddr: InetAddress = InetAddress.getByName(BuildConfig.urlServer)
             !ipAddr.equals("")
@@ -94,4 +94,5 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             false
         }
     }
+
 }

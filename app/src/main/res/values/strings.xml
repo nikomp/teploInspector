@@ -30,4 +30,6 @@
     <string name="not_permissions">Разрешения не выданы, приложение может работать неправильно</string>
     <string name="not_internet">Нет подключения к сети</string>
     <string name="server_not_avaliable">Сервер не доступен</string>
+    <string name="textview">Текст вопроса</string>
+    <string name="hint_spinner">Выберите значение из списка</string>
 </resources>

@@ -55,6 +55,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         return root
     }
 
+
+    override fun onDestroy() {
+        super.onDestroy()
+        orderPresenter.onDestroy()
+        loginPresenter.onDestroy()
+    }
+
     private fun doAuthorization() {
         // Получим логин и пароль из настроек
         val sharedpref = this.activity?.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -143,5 +150,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             )
         }
     }
+
 
 }

@@ -17,4 +17,9 @@ interface ApiService {
     fun getListOrder(
         @Query("action") action: String
     ): Single<Models.OrderList>
+
+    @GET("procs/androidAPI.php")
+    fun getCheckups(
+        @Query("action") action: String
+    ): Single<Models.CheckupList>
 }

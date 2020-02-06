@@ -15,7 +15,7 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
 
     var view: OrderContractView? = null
 
-    var disposable: Disposable? = null
+    lateinit var disposable: Disposable
 
     fun attachView(view: OrderContractView) {
         this.view=view
@@ -27,16 +27,19 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
-                Timber.d("Данные получили")
+                Timber.d("Данные получили из БД")
                 Timber.d(it.toString())
-
-
                 view?.showOrders(it)
             }
 
 
         Timber.d("ОК")
 
+    }
+
+    fun onDestroy() {
+        this.view = null
+        disposable.dispose()
     }
 
     fun importData() {

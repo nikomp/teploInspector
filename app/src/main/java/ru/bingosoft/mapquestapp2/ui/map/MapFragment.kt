@@ -61,10 +61,8 @@ class MapFragment : Fragment(), MapContractView {
         if (mv!=null) {
             mv.onCreate(savedInstanceState)
             mv.getMapAsync(OnMapReadyCallback{mapboxMap ->
-
                 mapboxMap.setStyle(Style.MAPBOX_STREETS) { style ->
                     enableLocationComponent(style)
-
                 }
 
                 mapboxMap.addOnMapClickListener{point ->
@@ -83,6 +81,11 @@ class MapFragment : Fragment(), MapContractView {
         return root
     }
 
+    override fun onStart() {
+        super.onStart()
+        mapView?.onStart()
+    }
+
     override fun onResume() {
         super.onResume()
         mapView?.onResume()
@@ -93,9 +96,9 @@ class MapFragment : Fragment(), MapContractView {
         mapView?.onPause()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mapView?.onDestroy()
+    override fun onStop() {
+        super.onStop()
+        mapView?.onStop()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -105,7 +108,12 @@ class MapFragment : Fragment(), MapContractView {
 
     override fun onLowMemory() {
         super.onLowMemory()
-        mapView!!.onLowMemory()
+        mapView?.onLowMemory()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        mapView?.onDestroy()
     }
 
 

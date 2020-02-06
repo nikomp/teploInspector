@@ -10,6 +10,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.bingosoft.mapquestapp2.BuildConfig
 import ru.bingosoft.mapquestapp2.api.ApiService
+import java.util.concurrent.TimeUnit
 
 @Module
 class NetworkModule {
@@ -18,7 +19,12 @@ class NetworkModule {
 
         val interceptor = HttpLoggingInterceptor()
         interceptor.level= HttpLoggingInterceptor.Level.BODY
-        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .connectTimeout(90, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(90, TimeUnit.SECONDS)
+            .build()
 
         val gson = GsonBuilder()
             .setDateFormat("yyyy-MM-dd")
