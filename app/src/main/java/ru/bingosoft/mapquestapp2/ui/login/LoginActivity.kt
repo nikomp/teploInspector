@@ -9,11 +9,10 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_login.*
-import ru.bingosoft.mapquestapp2.BuildConfig
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.util.Toaster
-import java.net.InetAddress
 import javax.inject.Inject
 
 
@@ -28,6 +27,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     lateinit var toaster: Toaster
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
@@ -43,21 +43,15 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         if (v != null) {
             when (v.id) {
                 R.id.btnGo -> {
-
                     if (isNetworkConnected()) {
-                        if (isInternetAvailable()) {
-                            // Авторизация
-                            val intent = Intent()
-                            intent.putExtra("login", stLogin)
-                            intent.putExtra("password", stPassword)
-                            intent.putExtra("url", stUrl)
-                            setResult(Activity.RESULT_OK, intent)
+                        // Авторизация
+                        val intent = Intent()
+                        intent.putExtra("login", stLogin)
+                        intent.putExtra("password", stPassword)
+                        intent.putExtra("url", stUrl)
+                        setResult(Activity.RESULT_OK, intent)
 
-                            this.finish()
-                        } else {
-                            toaster.showToast(R.string.server_not_avaliable)
-                        }
-
+                        this.finish()
                     } else {
                         toaster.showToast(R.string.not_internet)
                     }
@@ -86,13 +80,5 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    private fun isInternetAvailable(): Boolean {
-        return try {
-            val ipAddr: InetAddress = InetAddress.getByName(BuildConfig.urlServer)
-            !ipAddr.equals("")
-        } catch (e: Exception) {
-            false
-        }
-    }
 
 }

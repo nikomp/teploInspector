@@ -32,7 +32,6 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
                 view?.showOrders(it)
             }
 
-
         Timber.d("ОК")
 
     }

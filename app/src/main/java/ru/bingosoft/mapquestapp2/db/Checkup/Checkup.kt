@@ -16,5 +16,6 @@ data class Checkup (
     var id: Long = 0,
     var guid: String,
     var text: JsonObject,
-    var idOrder: Long? =null
+    var idOrder: Long? =null,
+    var textResult: JsonObject? = null
 )

@@ -20,6 +20,7 @@
 
     <string name="menu_orders">Заявки</string>
     <string name="menu_checkups">Обследования</string>
+    <string name="title_checkup_fragment">Обследованиe</string>
     <string name="menu_map">Карта</string>
     <string name="title_activity_checkup">Обследования</string>
     <string name="order_image_description">Состояние заявки</string>
@@ -32,4 +33,19 @@
     <string name="server_not_avaliable">Сервер не доступен</string>
     <string name="textview">Текст вопроса</string>
     <string name="hint_spinner">Выберите значение из списка</string>
+    <string name="hint">hint</string>
+    <string name="other">Другое</string>
+    <string name="enter">Авторизация</string>
+    <string name="by_auth">К авторизации</string>
+    <string name="saveCheckup">Сохранить чеклист</string>
+
+    <string name="notConfirmStep">Подтвердите все шаги чеклиста</string>
+    <string name="msgSaveCheckup">Чеклист сохранен</string>
+
+    <string name="msgDataSendOk">Данные отправлены на сервере</string>
+    <string name="msgDataSendError">Данные не переданы на сервер</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="send_data">Отправить данные</string>
 </resources>

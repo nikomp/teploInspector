@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.mapbox.mapboxsdk.Mapbox
@@ -53,6 +54,8 @@ class MapFragment : Fragment(), MapContractView {
 
         Mapbox.getInstance(this.context!!,getString(R.string.access_token))
         val root = inflater.inflate(R.layout.fragment_map, container, false)
+
+        (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_map)
 
 
         mapView=root.findViewById(R.id.mapView)
@@ -140,8 +143,6 @@ class MapFragment : Fragment(), MapContractView {
         markerOptions.title(order.number)
         markerOptions.snippet(order.name)
         mapboxMap.addMarker(markerOptions)
-
-
 
     }
 

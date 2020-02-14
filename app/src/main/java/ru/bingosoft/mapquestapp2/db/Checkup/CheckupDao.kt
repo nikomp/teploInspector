@@ -11,6 +11,9 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup WHERE id = :id")
     fun getById(id: Long): Flowable<Checkup>
 
+    @Query("SELECT * FROM checkup WHERE idOrder = :id")
+    fun getCheckupsOrder(id: Long): Flowable<List<Checkup>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(checkup: Checkup)
 

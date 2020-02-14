@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical">
 
     <androidx.cardview.widget.CardView
@@ -35,15 +35,17 @@
                 android:text="@string/textview"
                 android:textAppearance="@style/Base.TextAppearance.AppCompat.Large" />
 
-            <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
-                android:id="@+id/android_material_design_spinner"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til"
+                style="@style/TextInputLayoutStyle"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:hint="@string/hint_spinner"
-                android:singleLine="true"
-                android:textColorHint="#05ab9a"
-                app:met_floatingLabel="normal" />
+                android:layout_height="match_parent">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/tiet"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fabCheck"
@@ -55,6 +57,7 @@
                 android:focusable="true"
                 app:fabCustomSize="32dp"
                 app:srcCompat="@drawable/ic_check_black_8dp" />
+
 
         </LinearLayout>
 

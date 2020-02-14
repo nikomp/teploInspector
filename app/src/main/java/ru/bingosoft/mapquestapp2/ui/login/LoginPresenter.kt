@@ -25,8 +25,7 @@ class LoginPresenter @Inject constructor(
     private var stLogin: String = ""
     private var stPassword: String = ""
 
-    lateinit var disposable: Disposable
-
+    private lateinit var disposable: Disposable
 
     fun attachView(view: LoginContractView) {
         this.view = view
@@ -40,12 +39,15 @@ class LoginPresenter @Inject constructor(
             disposable=apiService.getAuthorization(fingerprint,stLogin,stPassword)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ response ->
+                .subscribe({ response ->
                     Log.d(LOGTAG, "Авторизация пройдена")
                     this.stLogin=stLogin
                     this.stPassword=stPassword
                     syncDB()
-                }
+                },  {throwable ->
+                    Timber.d("Ошибка сети!!")
+                    view?.showFailureTextView()
+                })
         }
 
     }
@@ -69,38 +71,7 @@ class LoginPresenter @Inject constructor(
         disposable.dispose()
     }
 
-    /*fun syncDB() {
-        disposable=apiService.getListOrder(action="getAllOrders")
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ response ->
-                Timber.d("Получаем данные с сервера")
-                Timber.d(response.toString())
-
-                val data: Models.OrderList = response
-                Single.fromCallable{
-                    data.orders.forEach{
-                        db.ordersDao().insert(it)
-                    }
-
-                }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ _ ->
-                    view?.showMessageLogin(R.string.auth_ok)
-                    view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
-                }
-
-
-            },{throwable ->
-
-                Timber.d(throwable.message)
-
-            })
-
-    }*/
-
-    fun syncDB() {
+    private fun syncDB() {
         disposable = syncOrder()
             .andThen(apiService.getCheckups(action="getCheckups"))
             .subscribeOn(Schedulers.io())
@@ -129,7 +100,7 @@ class LoginPresenter @Inject constructor(
 
     }
 
-    fun syncOrder() :Completable =apiService.getListOrder(action="getAllOrders")
+    private fun syncOrder() :Completable =apiService.getListOrder(action="getAllOrders")
         .subscribeOn(Schedulers.io())
         //.observeOn(AndroidSchedulers.mainThread())
         .map{

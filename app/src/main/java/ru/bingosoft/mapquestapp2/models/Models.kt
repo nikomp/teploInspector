@@ -26,14 +26,18 @@ class Models {
     )
 
     class ControlList(
-        @SerializedName("controls") var controls: List<TemplateControl> = listOf()
+        @SerializedName("controls") var list: List<TemplateControl> = listOf()
     )
 
     class TemplateControl (
         @SerializedName("id") var id: Int = 0,
         @SerializedName("type") var type: String = "",
         @SerializedName("value") var value: Array<String> = arrayOf(),
-        @SerializedName("question") var question: String=""
+        @SerializedName("question") var question: String="",
+        @SerializedName("hint") var hint: String="",
+        @SerializedName("resvalue") var resvalue: String="",
+
+        var checked: Boolean=false
     )
 
 
