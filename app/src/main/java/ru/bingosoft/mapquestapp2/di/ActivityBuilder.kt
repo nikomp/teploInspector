@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
 import ru.bingosoft.mapquestapp2.ui.checkuplist.CheckupListFragment
+import ru.bingosoft.mapquestapp2.ui.checkuplist_bottom.CheckupListBottomSheet
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.ui.mainactivity.MainActivity
 import ru.bingosoft.mapquestapp2.ui.map.MapFragment
@@ -22,6 +23,9 @@ abstract class ActivityBuilder {
 
     @ContributesAndroidInjector(modules = [PresentersModule::class])
     abstract fun bindCheckupListFragment(): CheckupListFragment
+
+    @ContributesAndroidInjector(modules = [PresentersModule::class])
+    abstract fun bindCheckupListBottomSheet(): CheckupListBottomSheet
 
     @ContributesAndroidInjector(modules = [PresentersModule::class])
     abstract fun bindLoginActivity(): LoginActivity

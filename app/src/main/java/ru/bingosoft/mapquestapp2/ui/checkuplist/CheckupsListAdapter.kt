@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_cardview_checkuplist.view.*
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
+import timber.log.Timber
 
 class CheckupsListAdapter(val checkups: List<Checkup>, val itemListener: CheckupListRVClickListeners, val ctx: Context): RecyclerView.Adapter<CheckupsListAdapter.CheckupsViewHolder>() {
 
@@ -27,7 +28,9 @@ class CheckupsListAdapter(val checkups: List<Checkup>, val itemListener: Checkup
     }
 
     override fun onBindViewHolder(holder: CheckupsViewHolder, position: Int) {
-        holder.checkupsGuid.text = checkups[position].guid
+        Timber.d("checkups[position].nameObject=${checkups[position].nameObject}")
+        holder.checkupsKind.text = checkups[position].kindObject
+        holder.checkupsName.text = checkups[position].nameObject
         holder.listener=itemListener
 
     }
@@ -38,13 +41,15 @@ class CheckupsListAdapter(val checkups: List<Checkup>, val itemListener: Checkup
         }
 
 
-        var checkupsGuid: TextView
+        var checkupsKind: TextView
+        var checkupsName: TextView
         lateinit var listener: CheckupListRVClickListeners
 
         var cardView: CardView = itemView.cvCheckupList
 
         init {
-            checkupsGuid = itemView.guid
+            checkupsKind = itemView.kindObject
+            checkupsName = itemView.nameObject
             view.setOnClickListener(this)
         }
 

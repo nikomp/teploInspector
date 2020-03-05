@@ -40,7 +40,7 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
 
     fun saveCheckup(uiCreator: UICreator) {
         Timber.d("Сохраняем данные чеклиста")
-        val filterControls=uiCreator.controlList.list.filter { !it.checked }
+        /*val filterControls=uiCreator.controlList.list.filter { !it.checked }
         if (filterControls.isNotEmpty()) {
             view?.showCheckupMessage(R.string.notConfirmStep)
         } else {
@@ -55,13 +55,28 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
             .subscribe{_->
                 view?.showCheckupMessage(R.string.msgSaveCheckup)
             }
+        }*/
 
+        val resCheckup= Gson().toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
+        uiCreator.checkup.textResult=resCheckup as JsonObject
 
+        disposable=Single.fromCallable{
+            db.checkupDao().insert(uiCreator.checkup)
         }
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe({_->
+            view?.showCheckupMessage(R.string.msgSaveCheckup)
+        },{trowable ->
+            trowable.printStackTrace()
+        })
     }
 
     fun onDestroy() {
         this.view = null
-        disposable.dispose()
+        if (this::disposable.isInitialized) {
+            disposable.dispose()
+        }
+
     }
 }

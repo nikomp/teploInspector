@@ -8,7 +8,8 @@
     <fragment
         android:id="@+id/nav_home"
         android:name="ru.bingosoft.mapquestapp2.ui.order.OrderFragment"
-        tools:layout="@layout/fragment_order" />
+        tools:layout="@layout/fragment_order" >
+    </fragment>
 
     <fragment
         android:id="@+id/nav_gallery"

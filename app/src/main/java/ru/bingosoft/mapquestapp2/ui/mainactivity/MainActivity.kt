@@ -1,5 +1,6 @@
 package ru.bingosoft.mapquestapp2.ui.mainactivity
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -15,6 +16,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.navigation.NavigationView
+import com.mapbox.mapboxsdk.geometry.LatLng
 import dagger.android.AndroidInjection
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
@@ -23,6 +25,7 @@ import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
 import ru.bingosoft.mapquestapp2.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.util.Const
+import ru.bingosoft.mapquestapp2.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.mapquestapp2.util.Toaster
 import timber.log.Timber
 import javax.inject.Inject
@@ -39,18 +42,15 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
 
+    var mapPoint: LatLng= LatLng(0.0,0.0)
+    var controlMapId: Int=0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-
-        /*val fab: FloatingActionButton = findViewById(R.id.fab)
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
-        }*/
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
@@ -81,6 +81,38 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
+            Timber.d("resultCode OK")
+            when (requestCode) {
+                PHOTO -> {
+                    Timber.d("REQUEST_CODE_PHOTO")
+                    toaster.showToast("Фото сохранено в папке DCIM\\PhotoForApp\\")
+
+                }
+                else -> {
+                    Timber.d("Неизвестный requestCode")
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainPresenter.onDestroy()
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        Timber.d("onBackPressed")
+        Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
+
+        if (supportFragmentManager.backStackEntryCount==0) {
+            supportActionBar?.setTitle(R.string.menu_orders)
+        }
+    }
+
     override fun setCheckup(checkup: Checkup) {
         Timber.d("setCheckup from Activity")
         val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
@@ -91,6 +123,19 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("setChecupListOrder from Activity")
         val clf=this.supportFragmentManager.findFragmentByTag("checkup_list_fragment_tag") as? CheckupListFragment
         clf?.showCheckupListOrder(order)
+    }
+
+    override fun setCoordinates(point: LatLng, controlId: Int) {
+        Timber.d("setCoordinates from Activity")
+        //val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
+        Timber.d(point.toString())
+        mapPoint=point
+        this.controlMapId=controlId
+        //cf?.setResultMapPoint(point, controlId)
+    }
+
+    override fun test() {
+        Timber.d("test")
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -114,7 +159,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 Timber.d("Отправляем данные на сервер")
                 mainPresenter.attachView(this)
                 mainPresenter.sendData()
-
                 return true
             }
             R.id.nav_auth -> {
@@ -133,6 +177,15 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun showMainActivityMsg(resID: Int) {
         toaster.showToast(resID)
+    }
+
+    override fun showMainActivityMsg(msg: String) {
+        toaster.showToast(msg)
+    }
+
+    override fun dataSyncOK() {
+        Timber.d("dataSyncOK")
+        mainPresenter.updData()
     }
 
 }

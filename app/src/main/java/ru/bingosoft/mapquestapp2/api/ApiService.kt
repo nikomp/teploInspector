@@ -1,6 +1,7 @@
 package ru.bingosoft.mapquestapp2.api
 
 import io.reactivex.Single
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
 import ru.bingosoft.mapquestapp2.models.Models
@@ -24,6 +25,11 @@ interface ApiService {
         @Query("action") action: String
     ): Single<Models.CheckupList>
 
+    @GET("procs/androidAPI.php")
+    fun getCheckupGuide(
+        @Query("action") action: String
+    ): Single<Models.CheckupGuideList>
+
     /*@POST("/dashboards/app/backend/native.php")
       @FormUrlEncoded
       Call<Object> doReverseSync(@Header("Cookie") String userCookie, @Field("action") String action,
@@ -33,8 +39,8 @@ interface ApiService {
     @Multipart
     fun doReverseSync(
         @Part("action") action: RequestBody?,
-        @Part("jsonData") jsonData: RequestBody?
-        //@Part file: MultipartBody.Part?,
+        @Part("jsonData") jsonData: RequestBody?,
+        @Part file: MultipartBody.Part?
         //@Part("filemap") filemap: RequestBody?
     ): Single<Models.SimpleMsg>
 }

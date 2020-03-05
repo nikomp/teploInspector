@@ -33,18 +33,24 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(stLogin: String?, stPassword: String?){
 
+
         val fingerprint: String = random()
 
         if (stLogin!=null && stPassword!=null) {
             disposable=apiService.getAuthorization(fingerprint,stLogin,stPassword)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({ response ->
+                .subscribe({
                     Log.d(LOGTAG, "Авторизация пройдена")
                     this.stLogin=stLogin
                     this.stPassword=stPassword
-                    syncDB()
-                },  {throwable ->
+
+                    val v=view
+                    if (v!=null) {
+                        v.alertRepeatSync()
+                    }
+
+                },  {
                     Timber.d("Ошибка сети!!")
                     view?.showFailureTextView()
                 })
@@ -68,11 +74,15 @@ class LoginPresenter @Inject constructor(
 
     fun onDestroy() {
         this.view = null
-        disposable.dispose()
+        if (this::disposable.isInitialized) {
+            disposable.dispose()
+        }
     }
 
-    private fun syncDB() {
+    fun syncDB() {
+        Timber.d("syncDB")
         disposable = syncOrder()
+            .andThen(syncCheckupGuide())
             .andThen(apiService.getCheckups(action="getCheckups"))
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -90,11 +100,12 @@ class LoginPresenter @Inject constructor(
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe{ _ ->
                     Timber.d("Сохранили обследования в БД")
+                    view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
                 }
 
             },{throwable ->
 
-                Timber.d(throwable.message)
+                throwable.printStackTrace()
 
             })
 
@@ -116,7 +127,7 @@ class LoginPresenter @Inject constructor(
             }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{ _ ->
+            .subscribe{_->
                 view?.showMessageLogin(R.string.auth_ok)
                 view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
             }
@@ -124,5 +135,28 @@ class LoginPresenter @Inject constructor(
         }
         .ignoreElement()
 
+
+    private fun syncCheckupGuide() :Completable =apiService.getCheckupGuide(action="getCheckupGuide")
+        .subscribeOn(Schedulers.io())
+        //.observeOn(AndroidSchedulers.mainThread())
+        .map{
+            Timber.d("Получили справочник чеклистов")
+            Timber.d(it.toString())
+
+            val data: Models.CheckupGuideList = it
+            Single.fromCallable{
+                data.guides.forEach{
+                    db.checkupGuideDao().insert(it)
+                }
+
+            }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{_->
+                Timber.d("Сохранили справочник чеклистов в БД")
+            }
+
+        }
+        .ignoreElement()
 
 }

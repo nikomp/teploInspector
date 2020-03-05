@@ -2,6 +2,7 @@ package ru.bingosoft.mapquestapp2.models
 
 import com.google.gson.annotations.SerializedName
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
+import ru.bingosoft.mapquestapp2.db.CheckupGuide.CheckupGuide
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
 
 class Models {
@@ -25,12 +26,17 @@ class Models {
         @SerializedName("data") var checkups: List<Checkup> = listOf()
     )
 
+    class CheckupGuideList(
+        @SerializedName("data") var guides: List<CheckupGuide> = listOf()
+    )
+
     class ControlList(
         @SerializedName("controls") var list: List<TemplateControl> = listOf()
     )
 
     class TemplateControl (
         @SerializedName("id") var id: Int = 0,
+        @SerializedName("guid") var guid: String = "",
         @SerializedName("type") var type: String = "",
         @SerializedName("value") var value: Array<String> = arrayOf(),
         @SerializedName("question") var question: String="",

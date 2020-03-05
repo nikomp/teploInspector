@@ -9,13 +9,13 @@ import timber.log.Timber
 class MapPresenter (val db: AppDatabase)  {
     var view: MapContractView? = null
 
-    var disposable: Disposable? = null
+    private lateinit var disposable: Disposable
 
     fun attachView(view: MapContractView) {
         this.view=view
     }
 
-    fun viewIsReady() {
+    fun loadMarkers() {
         disposable= db.ordersDao().getAll()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -25,5 +25,12 @@ class MapPresenter (val db: AppDatabase)  {
                 view?.showMarkers(it)
             }
 
+    }
+
+    fun onDestroy() {
+        this.view = null
+        if (this::disposable.isInitialized) {
+            disposable.dispose()
+        }
     }
 }

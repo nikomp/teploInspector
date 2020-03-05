@@ -24,6 +24,8 @@ import com.mapbox.mapboxsdk.maps.Style
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
+import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
+import ru.bingosoft.mapquestapp2.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.mapquestapp2.util.Const.Location.MAPQUEST_HEADQUARTERS
 import ru.bingosoft.mapquestapp2.util.Const.LogTags.LOGTAG
 import ru.bingosoft.mapquestapp2.util.Const.RequestCodes.PERMISSION
@@ -43,6 +45,10 @@ class MapFragment : Fragment(), MapContractView {
 
     @Inject
     lateinit var toaster: Toaster
+
+    var addCoordinatesTag: Boolean=false
+    var checkupId: Long?=0
+    var controlId: Int=0
 
 
     override fun onCreateView(
@@ -74,12 +80,29 @@ class MapFragment : Fragment(), MapContractView {
 
                 this.mapboxMap = mapboxMap
 
+                this.mapboxMap.moveCamera(CameraUpdateFactory.newLatLngZoom(MAPQUEST_HEADQUARTERS,
+                    12.0
+                ))
+
             })
         }
 
-
+        Timber.d("MapFragment onCreateView")
         mapPresenter.attachView(this)
-        mapPresenter.viewIsReady()
+
+        val tag = arguments?.getBoolean("addCoordinates")
+        checkupId= arguments?.getLong("checkupId")
+        val control= arguments?.getInt("controlId")
+        if (control!=null) {
+            controlId=control
+        }
+        Timber.d("checkupId=$checkupId")
+
+        if (tag==null || tag==false) {
+            mapPresenter.loadMarkers() // Грузим все маркеры Заявок
+        } else {
+            addCoordinatesTag=true
+        }
 
         return root
     }
@@ -117,17 +140,11 @@ class MapFragment : Fragment(), MapContractView {
     override fun onDestroyView() {
         super.onDestroyView()
         mapView?.onDestroy()
+        mapPresenter.onDestroy()
     }
-
-
 
     override fun showMarkers(orders: List<Orders>) {
         mapView?.getMapAsync { it ->
-            val mapboxMap = it
-            mapboxMap.moveCamera(CameraUpdateFactory.newLatLngZoom(MAPQUEST_HEADQUARTERS,
-                12.0
-            ))
-
             orders.forEach{
                 importOrdersOnMap(mapboxMap, it)
             }
@@ -151,6 +168,30 @@ class MapFragment : Fragment(), MapContractView {
 
         markerOptions.position(point)
         mapboxMap.addMarker(markerOptions)
+
+        if (addCoordinatesTag) {
+            val bundle = Bundle()
+            bundle.putBoolean("returnFromMap", true)
+            val idCheckup=checkupId
+            if (idCheckup!=null) {
+                bundle.putLong("checkupId",idCheckup)
+            }
+
+            val fragmentCheckup= CheckupFragment()
+            fragmentCheckup.arguments=bundle
+            val fragmentManager=this.requireActivity().supportFragmentManager
+
+            fragmentManager.beginTransaction()
+                .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_list_fragment_tag")
+                .addToBackStack(null)
+                .commit()
+
+            fragmentManager.executePendingTransactions()
+
+            (this.requireActivity() as FragmentsContractActivity).setCoordinates(point,controlId)
+
+        }
+
 
         return true
     }
@@ -212,7 +253,6 @@ class MapFragment : Fragment(), MapContractView {
             }
             else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
         }
-
 
     }
 

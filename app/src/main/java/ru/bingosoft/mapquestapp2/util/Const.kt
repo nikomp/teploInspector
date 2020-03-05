@@ -22,6 +22,7 @@ class Const {
         const val IVPASS = "ivpassword"
         const val PASSWORD = "password"
         const val SESSION = "session_id"
+        const val DATESYNC = "last_sync_date"
     }
 
     object Location {
@@ -29,5 +30,9 @@ class Const {
 
         val DEFAULT_INTERVAL_IN_MILLISECONDS: Long = 1000L
         val DEFAULT_MAX_WAIT_TIME: Long = DEFAULT_INTERVAL_IN_MILLISECONDS * 5
+    }
+
+    object Extras {
+        const val DIR_NAME = "dir_name"
     }
 }

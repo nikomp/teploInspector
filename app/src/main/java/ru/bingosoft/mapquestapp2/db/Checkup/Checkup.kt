@@ -15,7 +15,10 @@ data class Checkup (
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
     var guid: String,
-    var text: JsonObject,
+    var kindObject: String,
+    var nameObject: String,
+    var text: JsonObject? = null,
     var idOrder: Long? =null,
-    var textResult: JsonObject? = null
+    var textResult: JsonObject? = null,
+    var sync: Boolean = false
 )

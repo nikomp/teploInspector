@@ -38,7 +38,9 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
 
     fun onDestroy() {
         this.view = null
-        disposable.dispose()
+        if (this::disposable.isInitialized) {
+            disposable.dispose()
+        }
     }
 
     fun importData() {

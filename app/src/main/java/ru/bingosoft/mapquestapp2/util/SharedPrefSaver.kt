@@ -5,10 +5,14 @@ import android.content.SharedPreferences
 import android.util.Log
 import ru.bingosoft.mapquestapp2.util.Const.LogTags.SPS
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.APP_PREFERENCES
+import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.DATESYNC
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.SESSION
 import timber.log.Timber
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SharedPrefSaver(ctx: Context) {
     private val sharedPreference: SharedPreferences = ctx.getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -77,5 +81,29 @@ class SharedPrefSaver(ctx: Context) {
 
         return ""
 
+    }
+
+    fun saveDateSyncDB(date: Date) {
+        //СОХРАНИМ
+        val editor: SharedPreferences.Editor = this.sharedPreference.edit()
+
+        val dateFormat =
+            SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale("ru","RU"))
+        try {
+            val dateTime = dateFormat.format(date)
+            editor.putString(DATESYNC, dateTime)
+            editor.apply()
+        } catch (e: ParseException) {
+            e.printStackTrace()
+        }
+
+    }
+
+    fun getDateSyncDB():String? {
+        Log.d(SPS, "getDateSyncDB")
+        if (sharedPreference.contains(DATESYNC)) {
+            return sharedPreference.getString(DATESYNC,"")
+        }
+        return ""
     }
 }

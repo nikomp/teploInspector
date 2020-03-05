@@ -21,7 +21,8 @@ class CheckupListPresenter @Inject constructor(val db: AppDatabase) {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
-                Timber.d("Обследования получили из БД")
+                Timber.d("Все Обследования получили из БД")
+                Timber.d("Число строк=${it.size}")
                 Timber.d(it.toString())
 
                 view?.showCheckups(it)
@@ -34,12 +35,16 @@ class CheckupListPresenter @Inject constructor(val db: AppDatabase) {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
+                Timber.d("loadCheckupListByOrder")
+                Timber.d(it.toString())
                 view?.showCheckups(it)
             }
     }
 
     fun onDestroy() {
         this.view = null
-        disposable.dispose()
+        if (this::disposable.isInitialized) {
+            disposable.dispose()
+        }
     }
 }

@@ -15,17 +15,19 @@ import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
 import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
+import ru.bingosoft.mapquestapp2.ui.checkuplist_bottom.CheckupListBottomSheet
 import ru.bingosoft.mapquestapp2.ui.mainactivity.FragmentsContractActivity
 import timber.log.Timber
 import javax.inject.Inject
+
 
 class CheckupListFragment: Fragment(), CheckupListContractView, CheckupListRVClickListeners {
 
     @Inject
     lateinit var checkupListPresenter: CheckupListPresenter
 
-    lateinit var root: View
-    lateinit var currentCheckup: Checkup
+    private lateinit var root: View
+    private lateinit var currentCheckup: Checkup
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,20 +35,34 @@ class CheckupListFragment: Fragment(), CheckupListContractView, CheckupListRVCli
         savedInstanceState: Bundle?
     ): View? {
         AndroidSupportInjection.inject(this)
+        Timber.d("CheckupListFragment.onCreateView")
 
         root = inflater.inflate(R.layout.fragment_checkuplist, container, false)
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_checkups)
 
-        val fab: FloatingActionButton = root.findViewById(R.id.fabAddCheckup)
-        fab.setOnClickListener { view ->
-            Timber.d("Добавляем новый чекап, параллельно создаем заявку, если открыли чекаплист без привязки к заявке")
-        }
+        setupViewBottomScreen()
+
+        val tag = arguments?.getBoolean("checkUpForOrder")
+        Timber.d("tag=$tag")
 
         checkupListPresenter.attachView(this)
-        checkupListPresenter.loadCheckupList()
+        if (tag==null || tag==false) {
+            checkupListPresenter.loadCheckupList() // Грузим все объекты
+        }
+
 
         return root
+    }
+
+    private fun setupViewBottomScreen() {
+
+        val fab: FloatingActionButton = root.findViewById(R.id.fabAddCheckup)
+        fab.setOnClickListener {
+            Timber.d("Добавляем новый чекап, параллельно создаем заявку, если открыли чекаплист без привязки к заявке")
+            val bottomSheetDialogFragment = CheckupListBottomSheet()
+            bottomSheetDialogFragment.show(this.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+        }
     }
 
     override fun onDestroy() {
@@ -56,11 +72,10 @@ class CheckupListFragment: Fragment(), CheckupListContractView, CheckupListRVCli
 
     override fun showCheckups(checkups: List<Checkup>) {
         Timber.d("Список обследований")
-        Timber.d(checkups.toString())
-        Timber.d(checkups.size.toString())
         val checkuplist_recycler_view = root.findViewById(R.id.checkuplist_recycler_view) as RecyclerView
         checkuplist_recycler_view.layoutManager = LinearLayoutManager(this.activity)
         val adapter = CheckupsListAdapter(checkups,this, this.requireContext())
+        Timber.d("В адаптере строк=${adapter.itemCount}")
         checkuplist_recycler_view.adapter = adapter
     }
 
