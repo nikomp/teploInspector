@@ -125,6 +125,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
         return list
     }
 
+
+
     fun onDestroy() {
         this.view = null
         if (this::disposable.isInitialized) {

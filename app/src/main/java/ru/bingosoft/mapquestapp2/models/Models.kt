@@ -18,6 +18,18 @@ class Models {
         @SerializedName("session_id") var session_id: String = ""
     )
 
+    class UserResult(
+        @SerializedName("data") var userInfo: User? = null
+    )
+
+    class User(
+        @SerializedName("photo_url") var photoUrl: String = "",
+        @SerializedName("fullname") var fullname: String = "",
+        @SerializedName("surname") var surname: String = "",
+        @SerializedName("name") var nameUser: String = "",
+        @SerializedName("fname") var fname: String = ""
+    )
+
     class OrderList(
         @SerializedName("data") var orders: List<Orders> = listOf()
     )

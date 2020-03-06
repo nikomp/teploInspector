@@ -50,11 +50,28 @@ class LoginPresenter @Inject constructor(
                         v.alertRepeatSync()
                     }
 
+                    getInfoCurrentUser()
+
                 },  {
                     Timber.d("Ошибка сети!!")
                     view?.showFailureTextView()
                 })
         }
+
+    }
+
+    fun getInfoCurrentUser()  {
+        Timber.d("getInfoCurrentUser")
+        disposable=apiService.getInfoAboutCurrentUser(action="getUserInfo")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({
+                Timber.d("Получили информацию о пользователе")
+                Timber.d(it.fullname)
+
+            },{
+                it.printStackTrace()
+            })
 
     }
 

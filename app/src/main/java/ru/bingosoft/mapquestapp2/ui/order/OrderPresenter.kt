@@ -11,7 +11,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-class OrderPresenter @Inject constructor(val db: AppDatabase) {
+class OrderPresenter @Inject constructor(
+    val db: AppDatabase
+    ) {
 
     var view: OrderContractView? = null
 
@@ -35,6 +37,7 @@ class OrderPresenter @Inject constructor(val db: AppDatabase) {
         Timber.d("ОК")
 
     }
+
 
     fun onDestroy() {
         this.view = null

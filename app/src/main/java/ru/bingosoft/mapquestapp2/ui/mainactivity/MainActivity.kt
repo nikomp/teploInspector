@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var controlMapId: Int=0
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Timber.d("MainActivity_onCreate")
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -53,6 +54,32 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         setSupportActionBar(toolbar)
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
+
+        drawerLayout.addDrawerListener(object: DrawerLayout.DrawerListener {
+            override fun onDrawerStateChanged(newState: Int) {
+                Timber.d("onDrawerStateChanged")
+
+            }
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                Timber.d("onDrawerSlide")
+
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                Timber.d("onDrawerClosed")
+
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                Timber.d("onDrawerOpened")
+                // TODO Загружаем картинку из SharedPref
+                invalidateNavigationDrawer()
+            }
+
+        })
+
+
         val navView: NavigationView = findViewById(R.id.nav_view)
         navController = findNavController(R.id.nav_host_fragment)
         // Passing each menu ID as a set of Ids because each
@@ -68,6 +95,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setNavigationItemSelectedListener(this)
         //navView.setupWithNavController(navController) // Переключалка фрагментов по-умолчанию
+
+        mainPresenter.attachView(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -127,11 +156,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun setCoordinates(point: LatLng, controlId: Int) {
         Timber.d("setCoordinates from Activity")
-        //val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        Timber.d(point.toString())
         mapPoint=point
         this.controlMapId=controlId
-        //cf?.setResultMapPoint(point, controlId)
     }
 
     override fun test() {
@@ -141,6 +167,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         val drawer = findViewById<View>(R.id.drawer_layout) as DrawerLayout
         drawer.closeDrawer(GravityCompat.START)
+
+        Timber.d("onNavigationItemSelected")
 
         when (item.itemId) {
             R.id.nav_home -> {
@@ -157,7 +185,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.nav_send_data -> {
                 Timber.d("Отправляем данные на сервер")
-                mainPresenter.attachView(this)
+
                 mainPresenter.sendData()
                 return true
             }
@@ -187,5 +215,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("dataSyncOK")
         mainPresenter.updData()
     }
+
+    fun invalidateNavigationDrawer() {
+        Timber.d("invalidateNavigationDrawer")
+    }
+
 
 }
