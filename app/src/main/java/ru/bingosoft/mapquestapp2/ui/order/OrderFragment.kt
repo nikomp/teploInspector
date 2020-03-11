@@ -16,6 +16,7 @@ import kotlinx.android.synthetic.main.alert_syncdb.view.*
 import kotlinx.android.synthetic.main.fragment_order.*
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
+import ru.bingosoft.mapquestapp2.models.Models
 import ru.bingosoft.mapquestapp2.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.ui.login.LoginContractView
@@ -213,6 +214,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun saveDateSyncToSharedPreference(date: Date) {
         sharedPref.saveDateSyncDB(date)
+    }
+
+    override fun saveInfoUserToSharedPreference(user: Models.User) {
+        sharedPref.saveUser(user)
     }
 
     override fun showOrders(orders: List<Orders>) {

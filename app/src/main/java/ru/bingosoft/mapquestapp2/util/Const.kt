@@ -23,6 +23,9 @@ class Const {
         const val PASSWORD = "password"
         const val SESSION = "session_id"
         const val DATESYNC = "last_sync_date"
+        const val USER_FULLNAME = "fullname"
+        const val USER_PHOTO_URL = "photo_url"
+        const val FIREBASE_MESSAGE = "message_token"
     }
 
     object Location {

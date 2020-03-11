@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
@@ -15,9 +17,14 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
 import com.mapbox.mapboxsdk.geometry.LatLng
 import dagger.android.AndroidInjection
+import ru.bingosoft.mapquestapp2.BuildConfig
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
@@ -26,6 +33,7 @@ import ru.bingosoft.mapquestapp2.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.util.Const
 import ru.bingosoft.mapquestapp2.util.Const.RequestCodes.PHOTO
+import ru.bingosoft.mapquestapp2.util.SharedPrefSaver
 import ru.bingosoft.mapquestapp2.util.Toaster
 import timber.log.Timber
 import javax.inject.Inject
@@ -38,6 +46,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var mainPresenter: MainActivityPresenter
     @Inject
     lateinit var toaster: Toaster
+    @Inject
+    lateinit var sharedPref: SharedPrefSaver
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
@@ -73,7 +83,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
             override fun onDrawerOpened(drawerView: View) {
                 Timber.d("onDrawerOpened")
-                // TODO Загружаем картинку из SharedPref
                 invalidateNavigationDrawer()
             }
 
@@ -97,6 +106,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         //navView.setupWithNavController(navController) // Переключалка фрагментов по-умолчанию
 
         mainPresenter.attachView(this)
+
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -185,7 +197,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.nav_send_data -> {
                 Timber.d("Отправляем данные на сервер")
-
                 mainPresenter.sendData()
                 return true
             }
@@ -198,9 +209,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             else -> {
                 return false
             }
-
         }
-
     }
 
     override fun showMainActivityMsg(resID: Int) {
@@ -218,6 +227,32 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
+        val user=sharedPref.getUser()
+
+        val navView: NavigationView = findViewById(R.id.nav_view)
+
+        val headerLayout=navView.getHeaderView(0)
+
+        if (user.photoUrl!="") {
+            val ivAvatar: ImageView =
+                headerLayout.findViewById(R.id.imageAvatar)
+
+            val glideUrl = GlideUrl(
+                "${BuildConfig.urlServer}/${user.photoUrl}", LazyHeaders.Builder()
+                    .build()
+            )
+
+            Glide
+                .with(this)
+                .load(glideUrl)
+                .apply(RequestOptions.circleCropTransform())
+                .into(ivAvatar)
+        }
+
+        if (user.fullname!="") {
+            val tvName: TextView = headerLayout.findViewById(R.id.fullname)
+            tvName.text = user.fullname
+        }
     }
 
 

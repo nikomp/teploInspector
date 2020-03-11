@@ -1,5 +1,6 @@
 package ru.bingosoft.mapquestapp2.ui.login
 
+import ru.bingosoft.mapquestapp2.models.Models
 import java.util.*
 
 interface LoginContractView {
@@ -8,4 +9,5 @@ interface LoginContractView {
     fun showFailureTextView()
     fun alertRepeatSync()
     fun saveDateSyncToSharedPreference(date: Date)
+    fun saveInfoUserToSharedPreference(user: Models.User)
 }

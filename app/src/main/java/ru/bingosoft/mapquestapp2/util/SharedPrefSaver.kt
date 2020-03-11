@@ -3,12 +3,15 @@ package ru.bingosoft.mapquestapp2.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import ru.bingosoft.mapquestapp2.models.Models
 import ru.bingosoft.mapquestapp2.util.Const.LogTags.SPS
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.APP_PREFERENCES
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.DATESYNC
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.SESSION
+import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.USER_FULLNAME
+import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.USER_PHOTO_URL
 import timber.log.Timber
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -105,5 +108,28 @@ class SharedPrefSaver(ctx: Context) {
             return sharedPreference.getString(DATESYNC,"")
         }
         return ""
+    }
+
+    fun saveUser(user: Models.User) {
+        Log.d(SPS, "saveUser")
+        //СОХРАНИМ
+        val editor: SharedPreferences.Editor = this.sharedPreference.edit()
+        editor.putString(USER_FULLNAME, user.fullname)
+        editor.putString(USER_PHOTO_URL, user.photoUrl)
+        editor.apply()
+    }
+
+    fun getUser(): Models.User {
+        Log.d(SPS, "saveUser")
+        val user=Models.User()
+
+        if (sharedPreference.contains(USER_FULLNAME)) {
+            user.fullname=sharedPreference.getString(USER_FULLNAME, "") ?: ""
+        }
+        if (sharedPreference.contains(USER_PHOTO_URL)) {
+            user.photoUrl=sharedPreference.getString(USER_PHOTO_URL, "") ?: ""
+        }
+
+        return user
     }
 }

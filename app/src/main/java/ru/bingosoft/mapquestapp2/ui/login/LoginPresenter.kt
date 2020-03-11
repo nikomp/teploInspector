@@ -68,6 +68,8 @@ class LoginPresenter @Inject constructor(
             .subscribe ({
                 Timber.d("Получили информацию о пользователе")
                 Timber.d(it.fullname)
+                // сохраним данные в SharedPreference
+                view?.saveInfoUserToSharedPreference(it)
 
             },{
                 it.printStackTrace()
