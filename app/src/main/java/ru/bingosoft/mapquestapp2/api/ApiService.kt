@@ -48,4 +48,11 @@ interface ApiService {
         @Part file: MultipartBody.Part?
         //@Part("filemap") filemap: RequestBody?
     ): Single<Models.SimpleMsg>
+
+    @POST("procs/androidAPI.php")
+    @FormUrlEncoded
+    fun saveGCMToken(
+        @Field("action") action: String,
+        @Field("token") token: String
+    ): Single<Models.SimpleMsg>
 }

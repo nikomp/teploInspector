@@ -6,10 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.*
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
@@ -59,8 +62,18 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
 
+        // Если логин/пароль есть не авторизуемся
+        if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
+            doAuthorization()
+        } else {
+            Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
+            orderPresenter.attachView(this)
+            orderPresenter.loadOrders()
 
-        doAuthorization()
+            val pb=root.findViewById<ProgressBar>(R.id.progressBar)
+            pb.visibility= View.INVISIBLE
+        }
+
         return root
     }
 
@@ -122,6 +135,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         orderPresenter.attachView(this)
         //orderPresenter.importData()
         orderPresenter.loadOrders()
+    }
+
+    override fun showMessageLogin(msg: String) {
+        toaster.showToast(msg)
     }
 
     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
@@ -213,6 +230,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun saveDateSyncToSharedPreference(date: Date) {
+        Timber.d("saveDateSyncToSharedPreference")
         sharedPref.saveDateSyncDB(date)
     }
 
@@ -221,6 +239,18 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun showOrders(orders: List<Orders>) {
+
+        // инициализируем контейнер SwipeRefreshLayout
+        val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
+
+        // указываем слушатель свайпов пользователя
+        swipeRefreshLayout.setOnRefreshListener(OnRefreshListener {
+            loginPresenter.syncDB()
+            swipeRefreshLayout.isRefreshing = false
+        })
+        Timber.d("showOrders")
+
+
         val orders_recycler_view = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         orders_recycler_view.layoutManager = LinearLayoutManager(this.activity)
         val adapter = OrderListAdapter(orders,this, this.requireContext())
@@ -260,6 +290,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         //Включаем фрагмент со списком Обследований для конкретной заявки
         val bundle = Bundle()
         bundle.putBoolean("checkUpForOrder", true)
+        bundle.putLong("idOrder",currentOrder.id)
 
         val fragmentCheckupList= CheckupListFragment()
         fragmentCheckupList.arguments=bundle

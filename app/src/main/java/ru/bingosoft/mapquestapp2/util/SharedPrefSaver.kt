@@ -7,6 +7,7 @@ import ru.bingosoft.mapquestapp2.models.Models
 import ru.bingosoft.mapquestapp2.util.Const.LogTags.SPS
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.APP_PREFERENCES
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.DATESYNC
+import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.FIREBASE_MESSAGE
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.mapquestapp2.util.Const.SharedPrefConst.SESSION
@@ -65,6 +66,13 @@ class SharedPrefSaver(ctx: Context) {
 
         return ""
 
+    }
+
+    fun clearAuthData() {
+        val editor: SharedPreferences.Editor = this.sharedPreference.edit()
+        editor.remove("login")
+        editor.remove("password")
+        editor.apply()
     }
 
     fun saveSessionId(sessionId: String) {
@@ -131,5 +139,13 @@ class SharedPrefSaver(ctx: Context) {
         }
 
         return user
+    }
+
+    fun getTokenGCM() :String {
+        if (sharedPreference.contains(FIREBASE_MESSAGE)) {
+            return sharedPreference.getString(FIREBASE_MESSAGE, "") ?: ""
+        } else {
+            return ""
+        }
     }
 }

@@ -15,6 +15,9 @@ interface OrdersDao {
     @Query("SELECT count(*) FROM orders")
     fun getSize(): Int
 
+    @Query("DELETE FROM orders")
+    fun clearOrders()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(orders: Orders)
 

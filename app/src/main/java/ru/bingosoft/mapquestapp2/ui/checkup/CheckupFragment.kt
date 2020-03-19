@@ -7,6 +7,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -34,7 +36,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     @Inject
     lateinit var photoHelper: PhotoHelper
 
-    private lateinit var root: View
+    lateinit var root: View
     private lateinit var uiCreator: UICreator
 
     override fun onCreateView(
@@ -53,9 +55,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         checkupPresenter.attachView(this)
 
-        val tag = arguments?.getBoolean("returnFromMap")
+        val tag = arguments?.getBoolean("loadCheckupById")
         if (tag!=null && tag==true) {
-            Timber.d("returnFromMap")
+            Timber.d("loadCheckupById")
             val checkupId= arguments?.getLong("checkupId")
             Timber.d("checkupId=$checkupId")
             if (checkupId!=null) {
@@ -76,7 +78,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         Timber.d(checkup.toString())
 
         photoHelper.parentFragment=this
-        uiCreator=UICreator(root,checkup,photoHelper,checkupPresenter)
+        //uiCreator=UICreator(root,checkup,photoHelper,checkupPresenter)
+        uiCreator= UICreator(this, checkup)
         uiCreator.create()
 
     }
@@ -152,6 +155,18 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             }
             else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
         }
+
+    }
+
+    fun setPhotoResult(controlId: Int?, photoDir: String) {
+        Timber.d("setPhotoResult from fragment ${controlId}")
+        if (controlId!=null) {
+            Timber.d("controlId!=null")
+            val llayout=root.findViewById<LinearLayout>(controlId)
+            llayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
+        }
+
+
 
     }
 

@@ -45,7 +45,6 @@ class CheckupListFragment: Fragment(), CheckupListContractView, CheckupListRVCli
 
         val tag = arguments?.getBoolean("checkUpForOrder")
         Timber.d("tag=$tag")
-
         checkupListPresenter.attachView(this)
         if (tag==null || tag==false) {
             checkupListPresenter.loadCheckupList() // Грузим все объекты
@@ -88,6 +87,12 @@ class CheckupListFragment: Fragment(), CheckupListContractView, CheckupListRVCli
 
         val fragmentCheckup=CheckupFragment()
         val fragmentManager=this.requireActivity().supportFragmentManager
+
+        // Добавим id текущего фрагмента в аргументы, чтоб можно было восстановить при onBackPressed
+        val bundle = Bundle()
+        val idCheckup=currentCheckup.id
+        bundle.putLong("checkupId",idCheckup)
+        fragmentCheckup.arguments=bundle
 
         fragmentManager.beginTransaction()
             .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")

@@ -37,12 +37,21 @@ class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClic
     }
 
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
+        //Timber.d("orders[position]=${orders[position]}")
         holder.orderNumber.text = orders[position].number
         holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(orders[position].dateCreate)
         holder.orderName.text = orders[position].name
         holder.orderadress.text = orders[position].adress
         holder.fio.text = orders[position].contactFio
         holder.phone.text = orders[position].phone
+
+        if (orders[position].state.equals("1")) {
+            holder.targetImage.setImageResource(R.drawable.ic_flash_on_black_24dp)
+        } else {
+            holder.targetImage.setImageResource(R.drawable.ic_flash_on_black_done24dp)
+        }
+
+
         holder.listener=itemListener
 
         holder.fabButton.setOnClickListener{
@@ -80,7 +89,7 @@ class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClic
         var orderadress: TextView
         var fio: TextView
         var phone: TextView
-        private var targetImage: ImageView
+        var targetImage: ImageView
         var fabButton: FloatingActionButton
         lateinit var listener: OrdersRVClickListeners
 
@@ -93,7 +102,7 @@ class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClic
             orderadress = itemView.adress
             fio = itemView.fio
             phone = itemView.phone
-            this.targetImage = itemView.targetImage as ImageView
+            targetImage = itemView.targetImage as ImageView
             fabButton=itemView.fab2 as FloatingActionButton
 
 

@@ -5,6 +5,7 @@ import java.util.*
 
 interface LoginContractView {
     fun showMessageLogin(resID: Int)
+    fun showMessageLogin(msg: String)
     fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
     fun showFailureTextView()
     fun alertRepeatSync()

@@ -59,7 +59,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center|left"
                     android:layout_weight="1"
-                    android:text="@string/not_dir_with_photo"
+                    android:text="@string/not_coordinates_error"
                     android:textColor="@color/error"
                     android:visibility="invisible" />
 

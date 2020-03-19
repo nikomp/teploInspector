@@ -34,7 +34,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 
-class MapFragment : Fragment(), MapContractView {
+class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
 
     private var mapView: MapView? = null
@@ -171,7 +171,7 @@ class MapFragment : Fragment(), MapContractView {
 
         if (addCoordinatesTag) {
             val bundle = Bundle()
-            bundle.putBoolean("returnFromMap", true)
+            bundle.putBoolean("loadCheckupById", true)
             val idCheckup=checkupId
             if (idCheckup!=null) {
                 bundle.putLong("checkupId",idCheckup)
@@ -179,10 +179,10 @@ class MapFragment : Fragment(), MapContractView {
 
             val fragmentCheckup= CheckupFragment()
             fragmentCheckup.arguments=bundle
-            val fragmentManager=this.requireActivity().supportFragmentManager
 
+            val fragmentManager=this.requireActivity().supportFragmentManager
             fragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_list_fragment_tag")
+                .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
                 .addToBackStack(null)
                 .commit()
 
@@ -254,6 +254,11 @@ class MapFragment : Fragment(), MapContractView {
             else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
         }
 
+    }
+
+    override fun onBackPressed(): Boolean {
+        Timber.d("MapFragment onBackPressed")
+        return true
     }
 
 

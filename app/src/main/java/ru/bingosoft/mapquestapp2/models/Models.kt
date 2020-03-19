@@ -31,10 +31,12 @@ class Models {
     )
 
     class OrderList(
+        @SerializedName("success") var success: Boolean = false,
         @SerializedName("data") var orders: List<Orders> = listOf()
     )
 
     class CheckupList(
+        @SerializedName("success") var success: Boolean = false,
         @SerializedName("data") var checkups: List<Checkup> = listOf()
     )
 

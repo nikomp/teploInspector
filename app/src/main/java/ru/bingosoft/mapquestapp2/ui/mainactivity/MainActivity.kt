@@ -2,6 +2,7 @@ package ru.bingosoft.mapquestapp2.ui.mainactivity
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -28,11 +29,13 @@ import ru.bingosoft.mapquestapp2.BuildConfig
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
 import ru.bingosoft.mapquestapp2.db.Orders.Orders
+import ru.bingosoft.mapquestapp2.models.Models
 import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
 import ru.bingosoft.mapquestapp2.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.util.Const
 import ru.bingosoft.mapquestapp2.util.Const.RequestCodes.PHOTO
+import ru.bingosoft.mapquestapp2.util.Const.RequestCodes.QR_SCAN
 import ru.bingosoft.mapquestapp2.util.SharedPrefSaver
 import ru.bingosoft.mapquestapp2.util.Toaster
 import timber.log.Timber
@@ -54,6 +57,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     var mapPoint: LatLng= LatLng(0.0,0.0)
     var controlMapId: Int=0
+    var photoDir: String=""
+    var photoStep: Models.TemplateControl?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -125,11 +130,25 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK) {
-            Timber.d("resultCode OK")
             when (requestCode) {
                 PHOTO -> {
                     Timber.d("REQUEST_CODE_PHOTO")
-                    toaster.showToast("Фото сохранено в папке DCIM\\PhotoForApp\\")
+                    //toaster.showToast("Фото сохранено в папке DCIM\\PhotoForApp\\")
+                    //photoDir="DCIM\\PhotoForApp\\"
+                    setPhotoResult()
+
+                }
+                QR_SCAN ->{
+                    Timber.d(data?.getStringExtra("SCAN_RESULT"))
+                    val scanResult=data?.getStringExtra("SCAN_RESULT")
+                    val orderId=scanResult?.toLongOrNull()
+                    Timber.d(orderId.toString())
+                    if (orderId!=null) {
+                        mainPresenter.openCheckup(this.supportFragmentManager,orderId)
+                    } else {
+                        toaster.showToast(R.string.not_checkup)
+                    }
+
 
                 }
                 else -> {
@@ -138,6 +157,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
         }
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -151,6 +172,25 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         if (supportFragmentManager.backStackEntryCount==0) {
             supportActionBar?.setTitle(R.string.menu_orders)
+        }
+
+        val fragment=supportFragmentManager.findFragmentByTag("checkup_fragment_tag")
+        if (fragment!=null) {
+            Timber.d("onBackPressed_checkup_fragment_tag")
+            val checkupId= fragment.arguments?.getLong("checkupId")
+            Timber.d("checkupId=$checkupId")
+            if (checkupId!=null) {
+                (fragment as CheckupFragment).checkupPresenter.loadCheckup(checkupId)
+            }
+        }
+
+        val fragment2=supportFragmentManager.findFragmentByTag("checkup_list_fragment_tag")
+        if (fragment2!=null) {
+            Timber.d("onBackPressed_checkup_list_fragment_tag")
+            val idOrder = fragment2.arguments?.getLong("idOrder")
+            if (idOrder!=null) {
+                (fragment2 as CheckupListFragment).checkupListPresenter.loadCheckupList() // Грузим все объекты
+            }
         }
     }
 
@@ -172,8 +212,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         this.controlMapId=controlId
     }
 
-    override fun test() {
-        Timber.d("test")
+    private fun setPhotoResult() {
+        Timber.d("setPhotoResult from Activity")
+        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
+        cf?.setPhotoResult(photoStep?.id,"DCIM\\PhotoForApp\\$photoDir")
+        photoStep?.resvalue=photoDir
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -205,6 +248,23 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivityForResult(intent, Const.RequestCodes.AUTH)
                 return true
+            }
+            R.id.nav_qr_scan -> {
+                // Запустим сканер QR
+                try {
+                    val intent = Intent("com.google.zxing.client.android.SCAN")
+                    intent.putExtra("SCAN_MODE", "QR_CODE_MODE")
+                    startActivityForResult(intent, QR_SCAN)
+                    return true
+                } catch (e: Exception) {
+
+                    val marketUri = Uri.parse("market://details?id=com.google.zxing.client.android")
+                    val marketIntent = Intent(Intent.ACTION_VIEW,marketUri)
+                    startActivity(marketIntent)
+                    return false
+
+                }
+
             }
             else -> {
                 return false

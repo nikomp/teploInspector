@@ -11,6 +11,9 @@ interface CheckupGuideDao {
     @Query("SELECT * FROM CheckupGuide WHERE id = :id")
     fun getById(id: Long): Flowable<CheckupGuide>
 
+    @Query("DELETE FROM CheckupGuide")
+    fun clearCheckupGuide()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(guide: CheckupGuide)
 

@@ -36,7 +36,7 @@
     <string name="other">Другое</string>
     <string name="enter">Авторизация</string>
     <string name="by_auth">К авторизации</string>
-    <string name="saveCheckup">Сохранить чеклист</string>
+    <string name="saveCheckup">Сохранить результаты</string>
 
     <string name="notConfirmStep">Подтвердите все шаги чеклиста</string>
     <string name="msgSaveCheckup">Чеклист сохранен</string>
@@ -64,6 +64,11 @@
     <string name="btnAddPhoto">Добавить фото</string>
     <string name="msgNotDataForSync">Нет данных для передачи на сервер</string>
     <string name="btnAddCoordinates">Указать координаты</string>
-    <string name="not_coordinates">координаты не заданы</string>
+    <string name="not_coordinates">Координаты не заданы</string>
+    <string name="not_coordinates_error">Нужно задать координаты</string>
     <string name="coordinates">Широта: %1$f, Долгота: %2$f</string>
+    <string name="photoResult">Фото сохранено в папке %1$s</string>
+    <string name="not_photo">Нет фотографий</string>
+    <string name="scan_qr">Сканировать QR код</string>
+    <string name="not_checkup">Ошибка. Нет такого чеклиста</string>
 </resources>

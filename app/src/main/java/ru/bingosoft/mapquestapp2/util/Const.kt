@@ -14,6 +14,7 @@ class Const {
         const val PHOTO = 1
         const val AUTH = 2
         const val PERMISSION = 123
+        const val QR_SCAN=11
     }
 
     object SharedPrefConst {
@@ -37,5 +38,10 @@ class Const {
 
     object Extras {
         const val DIR_NAME = "dir_name"
+    }
+
+    object Orders {
+        const val STATE_DONE = "2"
+        const val STATE_IN_WORK = "1"
     }
 }

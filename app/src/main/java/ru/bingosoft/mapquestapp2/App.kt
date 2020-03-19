@@ -5,18 +5,16 @@ import android.util.Log
 import dagger.android.AndroidInjector
 import dagger.android.DispatchingAndroidInjector
 import dagger.android.HasAndroidInjector
-
+import io.reactivex.plugins.RxJavaPlugins
 import ru.bingosoft.mapquestapp2.di.DaggerAppComponent
 import ru.bingosoft.mapquestapp2.util.Const
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
+
 class App : Application(), HasAndroidInjector  {
 
-    /*companion object {
-        lateinit var db: AppDatabase
-    }*/
 
     @Inject
     lateinit var androidInjector: DispatchingAndroidInjector<Any>
@@ -33,9 +31,10 @@ class App : Application(), HasAndroidInjector  {
             .build()
             .inject(this)
 
-        /*db=Room.databaseBuilder(
-            this, AppDatabase::class.java, "mydatabase.db"
-        ).build()*/
+
+        //https://proandroiddev.com/rxjava2-undeliverableexception-f01d19d18048
+        //https://stackoverflow.com/questions/52631581/rxjava2-undeliverableexception-when-orientation-change-is-happening-while-fetchi
+        RxJavaPlugins.setErrorHandler { throwable: Throwable? -> }
 
     }
 

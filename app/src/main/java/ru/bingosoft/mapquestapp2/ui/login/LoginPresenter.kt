@@ -11,6 +11,8 @@ import ru.bingosoft.mapquestapp2.api.ApiService
 import ru.bingosoft.mapquestapp2.db.AppDatabase
 import ru.bingosoft.mapquestapp2.models.Models
 import ru.bingosoft.mapquestapp2.util.Const.LogTags.LOGTAG
+import ru.bingosoft.mapquestapp2.util.SharedPrefSaver
+import ru.bingosoft.mapquestapp2.util.ThrowHelper
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -18,7 +20,8 @@ import javax.inject.Inject
 
 class LoginPresenter @Inject constructor(
     private val apiService: ApiService,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val sharedPrefSaver: SharedPrefSaver
 
 ) {
     var view: LoginContractView? = null
@@ -33,7 +36,6 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(stLogin: String?, stPassword: String?){
 
-
         val fingerprint: String = random()
 
         if (stLogin!=null && stPassword!=null) {
@@ -45,12 +47,14 @@ class LoginPresenter @Inject constructor(
                     this.stLogin=stLogin
                     this.stPassword=stPassword
 
+
                     val v=view
                     if (v!=null) {
                         v.alertRepeatSync()
                     }
 
                     getInfoCurrentUser()
+                    saveTokenGCM()
 
                 },  {
                     Timber.d("Ошибка сети!!")
@@ -60,7 +64,7 @@ class LoginPresenter @Inject constructor(
 
     }
 
-    fun getInfoCurrentUser()  {
+    private fun getInfoCurrentUser()  {
         Timber.d("getInfoCurrentUser")
         disposable=apiService.getInfoAboutCurrentUser(action="getUserInfo")
             .subscribeOn(Schedulers.io())
@@ -75,6 +79,20 @@ class LoginPresenter @Inject constructor(
                 it.printStackTrace()
             })
 
+    }
+
+    private fun saveTokenGCM() {
+        Timber.d("saveTokenGCM")
+
+        disposable=apiService.saveGCMToken(action="saveGCMToken",token = sharedPrefSaver.getTokenGCM())
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({
+                Timber.d(it.msg)
+
+            },{
+                it.printStackTrace()
+            })
     }
 
     /**
@@ -96,6 +114,8 @@ class LoginPresenter @Inject constructor(
         if (this::disposable.isInitialized) {
             disposable.dispose()
         }
+
+        sharedPrefSaver.clearAuthData() // Очистим информацию об авторизации
     }
 
     fun syncDB() {
@@ -107,25 +127,36 @@ class LoginPresenter @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ checkups ->
                 Timber.d("Получили обследования")
-                Timber.d(checkups.toString())
+                Timber.d("checkups.success=${checkups.success}")
 
-                val data: Models.CheckupList = checkups
-                Single.fromCallable{
-                    data.checkups.forEach{
-                        db.checkupDao().insert(it)
+                if (!checkups.success) {
+                    throw ThrowHelper("Нет обследований")
+                } else {
+                    Timber.d("Обследования есть")
+                    val data: Models.CheckupList = checkups
+                    Single.fromCallable{
+                        db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
+                        data.checkups.forEach{
+                            Timber.d(it.toString())
+                            db.checkupDao().insert(it)
+                        }
                     }
-                }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ _ ->
-                    Timber.d("Сохранили обследования в БД")
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe()/*{ _ ->
+                            Timber.d("Сохранили обследования в БД")
+
+                        }*/
+
                     view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
                 }
 
             },{throwable ->
-
+                Timber.d("throwable syncDB")
                 throwable.printStackTrace()
-
+                if (throwable is ThrowHelper) {
+                    view?.showMessageLogin("${throwable.message}")
+                }
             })
 
     }
@@ -134,22 +165,26 @@ class LoginPresenter @Inject constructor(
         .subscribeOn(Schedulers.io())
         //.observeOn(AndroidSchedulers.mainThread())
         .map{
-            Timber.d("Получили заявки")
-            Timber.d(it.toString())
+            if (!it.success) {
+                throw ThrowHelper("Нет заявок")
+            } else {
+                val data: Models.OrderList = it
+                Single.fromCallable{
+                    db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
+                    Timber.d("data.orders=${data.orders}")
+                    data.orders.forEach{
+                        db.ordersDao().insert(it)
+                    }
 
-            val data: Models.OrderList = it
-            Single.fromCallable{
-                data.orders.forEach{
-                    db.ordersDao().insert(it)
                 }
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe{_->
+                        view?.showMessageLogin(R.string.auth_ok)
+                        view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
+                    }
+            }
 
-            }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{_->
-                view?.showMessageLogin(R.string.auth_ok)
-                view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
-            }
 
         }
         .ignoreElement()
@@ -164,6 +199,7 @@ class LoginPresenter @Inject constructor(
 
             val data: Models.CheckupGuideList = it
             Single.fromCallable{
+                db.checkupGuideDao().clearCheckupGuide() // Перед вставкой очистим таблицу
                 data.guides.forEach{
                     db.checkupGuideDao().insert(it)
                 }

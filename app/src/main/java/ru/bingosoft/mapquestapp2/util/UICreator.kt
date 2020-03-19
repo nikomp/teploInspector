@@ -20,7 +20,7 @@ import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import ru.bingosoft.mapquestapp2.R
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
 import ru.bingosoft.mapquestapp2.models.Models
-import ru.bingosoft.mapquestapp2.ui.checkup.CheckupPresenter
+import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
 import ru.bingosoft.mapquestapp2.ui.mainactivity.MainActivity
 import ru.bingosoft.mapquestapp2.ui.map.MapFragment
 import timber.log.Timber
@@ -30,8 +30,11 @@ import java.math.RoundingMode
 /**
  * Класс, который создает интерфейс Фрагмента Обследования
  */
-class UICreator(private val rootView: View, val checkup: Checkup, private val photoHelper: PhotoHelper, private val checkupPresenter: CheckupPresenter) {
+//private val rootView: View, val checkup: Checkup, private val photoHelper: PhotoHelper, private val checkupPresenter: CheckupPresenter
+class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: Models.ControlList
+
+    val photoHelper=parentFragment.photoHelper
 
     fun create() {
         // Возможно чеклист был ранее сохранен, тогда берем сохраненный и восстанавливаем его
@@ -41,6 +44,8 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
             Gson().fromJson(checkup.text, Models.ControlList::class.java)
         }
 
+        val rootView=parentFragment.root
+        val checkupPresenter=parentFragment.checkupPresenter
 
         controlList.list.forEach controls@ { it ->
             when (it.type) {
@@ -135,11 +140,19 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
                         changeChecked(templateStep,it) // Установим цвет шага
                     }
 
+                    Timber.d("Фото11 ${it.resvalue}")
+                    if (it.resvalue.isNotEmpty()){
+                        Timber.d("Фото ${it.resvalue}")
+                        templateStep.findViewById<TextView>(R.id.photoResult).text=parentFragment.getString(R.string.photoResult,"DCIM\\PhotoForApp\\${it.resvalue}")
+                    }
+
                     // Обработчик для кнопки "Добавить фото"
                     val btnPhoto=templateStep.findViewById<Button>(R.id.btnPhoto)
                     val stepCheckup=it
                     btnPhoto.setOnClickListener{
                         Timber.d("Добавляем фото")
+                        (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
+                        (parentFragment.requireActivity() as MainActivity).photoDir="${checkup.guid}/${stepCheckup.guid}" // Сохраним id контрола для которого делаем фото
                         photoHelper.createPhoto(checkup.guid, stepCheckup)
                     }
 
@@ -165,13 +178,13 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
                     }
                     if (it.resvalue.isNotEmpty()){
                         val point=parseLatLng(it.resvalue)
-                        templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=photoHelper.parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
+                        templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
                     } else {
                         // Возьмем координаты от Activity
-                        val controlId=(photoHelper.parentFragment.requireActivity() as MainActivity).controlMapId
+                        val controlId=(parentFragment.requireActivity() as MainActivity).controlMapId
                         if (it.id==controlId) {
-                            val point=(photoHelper.parentFragment.requireActivity() as MainActivity).mapPoint
-                            templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=photoHelper.parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
+                            val point=(parentFragment.requireActivity() as MainActivity).mapPoint
+                            templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
                             it.resvalue=point.toString()
                         }
                     }
@@ -193,7 +206,7 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
 
                         val fragmentMap= MapFragment()
                         fragmentMap.arguments=bundle
-                        val fragmentManager=photoHelper.parentFragment.requireActivity().supportFragmentManager
+                        val fragmentManager=parentFragment.requireActivity().supportFragmentManager
 
                         fragmentManager.beginTransaction()
                             .replace(R.id.nav_host_fragment, fragmentMap, "fragment_map_tag")
@@ -201,6 +214,7 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
                             .commit()
 
                         fragmentManager.executePendingTransactions()
+
                     }
 
                     return@controls
@@ -254,10 +268,10 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
                 "photo"->{
                     // Проверим были ли добавлены фото
                     Timber.d("Папка ${checkup.guid}/${control.guid}")
-                    val controlView=v.findViewById<TextView>(R.id.errorPhoto)
+                    val controlViewError=v.findViewById<TextView>(R.id.errorPhoto)
                     if (photoHelper.checkDirAndEmpty("${checkup.guid}/${control.guid}")) {
                         Timber.d("Папка есть, она не пуста")
-                        controlView.visibility=View.INVISIBLE
+                        controlViewError.visibility=View.INVISIBLE
                         // Сохраним filemap в resValue
                         control.resvalue="${checkup.guid}/${control.guid}"
 
@@ -265,7 +279,19 @@ class UICreator(private val rootView: View, val checkup: Checkup, private val ph
 
                     } else {
                         Timber.d("Папка с фото отсутствует")
-                        controlView.visibility=View.VISIBLE
+                        controlViewError.visibility=View.VISIBLE
+                        isEmpty=true
+                    }
+                }
+                "map_coordinates"->{
+                    val controlView=v.findViewById<TextView>(R.id.mapCoordinatesResult)
+                    val controlViewError=v.findViewById<TextView>(R.id.errorMap)
+                    if (!controlView.text.equals(parentFragment.resources.getString(R.string.not_coordinates))) {
+                        Timber.d("координаты заданы")
+                        controlViewError.visibility=View.INVISIBLE
+                    } else {
+                        Timber.d("координаты не заданы")
+                        controlViewError.visibility=View.VISIBLE
                         isEmpty=true
                     }
                 }

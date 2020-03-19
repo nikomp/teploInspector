@@ -1,5 +1,7 @@
 package ru.bingosoft.mapquestapp2.ui.mainactivity
 
+import android.os.Bundle
+import androidx.fragment.app.FragmentManager
 import com.google.gson.Gson
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -14,6 +16,7 @@ import ru.bingosoft.mapquestapp2.api.ApiService
 import ru.bingosoft.mapquestapp2.db.AppDatabase
 import ru.bingosoft.mapquestapp2.db.Checkup.Checkup
 import ru.bingosoft.mapquestapp2.models.Models
+import ru.bingosoft.mapquestapp2.ui.checkup.CheckupFragment
 import ru.bingosoft.mapquestapp2.util.PhotoHelper
 import ru.bingosoft.mapquestapp2.util.ThrowHelper
 import timber.log.Timber
@@ -50,6 +53,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
                     val actionBody = "reverseSync".toRequestBody("multipart/form-data".toMediaType())
                     val jsonBody=Gson().toJson(checkups)
                     .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+                    //Timber.d("jsonBody.toString()=${jsonBody}")
 
                     checkupsWasSync=checkups // Сохраняю данные, которые должны быть переданы
 
@@ -105,6 +110,16 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
             checkupsWasSync.forEach {
                 it.sync=true
                 db.checkupDao().update(it)
+
+                // Обновим состояние заявки
+                /*val idOrder=it.idOrder
+                if (idOrder!=null) {
+                    val order=db.ordersDao().getById(idOrder)
+                    order.state=STATE_DONE // выполнено
+
+                    db.ordersDao().update(order)
+                }*/
+
             }
         }
         .subscribeOn(Schedulers.io())
@@ -125,6 +140,32 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
         return list
     }
 
+
+    fun openCheckup(fragmentManager: FragmentManager, orderId: Long) {
+        Timber.d("openCheckup")
+        // Получим информацию о чеклисте, по orderId
+        Single.fromCallable {
+            val idCheckup=db.checkupDao().getCheckupIdByOrder(orderId)
+            Timber.d("idCheckup=$idCheckup")
+            //Загружаем чеклист
+            val bundle = Bundle()
+            bundle.putBoolean("loadCheckupById", true)
+            bundle.putLong("checkupId",idCheckup)
+
+            val fragmentCheckup= CheckupFragment()
+            fragmentCheckup.arguments=bundle
+
+            fragmentManager.beginTransaction()
+                .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
+                .addToBackStack(null)
+                .commit()
+
+            fragmentManager.executePendingTransactions()
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe()
+
+    }
 
 
     fun onDestroy() {
