@@ -12,6 +12,9 @@ interface OrdersDao {
     @Query("SELECT * FROM orders WHERE id = :id")
     fun getById(id: Long): Orders
 
+    @Query("SELECT * FROM orders WHERE number = :number")
+    fun getByNumber(number: String): Flowable<Orders>
+
     @Query("SELECT count(*) FROM orders")
     fun getSize(): Int
 

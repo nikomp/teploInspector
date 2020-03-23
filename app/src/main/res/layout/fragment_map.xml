@@ -21,4 +21,17 @@
         mapbox:mapbox_cameraTargetLat="56.3287"
         mapbox:mapbox_cameraTargetLng="44.002"
         mapbox:mapbox_cameraZoom="12" />
+
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabMapRouting"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:backgroundTint="@color/colorAccent"
+        app:layout_anchorGravity="top|end"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/mapView"
+        app:srcCompat="@drawable/ic_directions_car_black_24dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

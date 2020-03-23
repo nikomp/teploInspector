@@ -8,6 +8,7 @@ import ru.bingosoft.mapquestapp2.ui.checkuplist_bottom.CheckupListBottomSheet
 import ru.bingosoft.mapquestapp2.ui.login.LoginActivity
 import ru.bingosoft.mapquestapp2.ui.mainactivity.MainActivity
 import ru.bingosoft.mapquestapp2.ui.map.MapFragment
+import ru.bingosoft.mapquestapp2.ui.map_bottom.MapBottomSheet
 import ru.bingosoft.mapquestapp2.ui.order.OrderFragment
 
 @Module
@@ -32,5 +33,8 @@ abstract class ActivityBuilder {
 
     @ContributesAndroidInjector(modules = [PresentersModule::class])
     abstract fun bindMainActivity(): MainActivity
+
+    @ContributesAndroidInjector(modules = [PresentersModule::class])
+    abstract fun bindMapBottomSheet(): MapBottomSheet
 
 }
