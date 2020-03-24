@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name='MapQuestApp2'
+rootProject.name='MapQuestYandex'

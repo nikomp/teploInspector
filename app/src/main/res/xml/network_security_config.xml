@@ -14,4 +14,8 @@
         <domain includeSubdomains="true">api.mapbox.com</domain>
     </domain-config>
 
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">yandex.ru/maps/</domain>
+    </domain-config>
+
 </network-security-config>

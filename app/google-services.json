@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "106467493834",
+    "firebase_url": "https://teploinspector-ecbcf.firebaseio.com",
+    "project_id": "teploinspector-ecbcf",
+    "storage_bucket": "teploinspector-ecbcf.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:106467493834:android:2851f5b30aeda709a7f133",
+        "android_client_info": {
+          "package_name": "ru.bingosoft.teploInspector"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "106467493834-vq0s4kkgg9f9oa4fnkijioaonuiup634.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8HaSEBqsSMlDjnRAeujVW6T1qQoQ4wR4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "106467493834-vq0s4kkgg9f9oa4fnkijioaonuiup634.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
