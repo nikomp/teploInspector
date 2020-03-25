@@ -1,13 +1,11 @@
 package ru.bingosoft.teploInspector.util
 
-import com.mapbox.mapboxsdk.geometry.LatLng
+import com.yandex.mapkit.geometry.Point
 
 class Const {
     object LogTags {
         const val LOGTAG = "myLogs"
-        const val CODER = "coder"
         const val SPS = "sharedPrefSaver"
-        const val PH = "photoHelper"
     }
 
     object RequestCodes {
@@ -20,7 +18,6 @@ class Const {
     object SharedPrefConst {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
-        const val IVPASS = "ivpassword"
         const val PASSWORD = "password"
         const val SESSION = "session_id"
         const val DATESYNC = "last_sync_date"
@@ -30,19 +27,14 @@ class Const {
     }
 
     object Location {
-        val MAPQUEST_HEADQUARTERS: LatLng = LatLng(56.3287, 44.002) //Нижний Новгород
+        val TARGET_POINT=Point(56.3287,44.002) //Нижний Новгород
 
-        val DEFAULT_INTERVAL_IN_MILLISECONDS: Long = 1000L
-        val DEFAULT_MAX_WAIT_TIME: Long = DEFAULT_INTERVAL_IN_MILLISECONDS * 5
-        const val ID_ICON="id-icon"
+        const val ZOOM_LEVEL=12.0f
+        const val DESIRED_ACCURACY = 0.0
+        const val MINIMAL_TIME=0L
+        const val MINIMAL_DISTANCE=50.0
+        const val USE_IN_BACKGROUND=false
+
     }
 
-    object Extras {
-        const val DIR_NAME = "dir_name"
-    }
-
-    object Orders {
-        const val STATE_DONE = "2"
-        const val STATE_IN_WORK = "1"
-    }
 }

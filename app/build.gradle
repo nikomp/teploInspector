@@ -32,12 +32,14 @@ android {
             resValue 'string', 'password', accent_password
 
             buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
         }
         release {
             resValue 'string', 'login', ""
             resValue 'string', 'password', ""
 
             buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
 
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

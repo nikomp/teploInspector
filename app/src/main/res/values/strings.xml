@@ -72,4 +72,8 @@
     <string name="scan_qr">Сканировать QR код</string>
     <string name="not_checkup">Ошибка. Нет такого чеклиста</string>
     <string name="driveway">Проезд</string>
+
+    <string name="network_error_message">Ошибка сети</string>
+    <string name="remote_error_message">Ошибка удаленного сервера</string>
+    <string name="unknown_error_message">Неизвестная ошибка</string>
 </resources>
