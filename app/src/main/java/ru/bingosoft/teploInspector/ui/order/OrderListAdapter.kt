@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClickListeners, val ctx: Context) : RecyclerView.Adapter<OrderListAdapter.OrderViewHolder>() {
+class OrderListAdapter (val orders: List<Orders>, private val itemListener: OrdersRVClickListeners, private val ctx: Context) : RecyclerView.Adapter<OrderListAdapter.OrderViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OrderViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_cardview_order, parent, false)
@@ -37,7 +37,6 @@ class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClic
     }
 
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
-        //Timber.d("orders[position]=${orders[position]}")
         holder.orderNumber.text = orders[position].number
         holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(orders[position].dateCreate)
         holder.orderName.text = orders[position].name
@@ -83,27 +82,19 @@ class OrderListAdapter (val orders: List<Orders>, val itemListener: OrdersRVClic
             listener.recyclerViewListClicked(v, this.layoutPosition)
         }
 
-        var orderNumber: TextView
-        var orderDate: TextView
-        var orderName: TextView
-        var orderadress: TextView
-        var fio: TextView
-        var phone: TextView
-        var targetImage: ImageView
-        var fabButton: FloatingActionButton
+        var orderNumber: TextView = itemView.number
+        var orderDate: TextView = itemView.date
+        var orderName: TextView = itemView.name
+        var orderadress: TextView = itemView.adress
+        var fio: TextView = itemView.fio
+        var phone: TextView = itemView.phone
+        var targetImage: ImageView = itemView.targetImage as ImageView
+        var fabButton: FloatingActionButton = itemView.fab2 as FloatingActionButton
         lateinit var listener: OrdersRVClickListeners
 
         var cardView: CardView = itemView.cv
 
         init {
-            orderNumber = itemView.number
-            orderDate = itemView.date
-            orderName = itemView.name
-            orderadress = itemView.adress
-            fio = itemView.fio
-            phone = itemView.phone
-            targetImage = itemView.targetImage as ImageView
-            fabButton=itemView.fab2 as FloatingActionButton
 
 
             view.setOnClickListener(this)

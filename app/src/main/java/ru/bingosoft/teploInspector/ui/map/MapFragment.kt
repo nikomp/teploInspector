@@ -23,9 +23,14 @@ import com.yandex.mapkit.directions.DirectionsFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.location.FilteringMode
+import com.yandex.mapkit.location.Location
+import com.yandex.mapkit.location.LocationListener
+import com.yandex.mapkit.location.LocationStatus
 import com.yandex.mapkit.map.*
 import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
+import com.yandex.mapkit.transport.Transport
+import com.yandex.mapkit.transport.TransportFactory
 import com.yandex.mapkit.user_location.UserLocationLayer
 import com.yandex.mapkit.user_location.UserLocationObjectListener
 import com.yandex.mapkit.user_location.UserLocationView
@@ -68,8 +73,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
     private var checkupId: Long?=0
     private var controlId: Int=0
 
-    private lateinit var locationListener: LocationListener
     lateinit var directions: Directions
+    lateinit var transports: Transport
+    var lastCarRouter=mutableListOf<PolylineMapObject>()
 
     private val mapLoadedListener=object:MapLoadedListener{
         override fun onMapLoaded(p0: MapLoadStatistics) {
@@ -124,7 +130,18 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
                 (fragment.requireActivity() as FragmentsContractActivity).setCoordinates(point,controlId)
             }
+
+            if (lastCarRouter.isNotEmpty()) {
+                removeRouter(lastCarRouter)
+            }
         }
+    }
+
+    fun removeRouter(list: MutableList<PolylineMapObject>) {
+        list.forEach{
+            map.mapObjects.remove(it)
+        }
+        list.clear()
     }
 
     private val userLocationObjectListener=object:UserLocationObjectListener{
@@ -174,6 +191,43 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
     }
 
 
+    private val locationListener=object:LocationListener {
+        var lastLocation: Location?=null
+
+        override fun onLocationStatusUpdated(locationStatus: LocationStatus) {
+            if (locationStatus == LocationStatus.NOT_AVAILABLE) {
+                Timber.d("LocationStatus.NOT_AVAILABLE")
+            }
+        }
+
+        override fun onLocationUpdated(location: Location) {
+            if (lastLocation == null) {
+                moveCamera(location.getPosition())
+            }
+            lastLocation = location
+        }
+
+        private fun moveCamera(point: Point) {
+            mapView.map.move(
+                CameraPosition(point, ZOOM_LEVEL, 0.0f, 0.0f),
+                Animation(Animation.Type.SMOOTH, 1f),
+                null
+            )
+        }
+    }
+
+    private val mapObjectTapListener=object:MapObjectTapListener{
+        override fun onMapObjectTap(mapObject: MapObject, p1: Point): Boolean {
+
+            val order=(mapObject.userData as Orders)
+            val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+            mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+
+            return true
+        }
+
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -185,8 +239,10 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
         MapKitFactory.setLocale("ru_RU")
         MapKitFactory.initialize(this.context)
         DirectionsFactory.initialize(this.context)
+        TransportFactory.initialize(this.context)
 
         directions=DirectionsFactory.getInstance()
+        transports=TransportFactory.getInstance()
 
         val locationManager=MapKitFactory.getInstance().createLocationManager()
 
@@ -195,8 +251,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
         mapView=root.findViewById(R.id.mapView)
         mapView.map.move(CameraPosition(TARGET_POINT,ZOOM_LEVEL,0.0f,0.0f), Animation(Animation.Type.SMOOTH,0.0f),null)
-
-        locationListener=LocationListener(mapView)
 
         locationManager.subscribeForLocationUpdates(DESIRED_ACCURACY, MINIMAL_TIME, MINIMAL_DISTANCE, USE_IN_BACKGROUND,FilteringMode.ON,locationListener)
 
@@ -208,7 +262,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
         return root
     }
-
 
 
     override fun onStart() {
@@ -233,24 +286,13 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
 
     private fun importOrdersOnMap(order: Orders) {
-        Timber.d("importOrdersOnMap")
+        Timber.d("importOrdersOnMap=$order")
         val view=layoutInflater.inflate(R.layout.template_marker,null)
         view.findViewById<TextView>(R.id.markerText).text=order.number
-        map.mapObjects.addPlacemark(Point(order.lat,order.lon),ViewProvider(view))
-            .addTapListener{mapObject, point ->
-                Timber.d("tapPoint=${point.latitude}_${point.longitude}")
-                Timber.d("mapObject=${(mapObject as PlacemarkMapObject).geometry.latitude}_${(mapObject).geometry.longitude}")
 
-                Timber.d("order=$order")
-                Timber.d("locationListener=$locationListener")
-                Timber.d("mapView=$mapView")
-                Timber.d("directions=$directions")
-
-                val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,this)
-                mapBottomSheet.show(this.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
-
-                true
-            }
+        val placemarkMapObject=map.mapObjects.addPlacemark(Point(order.lat,order.lon),ViewProvider(view))
+        placemarkMapObject.userData=order
+        placemarkMapObject.addTapListener(mapObjectTapListener)
 
     }
 
