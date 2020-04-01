@@ -8,6 +8,7 @@ import ru.bingosoft.teploInspector.util.Const.LogTags.SPS
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.APP_PREFERENCES
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.DATESYNC
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.FIREBASE_MESSAGE
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOCATION_TRACKING
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.SESSION
@@ -146,6 +147,14 @@ class SharedPrefSaver(ctx: Context) {
             return sharedPreference.getString(FIREBASE_MESSAGE, "") ?: ""
         } else {
             return ""
+        }
+    }
+
+    fun isLocationTracking() :Boolean {
+        return if (sharedPreference.contains(LOCATION_TRACKING)) {
+            sharedPreference.getBoolean(LOCATION_TRACKING,false)
+        } else {
+            false
         }
     }
 }

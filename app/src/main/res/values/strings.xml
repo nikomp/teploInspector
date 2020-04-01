@@ -81,4 +81,6 @@
     <string name="transfersCount">Пересадок %1$s</string>
     <string name="walkingDistance">Пешком %1$s</string>
     <string name="icon_walker">иконка пешехода</string>
+    <string name="icon_next">следующая секция</string>
+    <string name="order_refresh">Список соявок обновлен</string>
 </resources>

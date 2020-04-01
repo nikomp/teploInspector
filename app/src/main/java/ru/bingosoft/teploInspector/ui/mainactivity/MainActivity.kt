@@ -1,8 +1,12 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -11,8 +15,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -23,11 +29,11 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
-import com.mapbox.mapboxsdk.geometry.LatLng
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
+import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
@@ -39,6 +45,7 @@ import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.QR_SCAN
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.Toaster
+import ru.bingosoft.teploInspector.util.UserLocationService
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -52,6 +59,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var toaster: Toaster
     @Inject
     lateinit var sharedPref: SharedPrefSaver
+    @Inject
+    lateinit var apiService: ApiService
+
+    @Inject
+    lateinit var userLocationReceiver: UserLocationReceiver
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
@@ -68,6 +80,23 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         setContentView(R.layout.activity_main)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+
+        // Запросим разрешение на геолокацию, нужны для сервиса
+        requestPermission()
+
+        //TODO перенести после авторизации
+
+
+        if (!sharedPref.isLocationTracking()) {
+            // Проверим авторизован ли пользователь
+            if (sharedPref.getLogin()!="" && sharedPref.getPassword()!="") {
+                Timber.d("startService_MainActivity")
+                // Стартуем фоновый сервис для отслеживания пользователя
+                startService(Intent(this,UserLocationService::class.java))
+            }
+        }
+        // Регистрируем широковещательный слушатель для получения данных от фонового сервиса
+        LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
 
@@ -113,7 +142,46 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         mainPresenter.attachView(this)
 
+    }
 
+    private fun requestPermission() {
+        // Проверим разрешения
+        if (ContextCompat.checkSelfPermission(this,(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
+                requestPermissions(arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ),
+                    Const.RequestCodes.PERMISSION
+                )
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        Timber.d("onRequestPermissionsResult")
+        when (requestCode) {
+            Const.RequestCodes.PERMISSION -> {
+                if (grantResults.isNotEmpty()
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) {
+                    // Разрешения выданы
+                    Timber.d("enableLocationComponent")
+                    //enableLocationComponent()
+                } else {
+                    // Разрешения не выданы оповестим юзера
+                    toaster.showToast(R.string.not_permissions)
+
+                    //TODO отправим сообщение администратору что пользователь отказался от включения Геолокации
+                    Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ")
+                }
+            }
+            else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
+        }
 
     }
 
@@ -163,7 +231,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onDestroy() {
         super.onDestroy()
+        stopService(Intent(this,UserLocationService::class.java))
         mainPresenter.onDestroy()
+        userLocationReceiver.onDestroy()
     }
 
     override fun onBackPressed() {
@@ -315,6 +385,5 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             tvName.text = user.fullname
         }
     }
-
 
 }

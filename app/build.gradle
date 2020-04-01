@@ -150,4 +150,7 @@ dependencies {
     //Получение локации пользователя
     implementation 'com.google.android.gms:play-services-location:17.0.0'
 
+    // Для переноса секций маршрута
+    implementation 'com.google.android:flexbox:2.0.1'
+
 }

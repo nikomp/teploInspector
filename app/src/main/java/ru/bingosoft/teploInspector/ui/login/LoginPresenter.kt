@@ -35,7 +35,7 @@ class LoginPresenter @Inject constructor(
     }
 
     fun authorization(stLogin: String?, stPassword: String?){
-
+        Timber.d("authorization1 $stLogin _ $stPassword")
         val fingerprint: String = random()
 
         if (stLogin!=null && stPassword!=null) {
@@ -43,18 +43,20 @@ class LoginPresenter @Inject constructor(
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
-                    Log.d(LOGTAG, "Авторизация пройдена")
+                    Timber.d("Авторизовались")
                     this.stLogin=stLogin
                     this.stPassword=stPassword
 
-
                     val v=view
                     if (v!=null) {
+                        Timber.d("startService_LoginPresenter")
+                        v.startLocationService()
                         v.alertRepeatSync()
                     }
 
                     getInfoCurrentUser()
                     saveTokenGCM()
+
 
                 },  {
                     Timber.d("Ошибка сети!!")
@@ -158,17 +160,16 @@ class LoginPresenter @Inject constructor(
                     view?.showMessageLogin("${throwable.message}")
                 }
             })
-
     }
 
     private fun syncOrder() :Completable =apiService.getListOrder(action="getAllOrders")
         .subscribeOn(Schedulers.io())
         //.observeOn(AndroidSchedulers.mainThread())
-        .map{
-            if (!it.success) {
+        .map{ response ->
+            if (!response.success) {
                 throw ThrowHelper("Нет заявок")
             } else {
-                val data: Models.OrderList = it
+                val data: Models.OrderList = response
                 Single.fromCallable{
                     db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
                     Timber.d("data.orders=${data.orders}")
@@ -180,7 +181,7 @@ class LoginPresenter @Inject constructor(
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe{_->
-                        view?.showMessageLogin(R.string.auth_ok)
+                        view?.showMessageLogin(R.string.order_refresh)
                         view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
                     }
             }
@@ -193,11 +194,11 @@ class LoginPresenter @Inject constructor(
     private fun syncCheckupGuide() :Completable =apiService.getCheckupGuide(action="getCheckupGuide")
         .subscribeOn(Schedulers.io())
         //.observeOn(AndroidSchedulers.mainThread())
-        .map{
+        .map{ response ->
             Timber.d("Получили справочник чеклистов")
-            Timber.d(it.toString())
+            Timber.d(response.toString())
 
-            val data: Models.CheckupGuideList = it
+            val data: Models.CheckupGuideList = response
             Single.fromCallable{
                 db.checkupGuideDao().clearCheckupGuide() // Перед вставкой очистим таблицу
                 data.guides.forEach{

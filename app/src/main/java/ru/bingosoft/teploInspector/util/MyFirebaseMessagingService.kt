@@ -16,8 +16,6 @@ import timber.log.Timber
 
 class MyFirebaseMessagingService: FirebaseMessagingService() {
 
-
-
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val NOTIFICATION_CHANNEL_ID = "Nilesh_channel"

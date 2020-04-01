@@ -12,7 +12,6 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
@@ -28,6 +27,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.Toaster
+import ru.bingosoft.teploInspector.util.UserLocationService
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -58,11 +58,19 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         AndroidSupportInjection.inject(this)
         Timber.d("OrderFragment.onCreateView")
 
-        //val a=100/0
-
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
+
+        // Авторизуемся всегда иначе данные не будут уходить на сервер
+        /*doAuthorization()
+        Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
+        orderPresenter.attachView(this)
+        orderPresenter.loadOrders()
+
+        val pb=root.findViewById<ProgressBar>(R.id.progressBar)
+        pb.visibility= View.INVISIBLE*/
+
 
         // Если логин/пароль есть не авторизуемся
         if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
@@ -87,6 +95,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     private fun doAuthorization() {
+        Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedpref = this.activity?.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
         if (sharedpref!!.contains(Const.SharedPrefConst.LOGIN) && sharedpref.contains(Const.SharedPrefConst.PASSWORD)) {
@@ -117,6 +126,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
                         loginPresenter.attachView(this)
                         loginPresenter.authorization(login, password)
+
                     }
                 }
                 else -> {
@@ -170,7 +180,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         if (dbFile.exists()) {
             val layoutInflater = LayoutInflater.from(this.requireContext())
             val dialogView: View =
-                layoutInflater.inflate(R.layout.alert_syncdb, null)
+                layoutInflater.inflate(R.layout.alert_syncdb, (root.parent as ViewGroup), false)
 
             if (sharedPref.getDateSyncDB()!="") {
                 dialogView.stMsgAlert.text=getString(R.string.syncdb, sharedPref.getDateSyncDB())
@@ -202,12 +212,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     }
 
-    fun alertNotInternet() {
+    private fun alertNotInternet() {
         Timber.d("alertNotInternet")
         lateinit var alertDialogNotInternet: AlertDialog
         val layoutInflater = LayoutInflater.from(this.requireContext())
         val dialogView: View =
-            layoutInflater.inflate(R.layout.alert_not_internet, null)
+            layoutInflater.inflate(R.layout.alert_not_internet, (root.parent as ViewGroup), false)
 
         val builder = AlertDialog.Builder(this.context)
 
@@ -240,23 +250,26 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         sharedPref.saveUser(user)
     }
 
+    override fun startLocationService() {
+        // Стартуем фоновый сервис для отслеживания пользователя
+        activity?.startService(Intent(activity, UserLocationService::class.java))
+    }
+
     override fun showOrders(orders: List<Orders>) {
 
         // инициализируем контейнер SwipeRefreshLayout
         val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
 
         // указываем слушатель свайпов пользователя
-        swipeRefreshLayout.setOnRefreshListener(OnRefreshListener {
+        swipeRefreshLayout.setOnRefreshListener {
             loginPresenter.syncDB()
             swipeRefreshLayout.isRefreshing = false
-        })
-        Timber.d("showOrders")
+        }
 
-
-        val orders_recycler_view = root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        orders_recycler_view.layoutManager = LinearLayoutManager(this.activity)
+        val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
         val adapter = OrderListAdapter(orders,this, this.requireContext())
-        orders_recycler_view.adapter = adapter
+        ordersRecyclerView.adapter = adapter
     }
 
     override fun showMessageOrders(msg: String) {

@@ -55,4 +55,11 @@ interface ApiService {
         @Field("action") action: String,
         @Field("token") token: String
     ): Single<Models.SimpleMsg>
+
+    @GET("procs/androidAPI.php")
+    fun saveUserLocation(
+        @Query("action") action: String,
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double
+    ): Single<Models.SimpleMsg>
 }

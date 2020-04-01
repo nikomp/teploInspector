@@ -24,6 +24,7 @@ class Const {
         const val USER_FULLNAME = "fullname"
         const val USER_PHOTO_URL = "photo_url"
         const val FIREBASE_MESSAGE = "message_token"
+        const val LOCATION_TRACKING= "location_tracking"
     }
 
     object Location {

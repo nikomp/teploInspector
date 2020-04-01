@@ -202,7 +202,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
         override fun onLocationUpdated(location: Location) {
             if (lastLocation == null) {
-                moveCamera(location.getPosition())
+                moveCamera(location.position)
             }
             lastLocation = location
         }
@@ -220,8 +220,10 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
         override fun onMapObjectTap(mapObject: MapObject, p1: Point): Boolean {
 
             val order=(mapObject.userData as Orders)
-            val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
-            mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+            if (locationListener.lastLocation!=null) {
+                val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+                mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+            }
 
             return true
         }
@@ -302,8 +304,8 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
         // Проверим разрешения
         if (ContextCompat.checkSelfPermission(this.context!!,(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ),
                 PERMISSION
             )
 

@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.CheckupGuide.CheckupGuide
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import java.util.*
 
 class Models {
     class SimpleMsg (
@@ -28,6 +29,12 @@ class Models {
         @SerializedName("surname") var surname: String = "",
         @SerializedName("name") var nameUser: String = "",
         @SerializedName("fname") var fname: String = ""
+    )
+
+    class UserLocation(
+        var date: Date,
+        var lat: Double,
+        var lon: Double
     )
 
     class OrderList(
