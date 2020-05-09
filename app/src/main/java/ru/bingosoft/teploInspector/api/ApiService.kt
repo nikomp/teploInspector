@@ -35,10 +35,11 @@ interface ApiService {
         @Query("action") action: String
     ): Single<Models.CheckupGuideList>
 
-    /*@POST("/dashboards/app/backend/native.php")
-      @FormUrlEncoded
-      Call<Object> doReverseSync(@Header("Cookie") String userCookie, @Field("action") String action,
-                                 @Field("jsonData") String jsonData);*/
+    @GET("procs/androidAPI.php")
+    fun sendMessageToAdmin(
+        @Query("action") action: String,
+        @Query("codeMessage") codeMessage: Int
+    ): Single<Models.CheckupGuideList>
 
     @POST("procs/androidAPI.php")
     @Multipart
@@ -47,6 +48,14 @@ interface ApiService {
         @Part("jsonData") jsonData: RequestBody?,
         @Part file: MultipartBody.Part?
         //@Part("filemap") filemap: RequestBody?
+    ): Single<Models.SimpleMsg>
+
+
+    @POST("procs/androidAPI.php")
+    @Multipart
+    fun sendTrackingUserLocation(
+        @Part("action") action: RequestBody?,
+        @Part("jsonData") jsonData: RequestBody?
     ): Single<Models.SimpleMsg>
 
     @POST("procs/androidAPI.php")

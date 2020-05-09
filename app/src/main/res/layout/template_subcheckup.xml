@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="4dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginRight="4dp"
+        app:cardBackgroundColor="@color/colorCardItem">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/question"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/textview"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/clCheckupsPager"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <view
+                    android:id="@+id/viewPager"
+                    class="ru.bingosoft.teploInspector.util.WrapContentHeightViewPager"
+                    android:layout_width="wrap_content"
+                    android:layout_height="578dp"
+                    android:paddingBottom="4dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.0" />
+
+                <ImageButton
+                    android:id="@+id/left_nav"
+                    android:layout_width="30dp"
+                    android:layout_height="50dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_alignParentLeft="true"
+                    android:background="#80ffffff"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:srcCompat="@drawable/arrow_right" />
+
+                <ImageButton
+                    android:id="@+id/right_nav"
+                    android:layout_width="30dp"
+                    android:layout_height="50dp"
+                    android:layout_alignTop="@+id/left_nav"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:background="#80ffffff"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    app:layout_constraintBottom_toBottomOf="@+id/viewPager"
+                    app:layout_constraintEnd_toEndOf="@+id/viewPager"
+                    app:layout_constraintTop_toTopOf="@+id/viewPager"
+                    app:srcCompat="@drawable/arrow_left" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <Button
+                android:id="@+id/addNewStep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btnAddCheckup"
+                app:layout_constraintBottom_toTopOf="@+id/linearLayout2" />
+
+            <TextView
+                android:id="@+id/countCheckup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:drawableLeft="@drawable/ic_playlist_add_check_black_24dp"
+                android:drawablePadding="4dp"
+                android:text="1"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/addNewStep" />
+
+            <LinearLayout
+                android:id="@+id/linearLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:id="@+id/errorSubcheckup"
+                    android:layout_width="279dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center|left"
+                    android:layout_weight="1"
+                    android:text="@string/not_checked_control"
+                    android:textColor="@color/error"
+                    android:visibility="invisible" />
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabCheck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:backgroundTint="@color/colorAccent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:fabCustomSize="32dp"
+                    app:srcCompat="@drawable/ic_check_black_8dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</LinearLayout>

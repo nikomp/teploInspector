@@ -17,6 +17,8 @@ import com.mapbox.mapboxsdk.geometry.LatLng
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
+import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.PhotoHelper
 import ru.bingosoft.teploInspector.util.Toaster
@@ -39,6 +41,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var root: View
     private lateinit var uiCreator: UICreator
 
+    lateinit var controlList: Models.ControlList
+    lateinit var checkup: Checkup
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -52,6 +57,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         val btnSave = view.findViewById(R.id.mbSaveCheckup) as MaterialButton
         btnSave.setOnClickListener(this)
+
+        val btnSend = view.findViewById(R.id.mbSendCheckup) as MaterialButton
+        btnSend.setOnClickListener(this)
 
         checkupPresenter.attachView(this)
 
@@ -73,14 +81,19 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         return view
     }
 
+    /*override fun onStop() {
+        Timber.d("CheckupFragment_onStop")
+        super.onStop()
+    }*/
+
     override fun dataIsLoaded(checkup: Checkup) {
         Timber.d("Checkup готов к работе")
         Timber.d(checkup.toString())
 
+        this.checkup=checkup
         photoHelper.parentFragment=this
-        //uiCreator=UICreator(root,checkup,photoHelper,checkupPresenter)
         uiCreator= UICreator(this, checkup)
-        uiCreator.create()
+        controlList=uiCreator.create(root)
 
     }
 
@@ -102,12 +115,18 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
                     checkupPresenter.saveCheckup(uiCreator)
+                    //checkupPresenter.saveCheckup(controlList,this.checkup)
+                }
+                R.id.mbSendCheckup -> {
+                    Timber.d("Отправляем данные на сервер")
+                    (this.requireActivity() as MainActivity).mainPresenter.sendData()
                 }
             }
         }
     }
 
     override fun onDestroy() {
+        Timber.d("CheckupFragment_onDestroy")
         super.onDestroy()
         checkupPresenter.onDestroy()
     }
@@ -129,6 +148,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         }
     }
+
+    /*override fun onPause() {
+        Timber.d("CheckupFragment_onPause")
+        super.onPause()
+    }*/
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -159,11 +183,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     fun setPhotoResult(controlId: Int?, photoDir: String) {
-        Timber.d("setPhotoResult from fragment ${controlId}")
+        Timber.d("setPhotoResult from fragment $controlId")
         if (controlId!=null) {
             Timber.d("controlId!=null")
-            val llayout=root.findViewById<LinearLayout>(controlId)
-            llayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
+            val linearLayout=root.findViewById<LinearLayout>(controlId)
+            linearLayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
         }
 
 

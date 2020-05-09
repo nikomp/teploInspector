@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.models
 
+import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.CheckupGuide.CheckupGuide
@@ -52,19 +53,45 @@ class Models {
     )
 
     class ControlList(
-        @SerializedName("controls") var list: List<TemplateControl> = listOf()
+        @Expose @SerializedName("controls") var list: MutableList<TemplateControl> = mutableListOf()
+    )
+
+    class CommonControlList(
+        @Expose @SerializedName("common") var list: MutableList<ControlList> = mutableListOf()
     )
 
     class TemplateControl (
-        @SerializedName("id") var id: Int = 0,
-        @SerializedName("guid") var guid: String = "",
-        @SerializedName("type") var type: String = "",
-        @SerializedName("value") var value: Array<String> = arrayOf(),
-        @SerializedName("question") var question: String="",
-        @SerializedName("hint") var hint: String="",
-        @SerializedName("resvalue") var resvalue: String="",
+        @Expose @SerializedName("id") var id: Int = 0,
+        @Expose @SerializedName("guid") var guid: String = "",
+        @Expose @SerializedName("type") var type: String = "",
+        @Expose @SerializedName("value") var value: Array<String> = arrayOf(),
+        @Expose @SerializedName("idvalue") var idvalue: Array<Int> = arrayOf(),
+        @Expose @SerializedName("subvalue") var subvalue: Array<Subvalue> = arrayOf(),
+        @Expose @SerializedName("question") var question: String="",
+        @Expose @SerializedName("hint") var hint: String="",
+        @Expose @SerializedName("resvalue") var resvalue: String="",
+        @Expose @SerializedName("subcheckup") var subcheckup: List<Checkup> = listOf(),
 
-        var checked: Boolean=false
+        @Expose var checked: Boolean=false,
+        //var controlList: ControlList?=null
+        var groupControlList: CommonControlList?=null,
+        var parent: TemplateControl?=null
+    )
+
+    class Subvalue(
+        @SerializedName("idlink") var id: Int = 0,
+        @SerializedName("value") var value: Array<String> = arrayOf()
+    )
+
+    /*class PhotoResult(
+        @SerializedName("dir") var dir: String = "",
+        @SerializedName("lat") var lat: Double? = 0.0,
+        @SerializedName("lon") var lon: Double? = 0.0
+    )*/
+
+    class MapPoint(
+        @SerializedName("lat") var lat: Double? = 0.0,
+        @SerializedName("lon") var lon: Double? = 0.0
     )
 
 

@@ -1,6 +1,6 @@
 package ru.bingosoft.teploInspector.ui.checkup
 
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -8,6 +8,7 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AppDatabase
+import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
@@ -40,24 +41,12 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
 
     fun saveCheckup(uiCreator: UICreator) {
         Timber.d("Сохраняем данные чеклиста")
-        /*val filterControls=uiCreator.controlList.list.filter { !it.checked }
-        if (filterControls.isNotEmpty()) {
-            view?.showCheckupMessage(R.string.notConfirmStep)
-        } else {
-            val resCheckup= Gson().toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
-            uiCreator.checkup.textResult=resCheckup as JsonObject
 
-            disposable=Single.fromCallable{
-                db.checkupDao().insert(uiCreator.checkup)
-            }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{_->
-                view?.showCheckupMessage(R.string.msgSaveCheckup)
-            }
-        }*/
-
-        val resCheckup= Gson().toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
+        // Исключаем ненужные поля
+        val gson= GsonBuilder()
+            .excludeFieldsWithoutExposeAnnotation()
+            .create()
+        val resCheckup= gson.toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
         uiCreator.checkup.textResult=resCheckup as JsonObject
 
         disposable=Single.fromCallable{
@@ -70,6 +59,31 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
         },{trowable ->
             trowable.printStackTrace()
         })
+    }
+
+    fun saveCheckup(controlList: Models.ControlList, checkup: Checkup) {
+        Timber.d("Сохраняем данные чеклиста")
+        Timber.d("controlList=${controlList.list[1].type}")
+        Timber.d("controlList=${controlList.list[1].subcheckup[0]}")
+        //Timber.d("controlList=${controlList.list[1].subcheckup[1]}")
+
+        // Исключаем ненужные поля
+        val gson= GsonBuilder()
+            .excludeFieldsWithoutExposeAnnotation()
+            .create()
+        val resCheckup= gson.toJsonTree(controlList, Models.ControlList::class.java)
+        checkup.textResult=resCheckup as JsonObject
+
+        disposable=Single.fromCallable{
+            db.checkupDao().insert(checkup)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({_->
+                view?.showCheckupMessage(R.string.msgSaveCheckup)
+            },{trowable ->
+                trowable.printStackTrace()
+            })
     }
 
     fun onDestroy() {

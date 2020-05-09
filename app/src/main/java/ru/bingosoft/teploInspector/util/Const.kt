@@ -27,6 +27,19 @@ class Const {
         const val LOCATION_TRACKING= "location_tracking"
     }
 
+    object LocationStatus {
+        const val PROVIDER_DISABLED="PROVIDER_DISABLED"
+        const val PROVIDER_ENABLED="PROVIDER_ENABLED"
+        const val NOT_AVAILABLE="NOT_AVAILABLE"
+        const val AVAILABLE="AVAILABLE"
+    }
+
+    object MessageCode {
+        const val REFUSED_PERMISSION=1 //пользователь отказался выдать разрешение на Геолокацию
+        const val REPEATEDLY_REFUSED=2 //пользователь повторно отказался включить GPS
+        const val DISABLE_LOCATION=3 //пользователь выключил GPS
+    }
+
     object Location {
         val TARGET_POINT=Point(56.3287,44.002) //Нижний Новгород
 

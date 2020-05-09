@@ -46,6 +46,7 @@ class LoginPresenter @Inject constructor(
                     Timber.d("Авторизовались")
                     this.stLogin=stLogin
                     this.stPassword=stPassword
+                    view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
 
                     val v=view
                     if (v!=null) {
@@ -182,7 +183,7 @@ class LoginPresenter @Inject constructor(
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe{_->
                         view?.showMessageLogin(R.string.order_refresh)
-                        view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
+
                     }
             }
 

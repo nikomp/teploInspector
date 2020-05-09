@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import timber.log.Timber
 import java.io.*
@@ -18,6 +19,7 @@ import java.util.zip.ZipOutputStream
 
 class PhotoHelper {
     lateinit var parentFragment: Fragment
+    var lastPhotoFileName=""
 
     /**
      * Метод для создания фото и сохранения ее в файл и БД
@@ -28,18 +30,22 @@ class PhotoHelper {
 
         var uri: Uri? = null
         try {
+            val photoFile=createImageFile("$dirName/${step.guid}")
+            Timber.d("photoFile=${photoFile.absolutePath}")
+            (parentFragment.requireActivity() as MainActivity).lastKnownFilenamePhoto=photoFile.absolutePath
+
             uri = FileProvider.getUriForFile(
                 parentFragment.requireContext(), "ru.bingosoft.teploInspector.provider",
-                createImageFile("$dirName/${step.guid}")
+                photoFile
             )
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            parentFragment.requireActivity().startActivityForResult(intent, PHOTO)
+
+
         } catch (ex: IOException) {
             Timber.d("Ошибка createImageFile " + ex.message)
         }
-
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        parentFragment.requireActivity().startActivityForResult(intent, PHOTO)
-
     }
 
     /**
@@ -49,10 +55,9 @@ class PhotoHelper {
      * @throws IOException - метод может вызвать исключение
      */
     @Throws(IOException::class)
-    private fun createImageFile(filename: String): File {
+    private fun createImageFile(dirname: String): File {
         // Имя для папки с файлами PhotoForApp/+<id_заявки>. Если потребуется делать фотки Захоронений и Памятников, в папке с местом захоронения создадим еще 2 папки
-        val stDir = "PhotoForApp/$filename" //+Integer.toString(inSector)+"."+Integer
-
+        val stDir = "PhotoForApp/$dirname" //+Integer.toString(inSector)+"."+Integer
 
         Timber.d("папка с фото $stDir")
 
@@ -60,7 +65,6 @@ class PhotoHelper {
         val timeStamp = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale("ru","RU")) .format(Date())
 
         val imageFileName = "JPEG_ $timeStamp" + "_"
-        Timber.d("имя файла $imageFileName")
         val storageDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), stDir)
 
         if (!storageDir.exists()) {
@@ -115,7 +119,7 @@ class PhotoHelper {
      *
      */
     fun prepareZip(syncDirs: List<String>): File? {
-        Timber.d("prepareZip")
+        Timber.d("prepareZip=$syncDirs")
 
         // Создадим папку для архива
         val zipDir =
@@ -126,7 +130,18 @@ class PhotoHelper {
 
         // Копируем в нее нужные файлы с фото
         syncDirs.forEach {
+            Timber.d("dirSources=$it")
             val dirSources=File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString() + "/PhotoForApp/$it")
+            // Почистим папку от нулевых файлов
+            if (dirSources.isDirectory) {
+                dirSources.listFiles()?.forEach { file ->
+                    if (file.length()==0L) {
+                        file.delete()
+                        Timber.d("Удалили ${file.name}")
+                    }
+                }
+            }
+
             val dirTarget=File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString() + "/zipDir/$it")
             copyDir(dirSources,dirTarget)
         }
@@ -150,7 +165,7 @@ class PhotoHelper {
                         zip(storageDir, storageDir, zos)
                         zos.close()
 
-                        // Удалим папку с фото
+                        // Удалим папку zipDir с фото
                         deleteRecursive(storageDir)
 
                         return fileZip
@@ -180,7 +195,6 @@ class PhotoHelper {
                     deleteRecursive(it)
                 }
             }
-
         }
 
         fileOrDirectory.delete()

@@ -6,9 +6,14 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.location.LocationProvider
 import android.os.Bundle
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.AVAILABLE
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.NOT_AVAILABLE
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import timber.log.Timber
 
 
@@ -19,10 +24,10 @@ class UserLocationService: Service() {
     private val locationDistance = 10f
 
 
-    private var userLocationListener =
+    var userLocationListener =
         arrayOf(
-            UserLocationListener(LocationManager.GPS_PROVIDER,this),
-            UserLocationListener(LocationManager.NETWORK_PROVIDER,this)
+            UserLocationListener(LocationManager.GPS_PROVIDER,this)
+            //UserLocationListener(LocationManager.NETWORK_PROVIDER,this)
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -32,9 +37,9 @@ class UserLocationService: Service() {
     }
 
     override fun onCreate() {
-        Timber.d("onCreate")
+        Timber.d("service_onCreate")
         initializeLocationManager()
-        try {
+        /*try {
             locationManager?.requestLocationUpdates(
                 LocationManager.NETWORK_PROVIDER, locationInterval, locationDistance,
                 userLocationListener[1]
@@ -43,7 +48,7 @@ class UserLocationService: Service() {
             Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
         } catch (e: IllegalArgumentException) {
             Timber.d("Сетевой провайдер не существует ${e.printStackTrace()}")
-        }
+        }*/
 
         try {
             locationManager?.requestLocationUpdates(
@@ -52,8 +57,10 @@ class UserLocationService: Service() {
             )
         } catch (e: SecurityException) {
             Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
+            stopSelf()
         } catch (e: IllegalArgumentException) {
             Timber.d("GPS провайдер не существует ${e.printStackTrace()}")
+            stopSelf()
         }
 
         getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putBoolean(
@@ -96,28 +103,42 @@ class UserLocationService: Service() {
 
         override fun onLocationChanged(location: Location?) {
             Timber.d("onLocationChanged $location")
-            if (location != null) {
-                val intent=Intent("userLocationUpdates")
-                intent.putExtra("lat",location.latitude)
-                intent.putExtra("lon",location.longitude)
-                LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
-            }
+            sendIntent(location, AVAILABLE)
             lastLocation.set(location)
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-            Timber.d("onStatusChanged $provider")
+            Timber.d("onStatusChanged $provider $status")
+            if (status!=LocationProvider.AVAILABLE) {
+                sendIntent(null, NOT_AVAILABLE)
+            }
         }
 
         override fun onProviderEnabled(provider: String?) {
             Timber.d("onProviderEnabled $provider")
+            sendIntent(null, PROVIDER_ENABLED)
         }
 
         override fun onProviderDisabled(provider: String?) {
             Timber.d("onProviderDisabled $provider")
+            sendIntent(null, PROVIDER_DISABLED)
         }
 
-
+        private fun sendIntent(location: Location?, status: String) {
+            val intent=Intent("userLocationUpdates")
+            if (provider == LocationManager.GPS_PROVIDER) {
+                intent.putExtra("provider","GPS_PROVIDER")
+            }
+            if (provider == LocationManager.NETWORK_PROVIDER) {
+                intent.putExtra("provider","NETWORK_PROVIDER")
+            }
+            intent.putExtra("status",status)
+            if (location != null) {
+                intent.putExtra("lat",location.latitude)
+                intent.putExtra("lon",location.longitude)
+            }
+            LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
+        }
     }
 
 

@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.ui.order
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,7 +13,6 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.android.synthetic.main.item_cardview_order.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
@@ -36,6 +36,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         return orders[position]
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
         holder.orderNumber.text = orders[position].number
         holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(orders[position].dateCreate)
@@ -43,6 +44,14 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         holder.orderadress.text = orders[position].adress
         holder.fio.text = orders[position].contactFio
         holder.phone.text = orders[position].phone
+
+        holder.phone.setOnClickListener { _ ->
+            Timber.d("fabButton.setOnClickListener ${orders[position].phone}")
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${orders[position].phone}"))
+            if (intent.resolveActivity(ctx.packageManager) != null) {
+                startActivity(ctx,intent,null)
+            }
+        }
 
         if (orders[position].state.equals("1")) {
             holder.targetImage.setImageResource(R.drawable.ic_flash_on_black_24dp)
@@ -53,13 +62,13 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         holder.listener=itemListener
 
-        holder.fabButton.setOnClickListener{
+        /*holder.fabButton.setOnClickListener{
             Timber.d("fabButton.setOnClickListener ${orders[position].phone}")
             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${orders[position].phone}"))
             if (intent.resolveActivity(ctx.packageManager) != null) {
                 startActivity(ctx,intent,null)
             }
-        }
+        }*/
 
 
         if (orders[position].checked) {
@@ -89,7 +98,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         var fio: TextView = itemView.fio
         var phone: TextView = itemView.phone
         var targetImage: ImageView = itemView.targetImage as ImageView
-        var fabButton: FloatingActionButton = itemView.fab2 as FloatingActionButton
+        //var fabButton: FloatingActionButton = itemView.fab2 as FloatingActionButton
         lateinit var listener: OrdersRVClickListeners
 
         var cardView: CardView = itemView.cv

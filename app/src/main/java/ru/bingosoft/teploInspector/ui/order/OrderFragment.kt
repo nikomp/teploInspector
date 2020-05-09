@@ -199,6 +199,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
             dialogView.buttonNo.setOnClickListener{
                 showMessageLogin(R.string.auth_ok)
+                orderPresenter.loadOrders() // Грузим данные из локальной БД
                 alertDialog.dismiss()
             }
 

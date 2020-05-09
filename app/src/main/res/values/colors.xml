@@ -8,5 +8,7 @@
     <color name="colorCardSelect">#80CBC4</color>
     <color name="colorTitle">#ffffff</color>
 
-    <color name="error">#FF002E</color>>
+    <color name="error">#FF002E</color>
+
+    <color name="hypertext">#0082E5</color>
 </resources>

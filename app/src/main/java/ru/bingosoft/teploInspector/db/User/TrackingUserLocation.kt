@@ -11,7 +11,9 @@ import java.util.*
 data class TrackingUserLocation (
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
-    var lat: Double,
-    var lon: Double,
+    var lat: Double?,
+    var lon: Double?,
+    var provider: String="",
+    var status: String="",
     var dateLocation: Date? = null
     )

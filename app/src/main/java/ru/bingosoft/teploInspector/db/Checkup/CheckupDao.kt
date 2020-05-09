@@ -20,6 +20,9 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup where textResult is not null and sync=0 and textResult not like '%\"checked\":false%'")
     fun getResultAll(): Flowable<List<Checkup>>
 
+    @Query("SELECT count(*) FROM checkup where textResult is not null and sync=0")
+    fun existCheckupWithResult(): Int
+
     @Query("DELETE FROM checkup")
     fun clearCheckup()
 

@@ -1,4 +1,4 @@
-package ru.bingosoft.mapquestapp.di
+package ru.bingosoft.teploInspector.di
 
 import androidx.room.Room
 import dagger.Module

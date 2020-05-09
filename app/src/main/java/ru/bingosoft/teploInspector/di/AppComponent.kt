@@ -3,7 +3,6 @@ package ru.bingosoft.teploInspector.di
 import dagger.BindsInstance
 import dagger.Component
 import dagger.android.AndroidInjectionModule
-import ru.bingosoft.mapquestapp.di.DataBaseModule
 import ru.bingosoft.teploInspector.App
 import javax.inject.Singleton
 

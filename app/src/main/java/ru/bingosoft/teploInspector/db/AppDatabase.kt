@@ -17,5 +17,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ordersDao(): OrdersDao
     abstract fun checkupDao(): CheckupDao
     abstract fun checkupGuideDao(): CheckupGuideDao
-    abstract fun movingUserDao(): TrackingUserLocationDao
+    abstract fun trackingUserDao(): TrackingUserLocationDao
 }

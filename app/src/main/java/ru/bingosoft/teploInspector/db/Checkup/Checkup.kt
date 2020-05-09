@@ -14,9 +14,9 @@ import ru.bingosoft.teploInspector.util.JsonConverter
 data class Checkup (
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
-    var guid: String,
-    var kindObject: String,
-    var nameObject: String,
+    var guid: String="",
+    var kindObject: String="",
+    var nameObject: String="",
     var text: JsonObject? = null,
     var idOrder: Long? =null,
     var textResult: JsonObject? = null,

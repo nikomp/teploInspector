@@ -2,9 +2,14 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +17,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -40,12 +46,11 @@ import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
-import ru.bingosoft.teploInspector.util.Const
+import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
+import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.QR_SCAN
-import ru.bingosoft.teploInspector.util.SharedPrefSaver
-import ru.bingosoft.teploInspector.util.Toaster
-import ru.bingosoft.teploInspector.util.UserLocationService
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -71,30 +76,55 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var mapPoint: Point=Point(0.0,0.0)
     var controlMapId: Int=0
     var photoDir: String=""
+    var lastKnownFilenamePhoto=""
     var photoStep: Models.TemplateControl?=null
+    private lateinit var locationManager: LocationManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
+        mainPresenter.attachView(this)
+
         // Запросим разрешение на геолокацию, нужны для сервиса
         requestPermission()
+        Timber.d("startService_MainActivity")
+        // Стартуем фоновый сервис для отслеживания пользователя
+        // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
+        // Сейчас данные уходят так как стоит заглушка на проверку сессии
+        startService(Intent(this,UserLocationService::class.java))
+        locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+            !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            buildAlertMessageNoGps()
+            Timber.d("startService_MainActivity22")
+        }
 
-        //TODO перенести после авторизации
-
-
-        if (!sharedPref.isLocationTracking()) {
+        /*if (!sharedPref.isLocationTracking()) {
+            Timber.d("zzz=${sharedPref.getLogin()}_${sharedPref.getPassword()}")
             // Проверим авторизован ли пользователь
             if (sharedPref.getLogin()!="" && sharedPref.getPassword()!="") {
                 Timber.d("startService_MainActivity")
                 // Стартуем фоновый сервис для отслеживания пользователя
                 startService(Intent(this,UserLocationService::class.java))
             }
-        }
+        } else {
+            val locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            Timber.d("GPS_PROVIDER=${locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)}")
+            Timber.d("NETWORK_PROVIDER=${locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)}")
+            if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+                !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                buildAlertMessageNoGps()
+                Timber.d("startService_MainActivity22")
+                // Стартуем фоновый сервис для отслеживания пользователя
+                startService(Intent(this,UserLocationService::class.java))
+            }
+        }*/
         // Регистрируем широковещательный слушатель для получения данных от фонового сервиса
         LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
 
@@ -140,8 +170,31 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         navView.setNavigationItemSelectedListener(this)
         //navView.setupWithNavController(navController) // Переключалка фрагментов по-умолчанию
 
-        mainPresenter.attachView(this)
+    }
 
+    private fun buildAlertMessageNoGps() {
+        val builder= AlertDialog.Builder(this)
+        builder.setMessage("Датчик GPS выключен, включить?").setCancelable(false)
+            .setPositiveButton("Да"
+            ) { _, _ -> startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
+            .setNegativeButton("Нет"
+            ) { dialog, _ ->
+                Timber.d("Сообщение администратору")
+                mainPresenter.sendMessageToAdmin(REPEATEDLY_REFUSED)
+                dialog?.cancel()
+            }
+        val alert=builder.create()
+
+        alert.setOnShowListener { dialog ->
+            val posButton=(dialog as AlertDialog).getButton(DialogInterface.BUTTON_POSITIVE)
+            val params=LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.leftMargin=20
+            posButton.layoutParams=params
+        }
+        alert.show()
     }
 
     private fun requestPermission() {
@@ -170,14 +223,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
                     // Разрешения выданы
-                    Timber.d("enableLocationComponent")
+                    Timber.d("startService_Permission")
+                    startService(Intent(this,UserLocationService::class.java))
                     //enableLocationComponent()
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
-
-                    //TODO отправим сообщение администратору что пользователь отказался от включения Геолокации
                     Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ")
+                    mainPresenter.sendMessageToAdmin(REFUSED_PERMISSION)
                 }
             }
             else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
@@ -202,8 +255,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             when (requestCode) {
                 PHOTO -> {
                     Timber.d("REQUEST_CODE_PHOTO")
-                    //toaster.showToast("Фото сохранено в папке DCIM\\PhotoForApp\\")
-                    //photoDir="DCIM\\PhotoForApp\\"
                     setPhotoResult()
 
                 }
@@ -233,8 +284,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         super.onDestroy()
         stopService(Intent(this,UserLocationService::class.java))
         mainPresenter.onDestroy()
+        //unregisterReceiver(userLocationReceiver)
+        try {
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         userLocationReceiver.onDestroy()
+
     }
+
 
     override fun onBackPressed() {
         super.onBackPressed()
@@ -260,6 +320,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             Timber.d("onBackPressed_checkup_list_fragment_tag")
             val idOrder = fragment2.arguments?.getLong("idOrder")
             if (idOrder!=null) {
+                (fragment2 as CheckupListFragment).checkupListPresenter.loadCheckupListByOrder(idOrder) // Грузим объекты только выбранной заявки
+            } else {
                 (fragment2 as CheckupListFragment).checkupListPresenter.loadCheckupList() // Грузим все объекты
             }
         }
@@ -284,10 +346,25 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
     private fun setPhotoResult() {
+        var photoLocation:Location?=Location(LocationManager.GPS_PROVIDER)
+        try {
+            photoLocation=locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        } catch (e: SecurityException) {
+            Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
+        } catch (e: IllegalArgumentException) {
+            Timber.d("GPS провайдер не существует ${e.printStackTrace()}")
+        }
+        Timber.d("locationPhoto=${photoLocation?.latitude}_${photoLocation?.longitude}")
+
+        Timber.d("lastKnownFilenamePhoto=${lastKnownFilenamePhoto}")
+        OtherUtil().saveExifLocation(lastKnownFilenamePhoto,photoLocation)
+
+
         Timber.d("setPhotoResult from Activity")
         val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
         cf?.setPhotoResult(photoStep?.id,"DCIM\\PhotoForApp\\$photoDir")
         photoStep?.resvalue=photoDir
+
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -312,6 +389,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             R.id.nav_send_data -> {
                 Timber.d("Отправляем данные на сервер")
                 mainPresenter.sendData()
+                //mainPresenter.isCheckupWithResult()
                 return true
             }
             R.id.nav_auth -> {
@@ -322,17 +400,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.nav_qr_scan -> {
                 // Запустим сканер QR
-                try {
+                return try {
                     val intent = Intent("com.google.zxing.client.android.SCAN")
                     intent.putExtra("SCAN_MODE", "QR_CODE_MODE")
                     startActivityForResult(intent, QR_SCAN)
-                    return true
+                    true
                 } catch (e: Exception) {
 
                     val marketUri = Uri.parse("market://details?id=com.google.zxing.client.android")
                     val marketIntent = Intent(Intent.ACTION_VIEW,marketUri)
                     startActivity(marketIntent)
-                    return false
+                    false
 
                 }
 
@@ -344,16 +422,25 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
     override fun showMainActivityMsg(resID: Int) {
+        Timber.d("showMainActivityMsg")
         toaster.showToast(resID)
     }
 
     override fun showMainActivityMsg(msg: String) {
+        Timber.d("showMainActivityMsg")
         toaster.showToast(msg)
     }
 
     override fun dataSyncOK() {
         Timber.d("dataSyncOK")
         mainPresenter.updData()
+    }
+
+    override fun updDataOK() {
+        Timber.d("updDataOK")
+        //Передаем маршрут пользователя
+        mainPresenter.sendUserRoute()
+
     }
 
     fun invalidateNavigationDrawer() {

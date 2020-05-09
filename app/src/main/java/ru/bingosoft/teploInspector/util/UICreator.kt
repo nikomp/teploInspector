@@ -5,17 +5,17 @@ import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.cardview.widget.CardView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.viewpager.widget.ViewPager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
-import com.mapbox.mapboxsdk.geometry.LatLng
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
@@ -34,20 +34,34 @@ import java.math.RoundingMode
 class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: Models.ControlList
 
-    val photoHelper=parentFragment.photoHelper
+    private val photoHelper=parentFragment.photoHelper
 
-    fun create() {
+    fun create(rootView: View, controls:Models.ControlList?=null, parent: Models.TemplateControl?=null): Models.ControlList {
         // Возможно чеклист был ранее сохранен, тогда берем сохраненный и восстанавливаем его
-        controlList = if (checkup.textResult!=null){
-            Gson().fromJson(checkup.textResult, Models.ControlList::class.java)
+        controlList = if (controls==null) {
+            Timber.d("checkup.textResult=${checkup.textResult}")
+            if (checkup.textResult!=null){
+                Timber.d("сюда")
+                Gson().fromJson(checkup.textResult, Models.ControlList::class.java)
+            } else {
+                Timber.d("checkup=$checkup")
+                Gson().fromJson(checkup.text, Models.ControlList::class.java)
+            }
         } else {
-            Gson().fromJson(checkup.text, Models.ControlList::class.java)
+            controls
         }
 
-        val rootView=parentFragment.root
+
+        //val rootView=parentFragment.root
         val checkupPresenter=parentFragment.checkupPresenter
 
         controlList.list.forEach controls@ { it ->
+            // Для всех зависимых контролов сохраним его родителя
+            if (parent!=null) {
+                Timber.d("parent!=null")
+                Timber.d("parent=${parent.id}_${parent.checked}_${parent.type}")
+                it.parent=parent
+            }
             when (it.type) {
                 // Выпадающий список
                 "combobox"->{
@@ -88,11 +102,85 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     return@controls
 
                 }
+                // Выпадающий список
+                "multilevel_combobox"->{
+                    Timber.d("генерим multilevel_combobox")
+
+                    val templateStep=LayoutInflater.from(rootView.context).inflate(
+                        R.layout.template_multilevel_spinner, rootView.parent as ViewGroup?, false) as LinearLayout
+
+
+                    attachListenerToFab(templateStep,it)
+
+                    templateStep.id=it.id
+                    templateStep.findViewById<TextView>(R.id.question).text=it.question
+
+                    val materialSpinner=templateStep.findViewById<MaterialBetterSpinner>(R.id.android_material_design_spinner)
+                    val materialSubSpinner=templateStep.findViewById<MaterialBetterSpinner>(R.id.subspinner)
+
+                    doAssociateParent(templateStep, rootView.findViewById(R.id.mainControl))
+
+                    val spinnerArrayAdapter: ArrayAdapter<String> = ArrayAdapter(
+                        rootView.context,
+                        R.layout.template_multiline_spinner_item,
+                        it.value
+                    )
+
+                    // Заполним основной spinner
+                    materialSpinner.setAdapter(spinnerArrayAdapter)
+
+
+                    val subspinnerArrayAdapter: ArrayAdapter<String> = ArrayAdapter(
+                        rootView.context,
+                        R.layout.template_multiline_spinner_item,
+                        arrayListOf()
+                    )
+                    // Запоним пустым значением, иначе краш
+                    materialSubSpinner.setAdapter(subspinnerArrayAdapter)
+
+
+                    // Если шаг чеклиста был ранее сохранен восстановим значение
+                    Timber.d("it.checked=${it.checked}")
+                    if (it.checked) {
+                        changeChecked(templateStep,it) // Установим цвет шага
+                    }
+                    if (it.resvalue.isNotEmpty()){
+                        materialSpinner.setText(it.resvalue)
+                    }
+                    // Вешаем обработчик на spinner последним, иначе сбрасывается цвет шага
+                    //materialSpinner.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+
+                    materialSpinner.setOnItemClickListener(object:AdapterView.OnItemClickListener {
+                        override fun onItemClick(
+                            parent: AdapterView<*>?,
+                            view: View?,
+                            position: Int,
+                            id: Long
+                        ) {
+                            val spinnerSubArrayAdapter: ArrayAdapter<String> = ArrayAdapter(
+                                rootView.context,
+                                R.layout.template_multiline_spinner_item,
+                                it.subvalue[position].value
+                            )
+                            // Запоним пустым значением, иначе краш
+                            materialSubSpinner.setAdapter(spinnerSubArrayAdapter)
+                        }
+
+                    })
+
+
+                    // Вешаем обработчик на второй spinner его значение уйдет на сервер
+                    materialSubSpinner.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+
+                    return@controls
+
+                }
                 // Строковое поле ввода однострочное
                 "textinput"->{
                     // Строковое поле однострочное
                     val templateStep=LayoutInflater.from(rootView.context).inflate(
                         R.layout.template_textinput, rootView.parent as ViewGroup?, false) as LinearLayout
+
 
                     attachListenerToFab(templateStep,it)
 
@@ -177,15 +265,21 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                         changeChecked(templateStep,it) // Установим цвет шага
                     }
                     if (it.resvalue.isNotEmpty()){
-                        val point=parseLatLng(it.resvalue)
-                        templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
+                        Timber.d("map_coordinates=${it.resvalue}")
+                        val point=Gson().fromJson(it.resvalue, Models.MapPoint::class.java)
+                        templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=parentFragment.getString(R.string.coordinates,BigDecimal(point.lat!!).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.lon!!).setScale(5,RoundingMode.HALF_EVEN))
+
                     } else {
                         // Возьмем координаты от Activity
                         val controlId=(parentFragment.requireActivity() as MainActivity).controlMapId
                         if (it.id==controlId) {
                             val point=(parentFragment.requireActivity() as MainActivity).mapPoint
                             templateStep.findViewById<TextView>(R.id.mapCoordinatesResult).text=parentFragment.getString(R.string.coordinates,BigDecimal(point.latitude).setScale(5,RoundingMode.HALF_EVEN),BigDecimal(point.longitude).setScale(5,RoundingMode.HALF_EVEN))
-                            it.resvalue=point.toString()
+
+                            val mapPoint=Models.MapPoint(point.latitude,point.longitude)
+
+                            it.resvalue=Gson().toJson(mapPoint)
+                            Timber.d("mapPoint=${it.resvalue}")
                         }
                     }
 
@@ -219,6 +313,101 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
                     return@controls
                 }
+                "group_questions"->{
+                    // контрол с зависимым чеклистом
+                    val templateStep=LayoutInflater.from(rootView.context).inflate(
+                        R.layout.template_subcheckup, rootView.parent as ViewGroup?, false) as LinearLayout
+
+                    attachListenerToFab(templateStep,it)
+
+                    Timber.d("it.id=${it.id}")
+                    templateStep.id=it.id
+                    templateStep.tag=it
+
+                    Timber.d("templateStep.id=${templateStep.id}")
+                    templateStep.findViewById<TextView>(R.id.question).text=it.question
+
+                    val clCheckupsPager=templateStep.findViewById<ConstraintLayout>(R.id.clCheckupsPager)
+
+                    // Если шаг чеклиста был ранее сохранен восстановим значение
+                    if (it.checked) {
+                        changeChecked(templateStep,it) // Установим цвет шага
+                    }
+
+                    doAssociateParent(templateStep, rootView.findViewById(R.id.mainControl))
+
+                    if (it.resvalue.isNotEmpty()){
+                        val controlsForPages=Gson().fromJson(it.resvalue, Models.CommonControlList::class.java)
+                        val subcheckup= mutableListOf<Checkup>()
+                        controlsForPages.list.forEach{controls ->
+                            val gson= GsonBuilder()
+                                .excludeFieldsWithoutExposeAnnotation()
+                                .create()
+                            val resValue=gson.toJson(controls,Models.ControlList::class.java)
+                            val checkup=Checkup(textResult = Gson().fromJson(resValue, JsonObject::class.java))
+                            subcheckup.add(checkup)
+                        }
+
+                        it.subcheckup=subcheckup
+                        refreshCheckupViewer(clCheckupsPager, it)
+
+                    } else {
+                        Timber.d("Нет сохраненных результатов")
+                        refreshCheckupViewer(clCheckupsPager, it)
+                    }
+
+
+                    val leftBtn = templateStep.findViewById(R.id.left_nav) as ImageButton
+                    val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
+
+                    val pager = templateStep.findViewById(R.id.viewPager) as ViewPager
+
+                    leftBtn.setOnClickListener {
+                        var tab = pager.currentItem
+                        if (tab > 0) {
+                            tab--
+                            pager.currentItem = tab
+                        } else if (tab == 0) {
+                            pager.currentItem = tab
+                        }
+                    }
+
+                    rightBtn.setOnClickListener {
+                        var tab = pager.currentItem
+                        tab++
+                        pager.currentItem = tab
+                    }
+
+
+                    // Обработчик для кнопки "Добавлям новый чеклист"
+                    val btnNewStep=templateStep.findViewById<Button>(R.id.addNewStep)
+                    btnNewStep.tag=templateStep
+                    btnNewStep.setOnClickListener{
+                        Timber.d("Добавлям новый чеклист")
+
+
+                        val ts=it.tag
+                        val tc=((ts as View).tag as Models.TemplateControl)
+
+                        val subcheckupnew= mutableListOf<Checkup>()
+                        val controlsForPages=tc.groupControlList
+                        controlsForPages?.list?.forEach{ controls ->
+                            val gson= GsonBuilder()
+                                .excludeFieldsWithoutExposeAnnotation()
+                                .create()
+                            val resValue=gson.toJson(controls,Models.ControlList::class.java)
+                            val checkup=Checkup(textResult = Gson().fromJson(resValue, JsonObject::class.java))
+                            subcheckupnew.add(checkup)
+                        }
+
+                        subcheckupnew.add(tc.subcheckup[0]) // Добавим еще один такой же
+                        tc.subcheckup=subcheckupnew
+
+                        refreshCheckupViewer(clCheckupsPager, tc)
+                    }
+
+                    return@controls
+                }
                 else -> {
                     Timber.d("Неизвестный элемент интерфейса")
                     return@controls
@@ -226,14 +415,39 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             }
         }
 
+        return controlList
+
+    }
+
+    private fun refreshCheckupViewer(v: View, control:Models.TemplateControl) {
+        Timber.d("refreshCheckupViewer")
+        val pager = v.findViewById(R.id.viewPager) as ViewPager
+        val checkups=control.subcheckup
+        val checkupCount = (v.parent as LinearLayout).findViewById(R.id.countCheckup) as TextView
+        checkupCount.text = checkups.size.toString()
+
+        val adapter =
+            CheckupPagerAdapter(
+                control,
+                parentFragment
+            )
+        pager.adapter = adapter
+
+
+        pager.offscreenPageLimit = 4 // сколько чеклистов загружать в память
     }
 
     /**
      * Метод, в котором осуществляется привязка дочернего View к родительскому
      */
-    private fun doAssociateParent(v: View, mainView: View){
+    private fun doAssociateParent(v: View, mainView: View, index: Int?=null){
         if (mainView is LinearLayout) {
-            mainView.addView(v)
+            if (index!=null) {
+                mainView.addView(v,index)
+            } else {
+                mainView.addView(v)
+            }
+
         }
     }
 
@@ -258,6 +472,18 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                         isEmpty=true
                     }
                 }
+                "multilevel_combobox"->{
+                    val controlView=v.findViewById<MaterialBetterSpinner>(R.id.android_material_design_spinner)
+                    if (TextUtils.isEmpty(controlView.text.toString())) {
+                        controlView.error = "Нужно выбрать значение из списка"
+                        isEmpty=true
+                    }
+                    val controlView2=v.findViewById<MaterialBetterSpinner>(R.id.subspinner)
+                    if (TextUtils.isEmpty(controlView2.text.toString())) {
+                        controlView2.error = "Нужно выбрать значение из списка"
+                        isEmpty=true
+                    }
+                }
                 "textinput"->{
                     val controlView=v.findViewById<TextInputEditText>(R.id.tiet)
                     if (TextUtils.isEmpty(controlView.text.toString())) {
@@ -273,7 +499,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                         Timber.d("Папка есть, она не пуста")
                         controlViewError.visibility=View.INVISIBLE
                         // Сохраним filemap в resValue
-                        control.resvalue="${checkup.guid}/${control.guid}"
+                        //control.resvalue="${checkup.guid}/${control.guid}"
 
                         Timber.d(control.resvalue)
 
@@ -295,6 +521,43 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                         isEmpty=true
                     }
                 }
+                "group_questions"->{
+                    // Получим общий лиcт контролов, для фильтрации
+                    val commonListControls= Models.ControlList()
+                    Timber.d("control.controlList=${control.groupControlList}")
+                    control.groupControlList?.list?.forEach {
+                        commonListControls.list.addAll(it.list)
+                    }
+
+                    Timber.d("commonListControls=${commonListControls.list}")
+
+
+                    //val notcheckedcontrol=control.controlList?.list?.filter { !it.checked }
+                    val notcheckedcontrol= commonListControls.list.filter { !it.checked }
+                    Timber.d("notcheckedcontrol=${notcheckedcontrol}")
+                    //Timber.d("notcheckedcontrol=${notcheckedcontrol[0].resvalue}")
+                    if (notcheckedcontrol.isNotEmpty()) {
+                        Timber.d("isEmpty")
+                        val tvError=v.findViewById<TextView>(R.id.errorSubcheckup)
+                        tvError.visibility=View.VISIBLE
+                        isEmpty=true
+                    } else {
+                        val tvError=v.findViewById<TextView>(R.id.errorSubcheckup)
+                        tvError.visibility=View.INVISIBLE
+                        // Сохраняем результат
+                        val controlList2 = control.groupControlList
+                        Timber.d("все отмечено!")
+                        Timber.d("${controlList2?.list?.get(0)?.list?.get(0)?.resvalue}")
+                        val gson= GsonBuilder()
+                            .excludeFieldsWithoutExposeAnnotation()
+                            .create()
+                        val resCheckup =gson.toJson(controlList2)
+                        control.resvalue=resCheckup.toString()
+
+
+                    }
+
+                }
                 else -> {
                     Timber.d("Неизвестный элемент интерфейса")
                 }
@@ -304,19 +567,33 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             if (!isEmpty) {
                 control.checked=!control.checked
                 changeChecked(v,control)
-            }
 
+                // Обновим контрол для зависимого чеклиста
+                val parent=control.parent
+                if (parent!=null) {
+                    Timber.d("control.parent=${parent}")
+                    Timber.d("group_${parent.groupControlList?.list?.get(0)?.list}")
+                    parent.groupControlList?.list?.forEach {
+                        val index=it.list.indexOf(control)
+                        if (index>-1) {
+                            Timber.d("НАШЛИ!!")
+                            it.list[index] = control
+                        }
+                    }
+                } else {
+                    Timber.d("parent==null")
+                }
+            }
         }
     }
+
 
     /**
      * Сменим цвет шага
      */
     fun changeChecked(v: View, control: Models.TemplateControl) {
-        Timber.d("changeChecked")
         val cardView = v.findViewById<CardView>(R.id.cv)
         if (control.checked) {
-            Timber.d("green")
             cardView?.setCardBackgroundColor(
                 ContextCompat.getColor(
                     v.context,
@@ -333,11 +610,11 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
     }
 
-    private fun parseLatLng(str: String): LatLng {
-        Timber.d("parseLatLng")
+    /*private fun parseLatLng(str: String): LatLng {
+        Timber.d("parseLatLng $str")
         val lat=str.substring(str.indexOf("latitude=")+9,str.indexOf(", longitude")).toDouble()
         val lon=str.substring(str.indexOf("longitude=")+10,str.indexOf(", altitude")).toDouble()
         return LatLng(lat, lon)
-    }
+    }*/
 
 }
