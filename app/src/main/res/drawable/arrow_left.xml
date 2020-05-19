@@ -11,14 +11,14 @@
         android:translateY="-1.0">
         <path
             android:fillAlpha="0.01"
-            android:fillColor="#FFFFFF"
+            android:fillColor="@color/colorAccent"
             android:fillType="evenOdd"
             android:pathData="M 0 0 H 21 V 37 H 0 V 0 Z"
             android:strokeWidth="1"
             android:strokeAlpha="0.01" />
         <path
             android:fillAlpha="0.5"
-            android:fillColor="#FFFFFF"
+            android:fillColor="@color/colorAccent"
             android:fillType="evenOdd"
             android:pathData="M16.8382499,1.5115386 L2.04771505,15.9727785 C0.650761649,17.3386303
 0.650761649,19.5544231 2.04771505,20.9202749 L16.9455703,35.4881947

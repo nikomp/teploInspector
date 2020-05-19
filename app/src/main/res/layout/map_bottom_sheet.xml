@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#B0BEC5"
+    android:background="@color/colorCardItem"
     android:orientation="vertical">
 
 
@@ -23,6 +23,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            android:fontFamily="@font/roboto_bold"
+            android:textSize="15sp"
             tools:text="А-001"/>
 
         <TextView
@@ -36,7 +38,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/symbolNumber"
-            tools:text="Обследование территории мукомольного завода" />
+            android:fontFamily="@font/roboto_medium"
+            android:textSize="13sp"
+            tools:text="Обследование территории мукомольного завода"/>
 
         <LinearLayout
             android:id="@+id/linearLayout"

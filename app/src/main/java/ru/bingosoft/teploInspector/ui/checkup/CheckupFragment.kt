@@ -42,6 +42,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     private lateinit var uiCreator: UICreator
 
     lateinit var controlList: Models.ControlList
+    var savedcontrolList: Models.ControlList?=null
     lateinit var checkup: Checkup
 
     override fun onCreateView(
@@ -92,8 +93,16 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         this.checkup=checkup
         photoHelper.parentFragment=this
+        /*if (savedcontrolList!=null) {
+            uiCreator= UICreator(this, checkup)
+            controlList=uiCreator.create(root, controls = savedcontrolList)
+        } else {
+           uiCreator= UICreator(this, checkup)
+            controlList=uiCreator.create(root)
+        }*/
         uiCreator= UICreator(this, checkup)
         controlList=uiCreator.create(root)
+
 
     }
 

@@ -10,6 +10,7 @@ import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.viewpager.widget.ViewPager
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -39,13 +40,18 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     fun create(rootView: View, controls:Models.ControlList?=null, parent: Models.TemplateControl?=null): Models.ControlList {
         // Возможно чеклист был ранее сохранен, тогда берем сохраненный и восстанавливаем его
         controlList = if (controls==null) {
-            Timber.d("checkup.textResult=${checkup.textResult}")
+            //Timber.d("checkup22=${checkup}")
+            //Timber.d("checkup.textResult11=${checkup.textResult}")
             if (checkup.textResult!=null){
-                Timber.d("сюда")
+                //Timber.d("сюда")
                 Gson().fromJson(checkup.textResult, Models.ControlList::class.java)
             } else {
                 Timber.d("checkup=$checkup")
-                Gson().fromJson(checkup.text, Models.ControlList::class.java)
+                if (checkup.text!=null) {
+                    Gson().fromJson(checkup.text, Models.ControlList::class.java)
+                } else {
+                    Gson().fromJson("", Models.ControlList::class.java)
+                }
             }
         } else {
             controls
@@ -235,7 +241,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     }
 
                     // Обработчик для кнопки "Добавить фото"
-                    val btnPhoto=templateStep.findViewById<Button>(R.id.btnPhoto)
+                    val btnPhoto=templateStep.findViewById<MaterialButton>(R.id.btnPhoto)
                     val stepCheckup=it
                     btnPhoto.setOnClickListener{
                         Timber.d("Добавляем фото")
@@ -284,7 +290,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     }
 
                     // Обработчик для кнопки "Добавить координаты"
-                    val btnMap=templateStep.findViewById<Button>(R.id.btnMap)
+                    val btnMap=templateStep.findViewById<MaterialButton>(R.id.btnMap)
                     //val stepCheckup=it
                     btnMap.setOnClickListener{
                         Timber.d("Добавляем координаты")
@@ -380,31 +386,42 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
 
                     // Обработчик для кнопки "Добавлям новый чеклист"
-                    val btnNewStep=templateStep.findViewById<Button>(R.id.addNewStep)
-                    btnNewStep.tag=templateStep
-                    btnNewStep.setOnClickListener{
-                        Timber.d("Добавлям новый чеклист")
+                    Timber.d("it=${it.multiplicity}")
+                    if (it.multiplicity==1) {
+                        val btnNewStep=templateStep.findViewById<MaterialButton>(R.id.addNewStep)
+                        btnNewStep.visibility=View.VISIBLE
+                        btnNewStep.tag=templateStep
+                        btnNewStep.setOnClickListener{
+                            Timber.d("Добавлям новый чеклист")
 
+                            val ts=it.tag
+                            val tc=((ts as View).tag as Models.TemplateControl)
 
-                        val ts=it.tag
-                        val tc=((ts as View).tag as Models.TemplateControl)
+                            // Сбрасываем признак Checked
+                            tc.checked=!tc.checked
+                            changeChecked(ts,tc)
 
-                        val subcheckupnew= mutableListOf<Checkup>()
-                        val controlsForPages=tc.groupControlList
-                        controlsForPages?.list?.forEach{ controls ->
-                            val gson= GsonBuilder()
-                                .excludeFieldsWithoutExposeAnnotation()
-                                .create()
-                            val resValue=gson.toJson(controls,Models.ControlList::class.java)
-                            val checkup=Checkup(textResult = Gson().fromJson(resValue, JsonObject::class.java))
-                            subcheckupnew.add(checkup)
+                            val subcheckupnew= mutableListOf<Checkup>()
+                            val controlsForPages=tc.groupControlList
+                            controlsForPages?.list?.forEach{ controls ->
+                                val gson= GsonBuilder()
+                                    .excludeFieldsWithoutExposeAnnotation()
+                                    .create()
+                                val resValue=gson.toJson(controls,Models.ControlList::class.java)
+                                val checkup=Checkup(textResult = Gson().fromJson(resValue, JsonObject::class.java))
+                                subcheckupnew.add(checkup)
+                            }
+
+                            subcheckupnew.add(tc.subcheckup[0]) // Добавим еще один такой же
+                            tc.subcheckup=subcheckupnew
+
+                            refreshCheckupViewer(clCheckupsPager, tc)
                         }
-
-                        subcheckupnew.add(tc.subcheckup[0]) // Добавим еще один такой же
-                        tc.subcheckup=subcheckupnew
-
-                        refreshCheckupViewer(clCheckupsPager, tc)
+                    } else {
+                        val btnNewStep=templateStep.findViewById<MaterialButton>(R.id.addNewStep)
+                        btnNewStep.visibility=View.INVISIBLE
                     }
+
 
                     return@controls
                 }
@@ -422,9 +439,15 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     private fun refreshCheckupViewer(v: View, control:Models.TemplateControl) {
         Timber.d("refreshCheckupViewer")
         val pager = v.findViewById(R.id.viewPager) as ViewPager
-        val checkups=control.subcheckup
         val checkupCount = (v.parent as LinearLayout).findViewById(R.id.countCheckup) as TextView
-        checkupCount.text = checkups.size.toString()
+
+        val checkups=control.subcheckup
+        if (checkups!=null) {
+            checkupCount.text = checkups.size.toString()
+        } else {
+            checkupCount.text ="0"
+        }
+
 
         val adapter =
             CheckupPagerAdapter(
@@ -553,8 +576,6 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                             .create()
                         val resCheckup =gson.toJson(controlList2)
                         control.resvalue=resCheckup.toString()
-
-
                     }
 
                 }

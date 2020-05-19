@@ -20,7 +20,7 @@ class CheckupPagerAdapter(private val control: Models.TemplateControl, private v
         container.addView(itemView)
 
         // Генерируем вопросы группы
-        //Timber.d("control=${control}")
+        Timber.d("control=${control}")
         val uiCreator= UICreator(parentFragment, control.subcheckup[position])
         val cl=uiCreator.create(rootView = itemView,parent = control)
         Timber.d("cl=${cl.list}")
@@ -32,9 +32,6 @@ class CheckupPagerAdapter(private val control: Models.TemplateControl, private v
             control.groupControlList=adapterControlList
         }
 
-
-
-
         return itemView
     }
 
@@ -43,7 +40,12 @@ class CheckupPagerAdapter(private val control: Models.TemplateControl, private v
     }
 
     override fun getCount(): Int {
-        return control.subcheckup.size
+        return if (control.subcheckup!=null) {
+            control.subcheckup.size
+        } else {
+            0
+        }
+
     }
 
     override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {

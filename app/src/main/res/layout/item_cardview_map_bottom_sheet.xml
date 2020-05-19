@@ -31,7 +31,9 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Body2"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="Маршрут 1" />
+                android:fontFamily="@font/roboto_bold"
+                android:textSize="15sp"
+                tools:text="Маршрут 1"/>
 
             <TextView
                 android:id="@+id/time"
@@ -42,7 +44,9 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Body2"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="29 мин" />
+                android:fontFamily="@font/roboto_bold"
+                android:textSize="15sp"
+                tools:text="29 мин"/>
 
             <TextView
                 android:id="@+id/transfersCount"
@@ -53,7 +57,9 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Small"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/routerName"
-                tools:text="Пересадок: 1" />
+                android:fontFamily="@font/roboto_medium"
+                android:textSize="13sp"
+                tools:text="Пересадок: 1"/>
 
             <TextView
                 android:id="@+id/walkingDistance"
@@ -62,7 +68,9 @@
                 android:layout_marginStart="16dp"
                 app:layout_constraintStart_toEndOf="@+id/transfersCount"
                 app:layout_constraintTop_toTopOf="@+id/transfersCount"
-                tools:text="Пешком 1 км" />
+                android:fontFamily="@font/roboto_medium"
+                android:textSize="13sp"
+                tools:text="Пешком 1 км"/>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/section_route_recycler_view"

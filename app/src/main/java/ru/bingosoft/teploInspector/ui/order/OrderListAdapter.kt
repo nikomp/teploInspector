@@ -54,9 +54,9 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         }
 
         if (orders[position].state.equals("1")) {
-            holder.targetImage.setImageResource(R.drawable.ic_flash_on_black_24dp)
+            holder.targetImage.setImageResource(R.drawable.ic_state_red)
         } else {
-            holder.targetImage.setImageResource(R.drawable.ic_flash_on_black_done24dp)
+            holder.targetImage.setImageResource(R.drawable.ic_state_green)
         }
 
 

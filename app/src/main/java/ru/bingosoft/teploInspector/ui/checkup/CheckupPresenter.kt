@@ -42,12 +42,41 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
     fun saveCheckup(uiCreator: UICreator) {
         Timber.d("Сохраняем данные чеклиста")
 
+        // Проверим нет ли групповых контролов
+        val groupControls=uiCreator.controlList.list.filter { it.type=="group_questions" }
+        if (groupControls.size>0) {
+            groupControls.forEach {
+                //Сохраним групповы чеклисты
+                val controlList2 = it.groupControlList
+                Timber.d("${controlList2?.list?.get(0)?.list?.get(0)?.resvalue}")
+                val gson= GsonBuilder()
+                    .excludeFieldsWithoutExposeAnnotation()
+                    .create()
+                val resCheckup =gson.toJson(controlList2)
+                it.resvalue=resCheckup.toString()
+
+                // Заменим в главном чеклисте групповой чеклист
+                val index=uiCreator.controlList.list.indexOf(it)
+                if (index>-1) {
+                    Timber.d("ОК!!")
+                    uiCreator.controlList.list[index] = it
+                }
+
+
+            }
+        }
+        Timber.d("groupControls=${groupControls.size}")
+        Timber.d("uiCreator.controlList=${uiCreator.controlList.list[0].groupControlList?.list?.get(0)?.list?.get(0)?.resvalue}")
+
         // Исключаем ненужные поля
         val gson= GsonBuilder()
             .excludeFieldsWithoutExposeAnnotation()
             .create()
         val resCheckup= gson.toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
+
+        Timber.d("resCheckup=$resCheckup")
         uiCreator.checkup.textResult=resCheckup as JsonObject
+
 
         disposable=Single.fromCallable{
             db.checkupDao().insert(uiCreator.checkup)

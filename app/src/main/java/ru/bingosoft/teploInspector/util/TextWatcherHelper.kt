@@ -20,8 +20,6 @@ class TextWatcherHelper(private val control: Models.TemplateControl, private val
             uiCreator.changeChecked(parentView, parent)
         }
 
-
-
     }
 
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {

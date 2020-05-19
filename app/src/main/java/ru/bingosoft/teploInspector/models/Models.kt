@@ -71,6 +71,7 @@ class Models {
         @Expose @SerializedName("hint") var hint: String="",
         @Expose @SerializedName("resvalue") var resvalue: String="",
         @Expose @SerializedName("subcheckup") var subcheckup: List<Checkup> = listOf(),
+        @Expose @SerializedName("multiplicity") var multiplicity: Int=0,
 
         @Expose var checked: Boolean=false,
         //var controlList: ControlList?=null

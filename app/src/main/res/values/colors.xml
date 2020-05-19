@@ -4,9 +4,14 @@
     <color name="colorPrimaryDark">#002F58</color>
     <color name="colorAccent">#4788C7</color>
 
-    <color name="colorCardItem">#CED6DF</color>
-    <color name="colorCardSelect">#80CBC4</color>
+    <!--<color name="colorCardItem">#CED6DF</color>-->
+    <color name="colorCardItem">#FFFFFF</color>
+    <color name="colorListBackground">#F4F5F5</color>
+    <!--<color name="colorCardSelect">#80CBC4</color>-->
+    <color name="colorCardSelect">#E4E6E7</color>
     <color name="colorTitle">#ffffff</color>
+    <color name="buttonBackgroundLight">#E6F3FD</color>
+    <color name="buttonBackground">#297BE7</color>
 
     <color name="error">#FF002E</color>
 
