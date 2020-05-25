@@ -78,6 +78,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var photoDir: String=""
     var lastKnownFilenamePhoto=""
     var photoStep: Models.TemplateControl?=null
+    lateinit var currentOrder: Orders
     private lateinit var locationManager: LocationManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -362,7 +363,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         Timber.d("setPhotoResult from Activity")
         val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        cf?.setPhotoResult(photoStep?.id,"DCIM\\PhotoForApp\\$photoDir")
+        cf?.setPhotoResult(photoStep?.id, photoDir)
         photoStep?.resvalue=photoDir
 
     }

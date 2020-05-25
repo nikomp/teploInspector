@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
+import java.io.File
 import java.io.IOException
 import kotlin.math.roundToInt
 
@@ -61,5 +62,21 @@ class OtherUtil {
         } catch (e: IOException) {
             e.printStackTrace()
         }
+    }
+
+    fun getFilesFromDir(dir: String): List<String> {
+        Timber.d("getFilesFromDir")
+        val list = mutableListOf<String>()
+        val directory = File(dir)
+        val files = directory.listFiles()
+        files?.forEach {
+            if (it.length() != 0L) {
+                list.add("$dir/${it.name}")
+            } else {
+                it.delete()
+            }
+        }
+
+        return list
     }
 }

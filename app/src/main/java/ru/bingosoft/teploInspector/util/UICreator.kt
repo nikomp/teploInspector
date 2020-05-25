@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.util
 
 import android.os.Bundle
+import android.os.Environment
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +10,7 @@ import android.widget.*
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -25,6 +27,7 @@ import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import timber.log.Timber
+import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -220,12 +223,13 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                 "photo"->{
                     // контрол с кнопкой для фото
                     val templateStep=LayoutInflater.from(rootView.context).inflate(
-                        R.layout.template_photo, rootView.parent as ViewGroup?, false) as LinearLayout
+                        R.layout.template_photo2, rootView.parent as ViewGroup?, false) as LinearLayout
 
                     attachListenerToFab(templateStep,it)
 
                     templateStep.id=it.id
                     templateStep.findViewById<TextView>(R.id.question).text=it.question
+                    templateStep.tag=it
 
                     doAssociateParent(templateStep, rootView.findViewById(R.id.mainControl))
 
@@ -235,20 +239,99 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     }
 
                     Timber.d("Фото11 ${it.resvalue}")
-                    if (it.resvalue.isNotEmpty()){
+                    /*if (it.resvalue.isNotEmpty()){
                         Timber.d("Фото ${it.resvalue}")
                         templateStep.findViewById<TextView>(R.id.photoResult).text=parentFragment.getString(R.string.photoResult,"DCIM\\PhotoForApp\\${it.resvalue}")
-                    }
+                    }*/
 
                     // Обработчик для кнопки "Добавить фото"
                     val btnPhoto=templateStep.findViewById<MaterialButton>(R.id.btnPhoto)
                     val stepCheckup=it
+                    btnPhoto.tag=templateStep
                     btnPhoto.setOnClickListener{
                         Timber.d("Добавляем фото")
+                        val ts=it.tag
+                        val tc=((ts as View).tag as Models.TemplateControl)
+
+                        // Сбрасываем признак Checked
+                        if (tc.checked==true) {
+                            tc.checked=!tc.checked
+                            changeChecked(ts,tc)
+                        }
+
+                        val curOrder=(parentFragment.activity as MainActivity).currentOrder
                         (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
-                        (parentFragment.requireActivity() as MainActivity).photoDir="${checkup.guid}/${stepCheckup.guid}" // Сохраним id контрола для которого делаем фото
-                        photoHelper.createPhoto(checkup.guid, stepCheckup)
+                        (parentFragment.requireActivity() as MainActivity).photoDir="${curOrder.guid}/${checkup.guid}/${stepCheckup.guid}" // Сохраним id контрола для которого делаем фото
+                        photoHelper.createPhoto("${curOrder.guid}/${checkup.guid}", stepCheckup)
                     }
+
+                    val btnClearAll =
+                        templateStep.findViewById<MaterialButton>(R.id.btnPhotoDeleteAll)
+                    btnClearAll.setOnClickListener {
+                        Timber.d("Удалим все фото")
+                    }
+
+                    val images: List<String>
+                    images = if (it.resvalue.isNotEmpty()) {
+                        Timber.d("Фото ${it.resvalue}")
+                        // Обновим список с фото
+                        val curOrder=(parentFragment.activity as MainActivity).currentOrder
+                        val stDir = "PhotoForApp/${curOrder.guid}/${checkup.guid}/${stepCheckup.guid}"
+                        val storageDir =
+                            File(
+                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                                stDir
+                            )
+
+                        OtherUtil().getFilesFromDir("$storageDir")
+
+                    } else {
+                        listOf()
+                    }
+
+                    val leftBtn = templateStep.findViewById(R.id.left_nav) as ImageButton
+                    val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
+
+                    // Обновим вьювер с фотками
+                    parentFragment.refreshPhotoViewer(templateStep, images, rootView.context)
+
+                    val pager = templateStep.findViewById(R.id.pager) as ViewPager
+                    val myList = templateStep.findViewById(R.id.recyclerviewFrag) as RecyclerView
+
+                    leftBtn.setOnClickListener {
+                        var tab = pager.currentItem
+                        if (tab > 0) {
+                            tab--
+                            pager.currentItem = tab
+                        } else if (tab == 0) {
+                            pager.currentItem = tab
+                        }
+                    }
+
+                    rightBtn.setOnClickListener {
+                        var tab = pager.currentItem
+                        tab++
+                        pager.currentItem = tab
+                    }
+
+                    pager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+                        override fun onPageScrollStateChanged(state: Int) {
+
+                        }
+
+                        override fun onPageScrolled(
+                            position: Int,
+                            positionOffset: Float,
+                            positionOffsetPixels: Int
+                        ) {
+
+                        }
+
+                        override fun onPageSelected(position: Int) {
+                            myList.scrollToPosition(position)
+                        }
+
+                    })
 
                     return@controls
                 }
@@ -291,7 +374,6 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
                     // Обработчик для кнопки "Добавить координаты"
                     val btnMap=templateStep.findViewById<MaterialButton>(R.id.btnMap)
-                    //val stepCheckup=it
                     btnMap.setOnClickListener{
                         Timber.d("Добавляем координаты")
 
@@ -389,7 +471,12 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     Timber.d("it=${it.multiplicity}")
                     if (it.multiplicity==1) {
                         val btnNewStep=templateStep.findViewById<MaterialButton>(R.id.addNewStep)
-                        btnNewStep.visibility=View.VISIBLE
+                        //Покажим панель с кнопками
+                        val layoutBtn=templateStep.findViewById<LinearLayout>(R.id.llbtnConteiner)
+                        val params=layoutBtn.layoutParams
+                        params.height=LinearLayout.LayoutParams.WRAP_CONTENT
+                        layoutBtn.layoutParams=params
+
                         btnNewStep.tag=templateStep
                         btnNewStep.setOnClickListener{
                             Timber.d("Добавлям новый чеклист")
@@ -398,8 +485,11 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                             val tc=((ts as View).tag as Models.TemplateControl)
 
                             // Сбрасываем признак Checked
-                            tc.checked=!tc.checked
-                            changeChecked(ts,tc)
+                            if (tc.checked==true) {
+                                tc.checked=!tc.checked
+                                changeChecked(ts,tc)
+                            }
+
 
                             val subcheckupnew= mutableListOf<Checkup>()
                             val controlsForPages=tc.groupControlList
@@ -412,14 +502,56 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                                 subcheckupnew.add(checkup)
                             }
 
-                            subcheckupnew.add(tc.subcheckup[0]) // Добавим еще один такой же
+                            val controls=Gson().fromJson(checkup.text,Models.ControlList::class.java)
+                            val control=controls.list.filter { it.id==ts.id }
+
+                            val newCheckup=control[0].subcheckup[0]
+                            subcheckupnew.add(newCheckup) // Добавим еще один такой же
                             tc.subcheckup=subcheckupnew
 
                             refreshCheckupViewer(clCheckupsPager, tc)
                         }
+
+
+                        val btnDeleteStep=templateStep.findViewById<MaterialButton>(R.id.deleteStep)
+                        btnDeleteStep.tag=templateStep
+                        btnDeleteStep.setOnClickListener{
+                            Timber.d("Удалим чеклист")
+
+                            // Получим текущую страницу
+                            val indexPage=pager.currentItem
+                            Timber.d("pager.adapter.count=${pager.adapter?.count}")
+                            if (pager.adapter?.count!! >1) {
+                                val ts=it.tag
+                                val tc=((ts as View).tag as Models.TemplateControl)
+
+                                val subcheckupnew= mutableListOf<Checkup>()
+                                val controlsForPages=tc.groupControlList
+                                Timber.d("tc.groupControlList=${tc.groupControlList?.list}")
+                                controlsForPages?.list?.removeAt(indexPage)
+                                controlsForPages?.list?.forEach{ controls ->
+                                    val gson= GsonBuilder()
+                                        .excludeFieldsWithoutExposeAnnotation()
+                                        .create()
+                                    val resValue=gson.toJson(controls,Models.ControlList::class.java)
+                                    val checkup=Checkup(textResult = Gson().fromJson(resValue, JsonObject::class.java))
+                                    subcheckupnew.add(checkup)
+                                }
+
+                                tc.subcheckup=subcheckupnew
+
+                                refreshCheckupViewer(clCheckupsPager, tc)
+                            }
+
+
+                        }
+
                     } else {
-                        val btnNewStep=templateStep.findViewById<MaterialButton>(R.id.addNewStep)
-                        btnNewStep.visibility=View.INVISIBLE
+                        //Скроем панель с кнопками
+                        val layoutBtn=templateStep.findViewById<LinearLayout>(R.id.llbtnConteiner)
+                        val params=layoutBtn.layoutParams
+                        params.height=0
+                        layoutBtn.layoutParams=params
                     }
 
 
@@ -435,6 +567,12 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         return controlList
 
     }
+
+    /*private fun clearCheckup(checkup: Checkup): Checkup {
+        val newcheckup=checkup
+        checkup.
+        return
+    }*/
 
     private fun refreshCheckupViewer(v: View, control:Models.TemplateControl) {
         Timber.d("refreshCheckupViewer")
@@ -516,9 +654,9 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                 }
                 "photo"->{
                     // Проверим были ли добавлены фото
-                    Timber.d("Папка ${checkup.guid}/${control.guid}")
+                    val curOrder=(parentFragment.activity as MainActivity).currentOrder
                     val controlViewError=v.findViewById<TextView>(R.id.errorPhoto)
-                    if (photoHelper.checkDirAndEmpty("${checkup.guid}/${control.guid}")) {
+                    if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${checkup.guid}/${control.guid}")) {
                         Timber.d("Папка есть, она не пуста")
                         controlViewError.visibility=View.INVISIBLE
                         // Сохраним filemap в resValue
@@ -637,5 +775,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         val lon=str.substring(str.indexOf("longitude=")+10,str.indexOf(", altitude")).toDouble()
         return LatLng(lat, lon)
     }*/
+
+
 
 }

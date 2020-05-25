@@ -68,6 +68,7 @@
     <string name="msgNotDataForSync">Нет данных для передачи на сервер</string>
     <string name="btnAddCoordinates">Указать координаты</string>
     <string name="btnAddCheckup">Добавить</string>
+    <string name="btnDeleteCheckup">Удалить</string>
     <string name="not_coordinates">Координаты не заданы</string>
     <string name="grout_empty">Группа не заполнена</string>
     <string name="not_coordinates_error">Нужно задать координаты</string>
@@ -77,6 +78,7 @@
     <string name="scan_qr">Сканировать QR код</string>
     <string name="not_checkup">Ошибка. Нет такого чеклиста</string>
     <string name="driveway">Проезд</string>
+    <string name="btnDeleteAllPhoto">Удалить все</string>
 
     <string name="network_error_message">Ошибка сети</string>
     <string name="remote_error_message">Ошибка удаленного сервера</string>

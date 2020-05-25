@@ -24,6 +24,7 @@ import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.Toaster
@@ -302,6 +303,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 )
             )
         }*/
+
+        (activity as MainActivity).currentOrder=this.currentOrder
 
         //Включаем фрагмент со списком Обследований для конкретной заявки
         val bundle = Bundle()

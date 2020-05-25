@@ -1,10 +1,7 @@
 package ru.bingosoft.teploInspector.ui.map_bottom
 
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import ru.bingosoft.teploInspector.db.AppDatabase
-import timber.log.Timber
 import javax.inject.Inject
 
 class MapBottomSheetPresenter @Inject constructor(

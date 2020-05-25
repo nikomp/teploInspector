@@ -79,7 +79,7 @@
             android:resource="@array/preloaded_fonts" />
 
         <!--Сервис получения локации пользователя в фоне-->
-        <service android:name=".util.UserLocationService"
+        <service android:name="ru.bingosoft.teploInspector.util.UserLocationService"
             android:enabled="true"/>
     </application>
 

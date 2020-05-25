@@ -116,6 +116,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
 
                     val syncDirs=OtherUtil().getDirForSync(checkupsWasSync)
 
+                    Timber.d("syncDirs=$syncDirs")
+
                     val zipF= photoHelper.prepareZip(syncDirs)
                     if (zipF!=null) {
                         zipFile=zipF

@@ -88,23 +88,46 @@
                 android:text="@string/btnAddCheckup"
                 app:layout_constraintBottom_toTopOf="@+id/linearLayout2" />-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/addNewStep"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/llbtnConteiner"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginLeft="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginRight="8dp"
-                android:background="@color/buttonBackgroundLight"
-                android:fontFamily="@font/roboto_medium"
-                android:text="@string/btnAddCheckup"
-                android:textColor="@color/hypertext"
-                app:backgroundTint="@color/buttonBackgroundLight"
-                app:cornerRadius="22dp"
-                app:layout_constraintBottom_toTopOf="@+id/linearLayout2" />
+                android:orientation="horizontal">
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/addNewStep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginLeft="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginRight="8dp"
+                    android:background="@color/buttonBackgroundLight"
+                    android:fontFamily="@font/roboto_medium"
+                    android:text="@string/btnAddCheckup"
+                    android:textColor="@color/hypertext"
+                    app:backgroundTint="@color/buttonBackgroundLight"
+                    app:cornerRadius="22dp"
+                    app:layout_constraintBottom_toTopOf="@+id/linearLayout2" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/deleteStep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginLeft="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginRight="8dp"
+                    android:background="@color/buttonBackgroundLight"
+                    android:fontFamily="@font/roboto_medium"
+                    android:text="@string/btnDeleteCheckup"
+                    android:textColor="@color/hypertext"
+                    app:backgroundTint="@color/buttonBackgroundLight"
+                    app:cornerRadius="22dp"
+                    app:layout_constraintBottom_toTopOf="@+id/linearLayout2" />
+            </LinearLayout>
 
 
             <TextView

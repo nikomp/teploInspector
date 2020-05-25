@@ -1,6 +1,5 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
-import com.mapbox.mapboxsdk.geometry.LatLng
 import com.yandex.mapkit.geometry.Point
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders

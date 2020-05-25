@@ -1,8 +1,10 @@
 package ru.bingosoft.teploInspector.ui.checkup
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +14,9 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
 import com.mapbox.mapboxsdk.geometry.LatLng
 import dagger.android.support.AndroidSupportInjection
@@ -19,11 +24,11 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
-import ru.bingosoft.teploInspector.util.Const
-import ru.bingosoft.teploInspector.util.PhotoHelper
-import ru.bingosoft.teploInspector.util.Toaster
-import ru.bingosoft.teploInspector.util.UICreator
+import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
+import ru.bingosoft.teploInspector.util.photoSliderHelper.HorizontalAdapter
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 
 
@@ -194,13 +199,46 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     fun setPhotoResult(controlId: Int?, photoDir: String) {
         Timber.d("setPhotoResult from fragment $controlId")
         if (controlId!=null) {
-            Timber.d("controlId!=null")
             val linearLayout=root.findViewById<LinearLayout>(controlId)
-            linearLayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
+            //linearLayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
+            // Обновим список с фото
+            val stDir = "PhotoForApp/$photoDir"
+            val storageDir =
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                    stDir
+                )
+
+            Timber.d("$storageDir")
+
+            val images = OtherUtil().getFilesFromDir("$storageDir")
+            refreshPhotoViewer(linearLayout, images, root.context)
         }
+    }
 
+    fun refreshPhotoViewer(v: View, images: List<String>, ctx: Context) {
+        val pager = v.findViewById(R.id.pager) as ViewPager
+        val myList = v.findViewById(R.id.recyclerviewFrag) as RecyclerView
+        val photoCount = v.findViewById(R.id.photoCount) as TextView
+        photoCount.text = images.size.toString()
 
+        val adapter =
+            GalleryPagerAdapter(
+                images,
+                pager,
+                ctx
+            )
+        pager.adapter = adapter
 
+        pager.offscreenPageLimit = 4 // сколько фоток загружать в память
+
+        adapter.notifyDataSetChanged()
+        val horizontalAdapter = HorizontalAdapter(images, pager, ctx)
+        val horizontalLayoutManagaer =
+            LinearLayoutManager(ctx, LinearLayoutManager.HORIZONTAL, false)
+        myList.layoutManager = horizontalLayoutManagaer
+        myList.adapter = horizontalAdapter
+        horizontalAdapter.notifyDataSetChanged()
     }
 
 }
