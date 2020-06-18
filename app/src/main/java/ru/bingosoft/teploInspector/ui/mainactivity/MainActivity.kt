@@ -8,17 +8,14 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.location.Location
 import android.location.LocationManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.view.*
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
@@ -46,6 +43,7 @@ import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
+import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
@@ -56,7 +54,7 @@ import javax.inject.Inject
 
 
 class MainActivity : AppCompatActivity(), FragmentsContractActivity,
-    NavigationView.OnNavigationItemSelectedListener, MainActivityContractView {
+    NavigationView.OnNavigationItemSelectedListener, MainActivityContractView, View.OnClickListener {
 
     @Inject
     lateinit var mainPresenter: MainActivityPresenter
@@ -80,6 +78,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var photoStep: Models.TemplateControl?=null
     lateinit var currentOrder: Orders
     private lateinit var locationManager: LocationManager
+    lateinit var dialogView: View
+    lateinit var filterView: RelativeLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -89,6 +89,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+
 
         mainPresenter.attachView(this)
 
@@ -171,6 +172,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         navView.setNavigationItemSelectedListener(this)
         //navView.setupWithNavController(navController) // Переключалка фрагментов по-умолчанию
 
+        val header=navView.getHeaderView(0)
+        val imgButtonAuth=header.findViewById<ImageButton>(R.id.imgbAuth)
+        imgButtonAuth.setOnClickListener {
+            Timber.d("Auth")
+            // Запустим активити с настройками
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivityForResult(intent, Const.RequestCodes.AUTH)
+        }
     }
 
     private fun buildAlertMessageNoGps() {
@@ -239,10 +248,22 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)
-        return true
+
+        val item = menu.findItem(R.id.menu_buttons)
+        item.setActionView(R.layout.filter_count)
+        filterView=item.actionView as RelativeLayout
+
+        val btnFilter=filterView.findViewById<Button>(R.id.btnFilter)
+        btnFilter.setOnClickListener(this)
+
+        val searchView=item.actionView as RelativeLayout
+        val btnSearch=searchView.findViewById<Button>(R.id.btnSearch)
+        btnSearch.setOnClickListener(this)
+
+        return super.onCreateOptionsMenu(menu)
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -304,6 +325,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         if (supportFragmentManager.backStackEntryCount==0) {
             supportActionBar?.setTitle(R.string.menu_orders)
+            // Выделим кнопку Список
+            findViewById<Button>(R.id.btnList).isEnabled=false
+            findViewById<Button>(R.id.btnMap).isEnabled=true
         }
 
         val fragment=supportFragmentManager.findFragmentByTag("checkup_fragment_tag")
@@ -346,6 +370,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         this.controlMapId=controlId
     }
 
+    override fun setOrder(order: Orders) {
+        Timber.d("setOrderForRouteDetail from Activity")
+        val mf=this.supportFragmentManager.findFragmentByTag("map_fragment_from_orders_tag") as? MapFragment
+        mf?.showRouteDialog(order)
+    }
+
     private fun setPhotoResult() {
         var photoLocation:Location?=Location(LocationManager.GPS_PROVIDER)
         try {
@@ -379,10 +409,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 navController.navigate(R.id.nav_home)
                 return true
             }
-            R.id.nav_gallery -> {
-                navController.navigate(R.id.nav_gallery)
-                return true
-            }
             R.id.nav_slideshow -> {
                 navController.navigate(R.id.nav_slideshow)
                 return true
@@ -392,29 +418,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 mainPresenter.sendData()
                 //mainPresenter.isCheckupWithResult()
                 return true
-            }
-            R.id.nav_auth -> {
-                // Запустим активити с настройками
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivityForResult(intent, Const.RequestCodes.AUTH)
-                return true
-            }
-            R.id.nav_qr_scan -> {
-                // Запустим сканер QR
-                return try {
-                    val intent = Intent("com.google.zxing.client.android.SCAN")
-                    intent.putExtra("SCAN_MODE", "QR_CODE_MODE")
-                    startActivityForResult(intent, QR_SCAN)
-                    true
-                } catch (e: Exception) {
-
-                    val marketUri = Uri.parse("market://details?id=com.google.zxing.client.android")
-                    val marketIntent = Intent(Intent.ACTION_VIEW,marketUri)
-                    startActivity(marketIntent)
-                    false
-
-                }
-
             }
             else -> {
                 return false
@@ -472,6 +475,72 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val tvName: TextView = headerLayout.findViewById(R.id.fullname)
             tvName.text = user.fullname
         }
+    }
+
+    override fun onClick(v: View?) {
+        when (v?.id) {
+            R.id.btnFilter -> {
+                Timber.d("Открываем окно с фильтром")
+
+                Timber.d("dialogFilterOrder")
+                lateinit var dialogFilterOrder: AlertDialog
+                val layoutInflater = LayoutInflater.from(this)
+                dialogView =
+                    layoutInflater.inflate(R.layout.alert_filter_order, null, false)
+
+                val builder = AlertDialog.Builder(this)
+
+                builder.setView(dialogView)
+                builder.setCancelable(true)
+                dialogFilterOrder=builder.create()
+                dialogFilterOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+                //Меняем позицию диалога
+                dialogFilterOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+
+                dialogFilterOrder.setOnCancelListener(dialogCancelListener)
+
+                dialogFilterOrder.show()
+                // Установим ширину диалогового окна
+                val width=resources.getDimension(R.dimen.dialog_filter_width).toInt()
+                dialogFilterOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+
+                // Отступы диалога от границ экрана
+                val wlp=dialogFilterOrder.window?.attributes
+                wlp?.y=50
+                wlp?.x=50
+                dialogFilterOrder.window?.attributes=wlp
+
+            }
+            R.id.btnSearch -> {
+                Timber.d("Открываем окно с поиском")
+            }
+        }
+    }
+
+    val dialogCancelListener=object: DialogInterface.OnCancelListener{
+        override fun onCancel(dialog: DialogInterface?) {
+            Timber.d("setOnCancelListener")
+            // Считаем сколько фильтров поставили
+            val cb1=dialogView.findViewById<CheckBox>(R.id.cbType1)
+            val cb2=dialogView.findViewById<CheckBox>(R.id.cbType2)
+            val cb3=dialogView.findViewById<CheckBox>(R.id.cbType3)
+            val cb4=dialogView.findViewById<CheckBox>(R.id.cbType4)
+
+            var filterCount=0
+            if (cb1.isChecked) { filterCount+=1 }
+            if (cb2.isChecked) { filterCount+=1 }
+            if (cb3.isChecked) { filterCount+=1 }
+            if (cb4.isChecked) { filterCount+=1 }
+
+            Timber.d("filterCount=$filterCount")
+
+            filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
+
+            // Фильтруем заявки
+            Timber.d("Фильтруем заявки")
+        }
+
     }
 
 }

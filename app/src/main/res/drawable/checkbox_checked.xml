@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item android:drawable="@drawable/ic_chbox_filter_true"/>
+    <item>
+        <shape android:shape="rectangle" >
+            <corners android:radius="4px"/>
+            <size
+                android:width="20dp"
+                android:height="20dp" />
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+
+</layer-list>

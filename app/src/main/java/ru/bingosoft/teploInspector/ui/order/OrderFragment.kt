@@ -3,9 +3,12 @@ package ru.bingosoft.teploInspector.ui.order
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Context.LOCATION_SERVICE
 import android.content.Intent
+import android.location.LocationManager
 import android.os.Bundle
 import android.view.*
+import android.widget.Button
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -25,16 +28,14 @@ import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
-import ru.bingosoft.teploInspector.util.Const
-import ru.bingosoft.teploInspector.util.SharedPrefSaver
-import ru.bingosoft.teploInspector.util.Toaster
-import ru.bingosoft.teploInspector.util.UserLocationService
+import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.util.*
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
 
-class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRVClickListeners {
+class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRVClickListeners, View.OnClickListener {
 
     @Inject
     lateinit var loginPresenter: LoginPresenter
@@ -48,20 +49,32 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     @Inject
     lateinit var sharedPref: SharedPrefSaver
 
+    @Inject
+    lateinit var otherUtil: OtherUtil
+
+    @Inject
+    lateinit var userLocationNative: UserLocationNative
+
     private lateinit var currentOrder: Orders
     private lateinit var root: View
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        AndroidSupportInjection.inject(this)
+
         Timber.d("OrderFragment.onCreateView")
 
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
+
+        val btnList=root.findViewById<Button>(R.id.btnList)
+        btnList.setOnClickListener(this)
+        val btnMap=root.findViewById<Button>(R.id.btnMap)
+        btnMap.setOnClickListener(this)
 
         // Авторизуемся всегда иначе данные не будут уходить на сервер
         /*doAuthorization()
@@ -98,11 +111,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     private fun doAuthorization() {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
-        val sharedpref = this.activity?.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
-        if (sharedpref!!.contains(Const.SharedPrefConst.LOGIN) && sharedpref.contains(Const.SharedPrefConst.PASSWORD)) {
+        val sharedPref = this.activity?.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
 
-            val login = sharedPref.getLogin()
-            val password = sharedPref.getPassword()
+            val login = this.sharedPref.getLogin()
+            val password = this.sharedPref.getPassword()
 
             loginPresenter.attachView(this)
             loginPresenter.authorization(login, password) // Проверим есть ли авторизация
@@ -136,6 +149,16 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             }
         }
     }
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+       AndroidSupportInjection.inject(this)
+       super.onCreate(savedInstanceState)
+
+       val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
+       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+   }
+
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main, menu)
@@ -268,9 +291,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             swipeRefreshLayout.isRefreshing = false
         }
 
+        Timber.d("userLocation2342342=${userLocationNative.userLocation}")
+
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
-        val adapter = OrderListAdapter(orders,this, this.requireContext())
+        val adapter = OrderListAdapter(orders,this, this, userLocationNative.userLocation)
         ordersRecyclerView.adapter = adapter
     }
 
@@ -285,24 +310,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         currentOrder.checked=!currentOrder.checked
 
-        /*Для Заявок пока не нужно менять цвет при клике
-        if (currentOrder.checked) {
-            val cardView = v?.findViewById<CardView>(R.id.cv)
-            cardView?.setCardBackgroundColor(
-                ContextCompat.getColor(
-                    v.context,
-                    R.color.colorCardSelect
-                )
-            )
-        } else {
-            val cardView = v?.findViewById<CardView>(R.id.cv)
-            cardView?.setCardBackgroundColor(
-                ContextCompat.getColor(
-                    v.context,
-                    R.color.colorCardItem
-                )
-            )
-        }*/
 
         (activity as MainActivity).currentOrder=this.currentOrder
 
@@ -324,7 +331,36 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         (this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)
 
+    }
 
+    override fun onClick(v: View?) {
+        if (v != null) {
+            when (v.id) {
+                R.id.btnList -> {
+                    v.isEnabled=false
+                    (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
+                }
+
+                R.id.btnMap -> {
+                    v.isEnabled=false
+                    (v.parent as View).findViewById<Button>(R.id.btnList).isEnabled=true
+
+                    val fragmentMap= MapFragment()
+                    //fragmentMap.arguments=bundle
+                    val fragmentManager=this.requireActivity().supportFragmentManager
+
+                    fragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, fragmentMap, "")
+                        .addToBackStack(null)
+                        .commit()
+
+                    fragmentManager.executePendingTransactions()
+
+                }
+
+
+            }
+        }
     }
 
 

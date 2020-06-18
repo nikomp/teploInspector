@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.models
 
+import android.widget.TextView
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
@@ -89,6 +90,11 @@ class Models {
         @SerializedName("lat") var lat: Double? = 0.0,
         @SerializedName("lon") var lon: Double? = 0.0
     )*/
+
+    class CustomMarker(
+        val order: Orders,
+        val markerView: TextView
+    )
 
     class MapPoint(
         @SerializedName("lat") var lat: Double? = 0.0,

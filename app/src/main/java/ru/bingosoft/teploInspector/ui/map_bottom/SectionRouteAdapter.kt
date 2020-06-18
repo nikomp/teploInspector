@@ -37,11 +37,11 @@ class SectionRouteAdapter(private val sections: MutableList<Section>): RecyclerV
         Timber.d(sections[position].metadata.data.transports.toString())
         if (sections[position].metadata.data.transports==null) {
             Timber.d(sections[position].metadata.weight.walkingDistance.text)
-            holder.sectionIcon.setImageResource(R.drawable.ic_directions_walk_black_24dp)
+            holder.sectionIcon.setImageResource(R.drawable.foot_blue)
             holder.sectionText.text = sections[position].metadata.weight.walkingDistance.text
             holder.sectionText.movementMethod=ScrollingMovementMethod()
         } else {
-            holder.sectionIcon.setImageResource(R.drawable.ic_directions_bus_black_24dp)
+            holder.sectionIcon.setImageResource(R.drawable.bus_blue)
 
             var transportsName=""
             Timber.d("transportSize=${sections[position].metadata.data.transports?.size}")

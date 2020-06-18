@@ -92,4 +92,18 @@
     <string name="order_refresh">Список заявок обновлен</string>
 
     <string name="isCheckupWithResult">Есть чеклисты с неподтвержденными шагами</string>
+    <string name="btnListTitle">Список</string>
+    <string name="btnMapTitle">На карте</string>
+    <string name="search">Поиск</string>
+    <string name="filter">Фильтр</string>
+
+    <string name="distance">Маршрут %1$s км</string>
+
+    <string name="no_contact">Нет контактов</string>
+    <string name="route">Маршрут</string>
+
+    <string name="orderType1">Регламентные работы</string>
+    <string name="orderType2">Приборы учета</string>
+    <string name="orderType3">Качество услуг</string>
+    <string name="orderType4">Другое</string>
 </resources>

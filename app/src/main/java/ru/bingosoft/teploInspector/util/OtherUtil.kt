@@ -1,9 +1,11 @@
 package ru.bingosoft.teploInspector.util
 
 import android.location.Location
+import android.location.LocationManager
 import androidx.exifinterface.media.ExifInterface
 import com.google.gson.Gson
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
+import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
 import java.io.File
@@ -24,6 +26,15 @@ class OtherUtil {
         }
 
         return list
+    }
+
+    fun getDistance(userLocation: Location, order: Orders): Float {
+        val orderLocation=Location(LocationManager.GPS_PROVIDER)
+        orderLocation.longitude=order.lon
+        orderLocation.latitude=order.lat
+
+        // Округим до 1 знака после запятой
+        return  "%.1f".format((userLocation.distanceTo(orderLocation)/1000)).toFloat()
     }
 
     fun saveExifLocation(filename: String, photoLocation: Location?) {

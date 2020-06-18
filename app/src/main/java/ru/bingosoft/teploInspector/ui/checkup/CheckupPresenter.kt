@@ -33,6 +33,7 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
                 Timber.d(it.toString())
 
                 view?.dataIsLoaded(it)
+                disposable.dispose()
             }
 
         Timber.d("ОК")

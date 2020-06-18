@@ -36,6 +36,7 @@ class App : Application(), HasAndroidInjector  {
         //https://stackoverflow.com/questions/52631581/rxjava2-undeliverableexception-when-orientation-change-is-happening-while-fetchi
         RxJavaPlugins.setErrorHandler { throwable: Throwable? -> }
 
+
     }
 
     override fun androidInjector(): AndroidInjector<Any> = androidInjector

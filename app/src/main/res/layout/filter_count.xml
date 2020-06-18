@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@android:style/Widget.ActionButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:clickable="true"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/badge_layout2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <RelativeLayout
+            android:id="@+id/relative_layout_item_count1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btnSearch"
+                android:layout_width="40dip"
+                android:layout_height="40dip"
+                android:drawableTop="@drawable/ic_search"
+                app:backgroundTint="@android:color/white" />
+        </RelativeLayout>
+
+        <!--<TextView
+            android:id="@+id/badge_notification_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@id/relative_layout_item_count1"
+            android:background="@android:drawable/ic_notification_overlay"
+            android:text="12"
+            android:textColor="#FFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />-->
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/badge_layout1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/badge_layout2">
+
+        <RelativeLayout
+            android:id="@+id/relative_layout_item_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btnFilter"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:drawableTop="@drawable/ic_filter"
+                app:backgroundTint="@android:color/white" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/badge_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@id/relative_layout_item_count"
+            android:background="@android:drawable/ic_notification_overlay"
+            android:text="4"
+            android:textColor="#FFF"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+
+</RelativeLayout>

@@ -1,4 +1,4 @@
-package ru.bingosoft.teploInspector.ui.map_bottom
+package ru.bingosoft.teploInspector.ui.route_detail
 
 import android.view.View
 

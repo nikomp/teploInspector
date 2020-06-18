@@ -10,6 +10,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.map_bottom.MapBottomSheet
 import ru.bingosoft.teploInspector.ui.order.OrderFragment
+import ru.bingosoft.teploInspector.ui.route_detail.RouteDetailFragment
 
 @Module
 abstract class ActivityBuilder {
@@ -36,5 +37,8 @@ abstract class ActivityBuilder {
 
     @ContributesAndroidInjector(modules = [PresentersModule::class])
     abstract fun bindMapBottomSheet(): MapBottomSheet
+
+    @ContributesAndroidInjector(modules = [PresentersModule::class])
+    abstract fun bindRouteDetailFragment(): RouteDetailFragment
 
 }

@@ -20,7 +20,7 @@ import timber.log.Timber
 class UserLocationService: Service() {
 
     private var locationManager: LocationManager?=null
-    private val locationInterval = 5000L
+    private val locationInterval = 1000L
     private val locationDistance = 10f
 
 

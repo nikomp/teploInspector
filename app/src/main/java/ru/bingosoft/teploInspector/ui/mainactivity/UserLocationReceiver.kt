@@ -25,14 +25,15 @@ class UserLocationReceiver @Inject constructor(
     lateinit var lastKnownLocation: Location
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        Timber.d("onReceive")
         val lat=intent?.getDoubleExtra("lat",0.0)
         val lon=intent?.getDoubleExtra("lon",0.0)
         val provider=intent?.getStringExtra("provider")
-        /*lastKnownLocation=Location(provider)
+        lastKnownLocation=Location(provider)
         if (lat!=null && lon!=null) {
             lastKnownLocation.longitude=lon
             lastKnownLocation.latitude=lat
-        }*/
+        }
 
         val status=intent?.getStringExtra("status")
         if (status==PROVIDER_DISABLED) {

@@ -6,15 +6,11 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_home"
-            android:icon="@drawable/ic_widgets_black_24dp"
+            android:icon="@drawable/ic_list"
             android:title="@string/menu_orders" />
         <item
-            android:id="@+id/nav_gallery"
-            android:icon="@drawable/ic_playlist_add_check_black_24dp"
-            android:title="@string/menu_checkups" />
-        <item
             android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_map_black_24dp"
+            android:icon="@drawable/ic_order_on_map"
             android:title="@string/menu_map" />
     </group>
 
@@ -23,18 +19,8 @@
         android:title="@string/other">
         <menu>
             <item
-                android:id="@+id/nav_qr_scan"
-                android:icon="@drawable/ic_blur_circular_black_24dp"
-                android:orderInCategory="1"
-                android:title="@string/scan_qr"/>
-            <item
-                android:id="@+id/nav_auth"
-                android:icon="@drawable/ic_input_black_24dp"
-                android:orderInCategory="1"
-                android:title="@string/by_auth"/>
-            <item
                 android:id="@+id/nav_send_data"
-                android:icon="@drawable/ic_send_black_24dp"
+                android:icon="@drawable/ic_send_data"
                 android:orderInCategory="1"
                 android:title="@string/send_data"/>
         </menu>

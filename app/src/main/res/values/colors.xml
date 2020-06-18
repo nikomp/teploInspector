@@ -14,7 +14,22 @@
     <color name="buttonBackground">#297BE7</color>
     <color name="inactive_text">#7C838B</color>
 
+    <color name="textInputBorder">#CBC9C5</color>
+
     <color name="error">#FF002E</color>
+    <color name="routeButtonPanel">#F3F4F4</color>
+
+    <color name="orderButtonText">#007CCC</color>
+    <color name="orderButtonTextDisabled">#7C838B</color>
+
+    <color name="orderTextNumber">#2D3239</color>
+    <color name="orderTextType">#7C838B</color>
+    <color name="orderTextName">#0D0F11</color>
+    <color name="orderTextDate">#007CCC</color>
+    <color name="orderButtonBackground">#F3F4F4</color>
+    <color name="orderButtonText2">#2D3239</color>
+    <color name="orderTextTypeTransp">#7C838B</color>
+    <color name="enabledText">#C7CCD1</color>
 
     <color name="hypertext">#0082E5</color>
 </resources>

@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -22,10 +23,7 @@ import com.yandex.mapkit.directions.Directions
 import com.yandex.mapkit.directions.DirectionsFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
-import com.yandex.mapkit.location.FilteringMode
-import com.yandex.mapkit.location.Location
-import com.yandex.mapkit.location.LocationListener
-import com.yandex.mapkit.location.LocationStatus
+import com.yandex.mapkit.location.*
 import com.yandex.mapkit.map.*
 import com.yandex.mapkit.map.Map
 import com.yandex.mapkit.mapview.MapView
@@ -40,9 +38,12 @@ import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.map_bottom.MapBottomSheet
+import ru.bingosoft.teploInspector.ui.order.OrderFragment
+import ru.bingosoft.teploInspector.ui.route_detail.RouteDetailFragment
 import ru.bingosoft.teploInspector.util.Const.Location.DESIRED_ACCURACY
 import ru.bingosoft.teploInspector.util.Const.Location.MINIMAL_DISTANCE
 import ru.bingosoft.teploInspector.util.Const.Location.MINIMAL_TIME
@@ -55,13 +56,13 @@ import timber.log.Timber
 import javax.inject.Inject
 
 
-class MapFragment : Fragment(), MapContractView, IOnBackPressed {
-
+class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickListener {
 
     val fragment=this
     lateinit var mapView: MapView
     lateinit var map: Map
     lateinit var userLocationLayer: UserLocationLayer
+    lateinit var locationManager:LocationManager
 
     @Inject
     lateinit var mapPresenter: MapPresenter
@@ -76,6 +77,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
     lateinit var directions: Directions
     lateinit var transports: Transport
     var lastCarRouter=mutableListOf<PolylineMapObject>()
+    var prevMapObjectMarker: MapObject?=null
+
+    lateinit var order: Orders
 
     private val mapLoadedListener=object:MapLoadedListener{
         override fun onMapLoaded(p0: MapLoadStatistics) {
@@ -97,6 +101,11 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
             enableLocationComponent() // Включим разрешения на работу с картой
         }
+    }
+
+    fun showRouteDialog(order: Orders) {
+        val routeDetailFragment = RouteDetailFragment(order, this)
+        routeDetailFragment.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET_ROUTE_DETAIL")
     }
 
     private val inputListener=object:InputListener {
@@ -133,6 +142,14 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
             if (lastCarRouter.isNotEmpty()) {
                 removeRouter(lastCarRouter)
+            }
+
+            if (prevMapObjectMarker!=null) {
+                // выключим предыдущий маркер
+                val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
+                prevTvMarker.isEnabled=!prevTvMarker.isEnabled
+                (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
+                prevMapObjectMarker=null
             }
         }
     }
@@ -216,13 +233,34 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
         }
     }
 
-    private val mapObjectTapListener=object:MapObjectTapListener{
+    val mapObjectTapListener=object:MapObjectTapListener{
         override fun onMapObjectTap(mapObject: MapObject, p1: Point): Boolean {
+            Timber.d("onMapObjectTap")
 
-            val order=(mapObject.userData as Orders)
+            val order=(mapObject.userData as Models.CustomMarker).order
+            val tvMarker=(mapObject.userData as Models.CustomMarker).markerView
+            if (prevMapObjectMarker!=null) {
+                // выключим предыдущий маркер
+                val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
+                prevTvMarker.isEnabled=!prevTvMarker.isEnabled
+                (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
+            }
+
+            tvMarker.isEnabled=!tvMarker.isEnabled
+            (mapObject as PlacemarkMapObject).setView(ViewProvider(tvMarker))
+            prevMapObjectMarker=mapObject
+
             if (locationListener.lastLocation!=null) {
                 val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
                 mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+
+            } else {
+                Timber.d("locationListener.lastLocation==null")
+                locationManager.requestSingleUpdate(locationListener)
+                if (locationListener.lastLocation!=null) {
+                    val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+                    mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+                }
             }
 
             return true
@@ -237,6 +275,34 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
     ): View? {
         AndroidSupportInjection.inject(this)
 
+        locationManager=MapKitFactory.getInstance().createLocationManager()
+
+        val root = inflater.inflate(R.layout.fragment_map, container, false)
+        (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
+
+        mapView=root.findViewById(R.id.mapView)
+        mapView.map.move(CameraPosition(TARGET_POINT,ZOOM_LEVEL,0.0f,0.0f), Animation(Animation.Type.SMOOTH,0.0f), null)
+
+        locationManager.subscribeForLocationUpdates(DESIRED_ACCURACY, MINIMAL_TIME, MINIMAL_DISTANCE, USE_IN_BACKGROUND,FilteringMode.ON,locationListener)
+
+        map=mapView.map
+
+        map.setMapLoadedListener(mapLoadedListener) // Обработчик, когда карта загружена
+        map.addInputListener(inputListener) // Обработчик клика на карте
+
+        val btnList=root.findViewById<Button>(R.id.btnList)
+        btnList.setOnClickListener(this)
+        val btnMap=root.findViewById<Button>(R.id.btnMap)
+        btnMap.setOnClickListener(this)
+
+        return root
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        Timber.d("MapFragment_onCreate")
+
         MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
         MapKitFactory.setLocale("ru_RU")
         MapKitFactory.initialize(this.context)
@@ -245,24 +311,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
 
         directions=DirectionsFactory.getInstance()
         transports=TransportFactory.getInstance()
-
-        val locationManager=MapKitFactory.getInstance().createLocationManager()
-
-        val root = inflater.inflate(R.layout.fragment_map, container, false)
-        (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_map)
-
-        mapView=root.findViewById(R.id.mapView)
-        mapView.map.move(CameraPosition(TARGET_POINT,ZOOM_LEVEL,0.0f,0.0f), Animation(Animation.Type.SMOOTH,0.0f),null)
-
-        locationManager.subscribeForLocationUpdates(DESIRED_ACCURACY, MINIMAL_TIME, MINIMAL_DISTANCE, USE_IN_BACKGROUND,FilteringMode.ON,locationListener)
-
-        map=mapView.map
-
-        map.setMapLoadedListener(mapLoadedListener) // Обработчик когда карта загружена
-        map.addInputListener(inputListener) // Обработчик клика на карте
-
-
-        return root
     }
 
 
@@ -290,10 +338,14 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
     private fun importOrdersOnMap(order: Orders) {
         Timber.d("importOrdersOnMap=$order")
         val view=layoutInflater.inflate(R.layout.template_marker,null)
-        view.findViewById<TextView>(R.id.markerText).text=order.number
+        val tvMarker=view.findViewById<TextView>(R.id.tvMarker)
+        tvMarker.text=order.number
+
+
+        val customMarker=Models.CustomMarker(order=order,markerView = tvMarker)
 
         val placemarkMapObject=map.mapObjects.addPlacemark(Point(order.lat,order.lon),ViewProvider(view))
-        placemarkMapObject.userData=order
+        placemarkMapObject.userData=customMarker
         placemarkMapObject.addTapListener(mapObjectTapListener)
 
     }
@@ -310,13 +362,13 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
             )
 
         } else {
-            getUserLocation()
+            initUserLocationLayer()
         }
 
     }
 
-    private fun getUserLocation() {
-        Timber.d("getUserLocation")
+    private fun initUserLocationLayer() {
+        Timber.d("initUserLocationLayer")
         val mapKit=MapKitFactory.getInstance()
         userLocationLayer=mapKit.createUserLocationLayer(mapView.mapWindow)
         userLocationLayer.isVisible=true
@@ -374,7 +426,37 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed {
         return bitmap
     }
 
+    override fun onClick(v: View?) {
+        if (v != null) {
+            when (v.id) {
+                R.id.btnList -> {
+                    v.isEnabled=false
+                    (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
 
+                    val fragmentOrder= OrderFragment()
+                    //fragmentMap.arguments=bundle
+                    val fragmentManager=this.requireActivity().supportFragmentManager
+
+                    fragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, fragmentOrder, "")
+                        .addToBackStack(null)
+                        .commit()
+
+                    fragmentManager.executePendingTransactions()
+
+                    //(this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)
+                }
+
+                R.id.btnMap -> {
+                    v.isEnabled=false
+                    (v.parent as View).findViewById<Button>(R.id.btnList).isEnabled=true
+
+                }
+
+
+            }
+        }
+    }
 
 
 }

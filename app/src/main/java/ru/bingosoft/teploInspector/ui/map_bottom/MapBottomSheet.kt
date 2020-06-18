@@ -1,41 +1,33 @@
 package ru.bingosoft.teploInspector.ui.map_bottom
 
 import android.app.Dialog
-import android.graphics.Color
+import android.content.Context
+import android.content.Intent
+import android.location.LocationManager
+import android.net.Uri
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.yandex.mapkit.RequestPoint
-import com.yandex.mapkit.RequestPointType
-import com.yandex.mapkit.directions.driving.DrivingOptions
-import com.yandex.mapkit.directions.driving.DrivingRoute
-import com.yandex.mapkit.directions.driving.DrivingRouter
-import com.yandex.mapkit.directions.driving.DrivingSession
 import com.yandex.mapkit.geometry.Point
-import com.yandex.mapkit.geometry.Polyline
-import com.yandex.mapkit.geometry.SubpolylineHelper
-import com.yandex.mapkit.transport.masstransit.*
-import com.yandex.runtime.Error
-import com.yandex.runtime.network.NetworkError
-import com.yandex.runtime.network.RemoteError
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.Toaster
+import ru.bingosoft.teploInspector.util.UserLocationNative
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
-class MapBottomSheet(val order: Orders, private val userLocation: Point, val parentFragment: MapFragment): BottomSheetDialogFragment(), MapBottomSheetContractView, View.OnClickListener {
-
-    private lateinit var carRouter: DrivingRouter
-    private lateinit var busRouter: MasstransitRouter
+class MapBottomSheet(val order: Orders, private val userLocation: Point, private val parentFragment: MapFragment): BottomSheetDialogFragment(), MapBottomSheetContractView, View.OnClickListener {
 
     private lateinit var rootView: View
 
@@ -45,153 +37,21 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, val par
     @Inject
     lateinit var toaster: Toaster
 
-    private var drivingSession: DrivingSession? = null
-    private val requestPoints: ArrayList<RequestPoint> = ArrayList()
-    lateinit var foundingRoutes: MutableList<Route>
+    @Inject
+    lateinit var otherUtil: OtherUtil
 
-    private val routerRVClickListeners=object:RouterRVClickListeners{
-        override fun routerRVListClicked(v: View?, position: Int) {
-            Timber.d("routerRVListClicked")
-            // Строим маршрут
-            val route=foundingRoutes[position]
-            val sections= route.sections
-            Timber.d("sections=${sections.size}")
-            sections.forEach{
-                Timber.d("section=${it.metadata.data.transports?.get(0)?.line?.name}")
-                drawSection(
-                    it.metadata.data,
-                    SubpolylineHelper.subpolyline(
-                        route.geometry, it.geometry
-                    ))
-            }
+    @Inject
+    lateinit var userLocationNative: UserLocationNative
 
-            hideBottomSheet()
-        }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        AndroidSupportInjection.inject(this)
+        super.onCreate(savedInstanceState)
 
-    }
-
-
-    fun drawSection(data: SectionMetadata.SectionData, geometry: Polyline) {
-        val polylineMapObject = parentFragment.mapView.map.mapObjects.addPolyline(geometry)
-        parentFragment.lastCarRouter.add(polylineMapObject) // Сохраним маршрут, чтоб потом можно было его удалить
-
-        if (data.transports != null) {
-            val transports=data.transports
-            transports!!.forEach {
-                if (it.line.style != null) {
-                    polylineMapObject.strokeColor = it.line.style!!.color!!
-                    return
-                }
-            }
-
-            val knownVehicleTypes = HashSet<String>()
-            knownVehicleTypes.add("bus")
-            knownVehicleTypes.add("tramway")
-
-            transports.forEach {
-                val sectionVehicleType = getVehicleType(it, knownVehicleTypes)
-                if (sectionVehicleType.equals("bus")) {
-                    polylineMapObject.strokeColor = Color.GREEN
-                    return
-                } else if (sectionVehicleType.equals("tramway")) {
-                    polylineMapObject.strokeColor = Color.RED
-                    return
-                }
-            }
-            polylineMapObject.strokeColor = Color.BLUE
-        } else {
-            polylineMapObject.strokeColor = Color.BLACK
-        }
-    }
-
-    //https://github.com/yandex/mapkit-android-demo/blob/master/src/main/java/com/yandex/mapkitdemo/MasstransitRoutingActivity.java
-    private val routeListener=object:Session.RouteListener{
-        override fun onMasstransitRoutesError(error: Error) {
-            var errorMessage = getString(R.string.unknown_error_message)
-            if (error is RemoteError) {
-                errorMessage = getString(R.string.remote_error_message)
-            } else if (error is NetworkError) {
-                errorMessage = getString(R.string.network_error_message)
-            }
-
-            toaster.showToast(errorMessage)
-        }
-
-        override fun onMasstransitRoutes(routes: MutableList<Route>) {
-            showRoutersList(routes)
-            if (routes.isNotEmpty()) {
-                foundingRoutes=routes
-            }
-
-
-            /*if (routes.isNotEmpty()) {
-                val sections= routes[0].sections
-                Timber.d("sections=${sections.size}")
-                sections.forEach{
-                    Timber.d("section=${it.metadata.data.transports?.get(0)?.line?.name}")
-                    drawSection(
-                        it.metadata.data,
-                        SubpolylineHelper.subpolyline(
-                            routes[0].geometry, it.geometry
-                        ))
-                }
-            }*/
-        }
-
-
-
-        fun showRoutersList(routes: MutableList<Route>) {
-            val routes_recycler_view = rootView.findViewById(R.id.routers_recycler_view) as RecyclerView
-
-            val params=routes_recycler_view.layoutParams
-            params.height=330
-            routes_recycler_view.layoutParams=params
-
-            routes_recycler_view.layoutManager = LinearLayoutManager(rootView.context)
-            val adapter = RouterListAdapter(routes,routerRVClickListeners)
-            routes_recycler_view.adapter = adapter
-        }
-    }
-
-
-    fun getVehicleType(transport: Transport, knownVehicleTypes:HashSet<String>):String? {
-        val type=transport.line.vehicleTypes
-        Timber.d("transport=${transport.line.name}_${transport.line.vehicleTypes}")
-        type.forEach{
-            if (knownVehicleTypes.contains(it)) {
-                return it
-            }
-        }
-        return null
-    }
-
-    private val drivingRouteListener=object:DrivingSession.DrivingRouteListener {
-        override fun onDrivingRoutesError(error: Error) {
-            var errorMessage = getString(R.string.unknown_error_message)
-            if (error is RemoteError) {
-                errorMessage = getString(R.string.remote_error_message)
-            } else if (error is NetworkError) {
-                errorMessage = getString(R.string.network_error_message)
-            }
-
-            toaster.showToast(errorMessage)
-        }
-
-        override fun onDrivingRoutes(routes: MutableList<DrivingRoute>) {
-            if (routes.isNotEmpty()) {
-                routes.forEach {
-                    Timber.d("saveRoute")
-                    val polylineMapObject=parentFragment.mapView.map.mapObjects.addPolyline(it.geometry)
-                    parentFragment.lastCarRouter.add(polylineMapObject) // Сохраним маршрут, чтоб потом можно было его удалить
-                }
-
-                Timber.d("lastCarRouter?.size=${parentFragment.lastCarRouter.size}")
-            }
-        }
+        val locationManager=this.requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
     }
 
     override fun setupDialog(dialog: Dialog, style: Int) {
-        AndroidSupportInjection.inject(this)
         super.setupDialog(dialog, style)
 
         Timber.d("MapBottomSheet_setupDialog")
@@ -201,36 +61,59 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, val par
         this.rootView=view
         dialog.setContentView(view)
 
-        val btnCar = view.findViewById(R.id.btnCar) as Button
-        btnCar.setOnClickListener(this)
+        view.findViewById<TextView>(R.id.number).text=order.number
+        view.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+        if (order.typeOrder.isNullOrEmpty()){
+            view.findViewById<TextView>(R.id.order_type).text="Нет данных"
+        } else {
+            view.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+        }
+        when (order.state) {
+            "1" -> view.findViewById<TextView>(R.id.order_state).text="В работе"
+        }
+        view.findViewById<TextView>(R.id.date).text=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(order.dateCreate)
+        view.findViewById<TextView>(R.id.name).text=order.name
+        view.findViewById<TextView>(R.id.adress).text=order.address
+        view.findViewById<TextView>(R.id.fio).text=order.contactFio
+        if (order.typeTransportation.isNullOrEmpty()) {
+            view.findViewById<TextView>(R.id.type_transportation).text="Нет данных"
+        } else {
+            view.findViewById<TextView>(R.id.type_transportation).text=order.typeTransportation
+        }
+        val btnPhone=view.findViewById<Button>(R.id.btnPhone)
+        if (order.phone.isNullOrEmpty()) {
+            btnPhone.text=btnPhone.context.getString(R.string.no_contact)
+            btnPhone.isEnabled=false
+            btnPhone.setTextColor(R.color.enabledText)
+        } else {
+            btnPhone.text=order.phone
+        }
 
-        val btnBus = view.findViewById(R.id.btnBus) as Button
-        btnBus.setOnClickListener(this)
+        val btnRoute=view.findViewById<Button>(R.id.btnRoute)
+        //btnRoute.text="Маршрут 3.2 км"
+
+
+        val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
+        btnRoute.text=requireContext().getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
+
+        btnPhone.setOnClickListener { _ ->
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.phone}"))
+            if (intent.resolveActivity(btnPhone.context.packageManager) != null) {
+                ContextCompat.startActivity(btnPhone.context, intent, null)
+            }
+        }
+
+        btnRoute.setOnClickListener { _ ->
+            Timber.d("btnRoute.setOnClickListener")
+
+            //Включаем фрагмент со списком Маршрутов для конкретной заявки
+            parentFragment.showRouteDialog(order)
+            hideBottomSheet()
+
+        }
 
         mbsPresenter.attachView(this)
 
-        // Заполним текстовые поля
-        val tvNumber=rootView.findViewById<TextView>(R.id.symbolNumber)
-        tvNumber?.text=order.number
-
-        val tvName=rootView.findViewById<TextView>(R.id.symbolName)
-        tvName?.text=order.name
-
-        //Сохраним маршрут с точками
-        requestPoints.add(
-            RequestPoint(
-                Point(order.lat,order.lon),
-                RequestPointType.WAYPOINT,
-                null
-            )
-        )
-        requestPoints.add(
-            RequestPoint(
-                Point(userLocation.latitude,userLocation.longitude),
-                RequestPointType.WAYPOINT,
-                null
-            )
-        )
     }
 
     override fun onDestroy() {
@@ -238,40 +121,18 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, val par
         mbsPresenter.onDestroy()
     }
 
-    override fun onClick(v: View?) {
-        if (v != null) {
-            //Очистим предыдущий маршрут
-            if (parentFragment.lastCarRouter.isNotEmpty()) {
-                parentFragment.removeRouter(parentFragment.lastCarRouter)
-            }
 
-            when (v.id) {
-                R.id.btnCar -> {
-                    carRouter=parentFragment.directions.createDrivingRouter()
-                    val options = DrivingOptions()
-                    drivingSession = carRouter.requestRoutes(requestPoints, options, drivingRouteListener)
-
-                    hideBottomSheet()
-                }
-
-                R.id.btnBus -> {
-                    busRouter = parentFragment.transports.createMasstransitRouter()
-                    val options = MasstransitOptions(ArrayList<String>(), ArrayList<String>(), TimeOptions())
-                    busRouter.requestRoutes(requestPoints, options, routeListener)
-                }
-            }
-
-
-        }
-    }
-
-    fun hideBottomSheet() {
+    private fun hideBottomSheet() {
         // Закроем BottomSheetDialog
         val params =(rootView.parent as View).layoutParams as CoordinatorLayout.LayoutParams
         val behavior = params.behavior
         if (behavior!=null && behavior is BottomSheetBehavior) {
             behavior.state= BottomSheetBehavior.STATE_HIDDEN
         }
+    }
+
+    override fun onClick(v: View?) {
+
     }
 
 

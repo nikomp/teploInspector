@@ -23,6 +23,7 @@ class OrderPresenter @Inject constructor(
         this.view=view
     }
 
+
     fun loadOrders() {
         Timber.d("loadOrders")
         disposable=db.ordersDao().getAll()
@@ -56,7 +57,7 @@ class OrderPresenter @Inject constructor(
                 number="A-001",
                 name = "Обследование жилого здания",
                 guid = "05d9365f-f176-45a7-b2df-7bf939d0c1e6",
-                adress = "Нижний Новгород, Россия, 603146, Михайловская улица, 24",
+                address = "Нижний Новгород, Россия, 603146, Михайловская улица, 24",
                 contactFio = "Иванов Иван Иванович",
                 phone = "+79503795388",
                 state = "1",
@@ -70,7 +71,7 @@ class OrderPresenter @Inject constructor(
                 number="A-002",
                 name = "Обследование нежилого здания",
                 guid = "c4d40211-1687-4485-9b4a-aea7b5353f2b",
-                adress = "Нижний Новгород, Россия, 603146, улица Ванеева, 147",
+                address = "Нижний Новгород, Россия, 603146, улица Ванеева, 147",
                 contactFio = "Петров Петр Петрович",
                 phone = "+79503795388",
                 state = "1",

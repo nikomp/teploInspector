@@ -20,17 +20,23 @@ data class Orders (
     @SerializedName("name")
     var name: String? = null,
     @SerializedName("adress")
-    var adress: String? = null,
+    var address: String? = null,
     @SerializedName("contactFio")
     var contactFio: String? = null,
     @SerializedName("phone")
     var phone: String? = null,
     @SerializedName("state")
-    var state: String? = null,
+    var state: String = "В работе",
     @SerializedName("comment")
     var comment: String? = null,
     @SerializedName("dateCreate")
     var dateCreate: Date? = null,
+
+    @SerializedName("typeOrder")
+    var typeOrder: String? = "Тип заявки",
+
+    @SerializedName("typeTransportation")
+    var typeTransportation: String? = "Транспортировка выполняется заказчиком",
 
     @SerializedName("lat")
     var lat: Double = 0.0,

@@ -8,4 +8,6 @@ interface FragmentsContractActivity {
     fun setCheckup(checkup: Checkup)
     fun setChecupListOrder(order: Orders)
     fun setCoordinates(point: Point, controlId: Int)
+    //fun setDataForRouteDetail(order: Orders, mapFragment: MapFragment)
+    fun setOrder(order: Orders)
 }

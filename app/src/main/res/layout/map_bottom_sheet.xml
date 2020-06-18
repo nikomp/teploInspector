@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/llBottomSheet"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/colorCardItem"
     android:orientation="vertical">
 
+    <include layout="@layout/item_cardview_order" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!--<androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
@@ -42,6 +42,8 @@
             android:textSize="13sp"
             tools:text="Обследование территории мукомольного завода"/>
 
+
+
         <LinearLayout
             android:id="@+id/linearLayout"
             android:layout_width="match_parent"
@@ -49,23 +51,28 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
+            android:background="@color/routeButtonPanel"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/symbolName">
 
-            <!--View для выравнивания-->
-            <View
+            &lt;!&ndash;View для выравнивания&ndash;&gt;
+            &lt;!&ndash;<View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_weight="1" />&ndash;&gt;
 
             <Button
                 android:id="@+id/btnCar"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
+                android:layout_marginStart="8dp"
                 android:layout_marginEnd="4dp"
-                android:drawableTop="@drawable/ic_directions_car_white_24dp" />
+                android:layout_weight="1"
+                android:background="@color/routeButtonPanel"
+                android:drawableTop="@drawable/auto_grey"
+                app:backgroundTint="@color/routeButtonPanel" />
 
 
             <Button
@@ -73,13 +80,27 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:layout_marginStart="4dp"
-                android:drawableTop="@drawable/ic_directions_bus_24dp" />
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/btn_bus_selector"
+                app:backgroundTint="@color/routeButtonPanel" />
 
-            <!--View для выравнивания-->
-            <View
+
+            <Button
+                android:id="@+id/btnFoot"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/btn_foot_selector"
+                app:backgroundTint="@color/routeButtonPanel" />
+
+            &lt;!&ndash;View для выравнивания&ndash;&gt;
+            &lt;!&ndash;<View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_weight="1" />&ndash;&gt;
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -92,20 +113,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 
-        <!--<com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveNewObject"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:onClick="onClick"
-            android:text="@string/btnSave"
-            app:icon="@drawable/ic_directions_car_black_24dp"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/symbolName" />-->
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>-->
 </LinearLayout>
