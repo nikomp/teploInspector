@@ -45,7 +45,7 @@
             android:inputType="textPersonName"
             android:selectAllOnFocus="false"
             android:singleLine="false"
-            android:text="http://demo.bingosoft-office.ru/redevelopment/" />
+            android:text="@string/url" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

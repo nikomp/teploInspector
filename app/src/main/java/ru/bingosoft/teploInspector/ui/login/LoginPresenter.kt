@@ -1,11 +1,14 @@
 package ru.bingosoft.teploInspector.ui.login
 
 import android.util.Log
+import com.google.gson.Gson
 import io.reactivex.Completable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
@@ -36,10 +39,45 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(stLogin: String?, stPassword: String?){
         Timber.d("authorization1 $stLogin _ $stPassword")
-        val fingerprint: String = random()
-
         if (stLogin!=null && stPassword!=null) {
-            disposable=apiService.getAuthorization(fingerprint,stLogin,stPassword)
+
+            Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
+
+
+            val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
+                .toRequestBody("application/json".toMediaType())
+
+            disposable = apiService.getAuthentication(jsonBody)
+                .subscribeOn(Schedulers.io())
+                .flatMap { uuid ->
+                    Timber.d("uuid=$uuid")
+                    Timber.d("jsonBody2=${Gson().toJson(uuid)}")
+                    val jsonBody2 = Gson().toJson(uuid)
+                        .toRequestBody("application/json".toMediaType())
+                    apiService.getAuthorization(jsonBody2)
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { token ->
+                        Timber.d(token.toString())
+                        this.stLogin = stLogin
+                        this.stPassword = stPassword
+                        view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
+                        view?.saveToken(token.token)
+
+                        val v = view
+                        if (v != null) {
+                            Timber.d("startService_LoginPresenter")
+                            v.alertRepeatSync()
+                        }
+
+                    }, { throwable ->
+                        throwable.printStackTrace()
+                        view?.showFailureTextView()
+                    }
+                )
+
+            /*disposable=apiService.getAuthorization(jsonBody)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
@@ -62,7 +100,7 @@ class LoginPresenter @Inject constructor(
                 },  {
                     Timber.d("Ошибка сети!!")
                     view?.showFailureTextView()
-                })
+                })*/
         }
 
     }

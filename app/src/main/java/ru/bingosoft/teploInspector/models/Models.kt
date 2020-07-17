@@ -15,10 +15,18 @@ class Models {
         @SerializedName("msg") var msg: String = ""
     )
 
-    class Auth(
-        @SerializedName("success") var success: Boolean = true,
-        @SerializedName("newToken") var newToken: String = "",
-        @SerializedName("session_id") var session_id: String = ""
+    class LP(
+        @SerializedName("login") var login: String = "",
+        @SerializedName("password") var password: String = ""
+    )
+
+    class Uuid(
+        @SerializedName("uuid") var uuid: String = ""
+    )
+
+    class Token(
+        @SerializedName("token") var token: String = "",
+        @SerializedName("name") var name: String = ""
     )
 
     class UserResult(

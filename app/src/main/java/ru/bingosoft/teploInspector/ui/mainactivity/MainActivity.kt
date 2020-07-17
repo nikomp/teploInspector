@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.SearchManager
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -17,7 +18,9 @@ import android.os.Bundle
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -27,6 +30,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
@@ -44,6 +48,7 @@ import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
@@ -79,7 +84,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var currentOrder: Orders
     private lateinit var locationManager: LocationManager
     lateinit var dialogView: View
-    lateinit var filterView: RelativeLayout
+    lateinit var filterView: ConstraintLayout
+
+    var isMapFragmentShow=false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -180,6 +187,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val intent = Intent(this, LoginActivity::class.java)
             startActivityForResult(intent, Const.RequestCodes.AUTH)
         }
+
     }
 
     private fun buildAlertMessageNoGps() {
@@ -254,14 +262,66 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val item = menu.findItem(R.id.menu_buttons)
         item.setActionView(R.layout.filter_count)
-        filterView=item.actionView as RelativeLayout
+        filterView=item.actionView as ConstraintLayout
 
         val btnFilter=filterView.findViewById<Button>(R.id.btnFilter)
         btnFilter.setOnClickListener(this)
 
-        val searchView=item.actionView as RelativeLayout
-        val btnSearch=searchView.findViewById<Button>(R.id.btnSearch)
-        btnSearch.setOnClickListener(this)
+        val searchItem=menu.findItem(R.id.action_search)
+        if (searchItem!=null) {
+            val searchView=searchItem.actionView as SearchView
+            searchView.setPadding(0,0,-30,0)
+
+            val searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_src_text) as EditText
+            searchPlate.hint = getString(R.string.search_by_address)
+
+            searchView.setOnCloseListener (object: SearchView.OnCloseListener{
+                override fun onClose(): Boolean {
+                    if (isMapFragmentShow) {
+                        Timber.d("Включена карта")
+                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+                        (rcv.adapter as OrderListAdapter).filter.filter("")
+                        Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
+
+                        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
+                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+                    }
+
+                    return false
+                }
+
+            })
+
+
+            searchView.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    return false
+                }
+
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    Timber.d(newText)
+                    if (!isMapFragmentShow) {
+                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
+                    } else {
+                        Timber.d("Включена карта")
+                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
+                        Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
+
+                        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
+                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+                    }
+
+
+                    return true
+                }
+
+            })
+
+            val searchManager=getSystemService(Context.SEARCH_SERVICE) as SearchManager
+            searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
+        }
 
         return super.onCreateOptionsMenu(menu)
     }
@@ -376,6 +436,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         mf?.showRouteDialog(order)
     }
 
+    override fun setMode(isMap: Boolean) {
+        isMapFragmentShow=isMap
+    }
+
     private fun setPhotoResult() {
         var photoLocation:Location?=Location(LocationManager.GPS_PROVIDER)
         try {
@@ -416,6 +480,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             R.id.nav_send_data -> {
                 Timber.d("Отправляем данные на сервер")
                 mainPresenter.sendData()
+                //mainPresenter.sendUserRoute()
                 //mainPresenter.isCheckupWithResult()
                 return true
             }
@@ -512,9 +577,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterOrder.window?.attributes=wlp
 
             }
-            R.id.btnSearch -> {
+            /*R.id.btnSearch -> {
                 Timber.d("Открываем окно с поиском")
-            }
+            }*/
         }
     }
 

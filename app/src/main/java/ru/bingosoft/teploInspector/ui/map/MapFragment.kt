@@ -329,6 +329,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     override fun showMarkers(orders: List<Orders>) {
         Timber.d("showMarkers=$orders")
 
+        map.mapObjects.clear()
         orders.forEach{
             importOrdersOnMap(it)
         }
@@ -340,7 +341,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         val view=layoutInflater.inflate(R.layout.template_marker,null)
         val tvMarker=view.findViewById<TextView>(R.id.tvMarker)
         tvMarker.text=order.number
-
 
         val customMarker=Models.CustomMarker(order=order,markerView = tvMarker)
 
@@ -444,7 +444,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
                     fragmentManager.executePendingTransactions()
 
-                    //(this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)
+                    (fragmentOrder.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
                 }
 
                 R.id.btnMap -> {

@@ -16,118 +16,139 @@
         android:layout_marginTop="4dp"
         android:layout_marginEnd="4dp"
         android:layout_marginRight="4dp"
+        android:visibility="visible"
         app:cardBackgroundColor="@color/colorCardItem">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/number"
-                android:layout_width="wrap_content"
-                android:layout_height="25dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
-                android:textColor="@color/orderTextNumber"
-                android:textSize="13sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="А-001" />
+            <LinearLayout
+                android:id="@+id/titleOrder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="4dp"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/order_type"
-                android:layout_width="wrap_content"
-                android:layout_height="25dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
-                android:textColor="@color/orderTextType"
-                android:textSize="13sp"
-                app:layout_constraintStart_toEndOf="@+id/number"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="Тип заявки" />
+                <TextView
+                    android:id="@+id/number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
+                    android:textColor="@color/orderTextNumber"
+                    android:textSize="13sp"
+                    tools:text="А-001" />
 
-            <TextView
-                android:id="@+id/order_state"
-                android:layout_width="wrap_content"
-                android:layout_height="25dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAllCaps="true"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
-                android:textSize="11sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="В работе" />
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="0.08" />
 
-            <TextView
-                android:id="@+id/name"
-                android:layout_width="0dp"
+                <TextView
+                    android:id="@+id/order_state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textAllCaps="true"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
+                    android:textSize="11sp"
+                    tools:text="В работе" />
+
+            </LinearLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/dataOrder"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:fontFamily="@font/roboto_bold"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
-                android:textColor="@color/orderTextName"
-                android:textSize="17sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/number"
-                tools:text="Обследование жилого здания" />
+                android:visibility="visible">
 
-            <TextView
-                android:id="@+id/adress"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:fontFamily="@font/roboto_medium"
+                <TextView
+                    android:id="@+id/order_type"
+                    android:layout_width="0dp"
+                    android:layout_height="25dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/roboto_bold"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
+                    android:textColor="@color/orderTextName"
+                    android:textSize="17sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/number"
+                    tools:text="Промывка ВСО" />
 
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
-                android:textColor="@color/orderButtonText2"
-                android:textSize="13sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/name"
-                tools:text="Нижний Новгород, Россия, 603146, Михайловская улица, 24" />
+                <TextView
+                    android:id="@+id/name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+                    android:textColor="#7C838B"
+                    android:textSize="13sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/order_type"
+                    tools:text="Обследование жилого здания" />
 
-            <TextView
-                android:id="@+id/date"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+                <TextView
+                    android:id="@+id/adress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/roboto_medium"
 
-                android:textColor="@color/orderTextDate"
-                android:textSize="13sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/adress"
-                tools:text="09.06.2020 15:03" />
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+                    android:textColor="@color/orderButtonText2"
+                    android:textSize="13sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/name"
+                    tools:text="Нижний Новгород, Россия, 603146, Михайловская улица, 24" />
 
-            <TextView
-                android:id="@+id/fio"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
-                android:textColor="@color/orderButtonText2"
-                android:textSize="13sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/date"
-                tools:text="Иванов Иван Иванович" />
+                <TextView
+                    android:id="@+id/date"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
 
-            <TextView
+                    android:textColor="@color/orderTextDate"
+                    android:textSize="13sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/adress"
+                    tools:text="09.06.2020 15:03" />
+
+                <TextView
+                    android:id="@+id/fio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="@font/roboto_medium"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+                    android:textColor="@color/orderButtonText2"
+                    android:textSize="13sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/date"
+                    tools:text="Иванов Иван Иванович" />
+
+                <!--<TextView
                 android:id="@+id/type_transportation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -139,56 +160,75 @@
                 android:textSize="13sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/fio"
-                tools:text="Транспортировка выполняется заказчиком" />
+                tools:text="Транспортировка выполняется заказчиком" />-->
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="8dp"
-                android:orientation="horizontal"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/type_transportation">
-
-                <Button
-                    android:id="@+id/btnPhone"
+                <!--#Spinner_без_underline #Spinner_dropDown_width-->
+                <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+                    android:id="@+id/type_transportation"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:drawableLeft="@drawable/btn_phone_selector"
-                    android:enabled="true"
-                    android:paddingLeft="16dp"
-                    android:text="Button"
-                    android:textAllCaps="false"
-                    android:textColor="@color/orderButtonText2"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="4dp"
+                    android:dropDownWidth="match_parent"
+                    android:fontFamily="@font/roboto_medium"
+                    android:hint="@string/strTypeTransportation"
+                    android:singleLine="true"
+                    android:text="@string/strTypeTransportationDefault"
+                    android:textColorHint="#05ab9a"
                     android:textSize="13sp"
-                    app:backgroundTint="@color/orderButtonBackground"
-                    app:iconPadding="0dp"
-                    tools:text="+7 950 379-53-88" />
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/fio"
+                    app:met_floatingLabel="normal"
+                    app:met_hideUnderline="true" />
 
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="0.25" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/type_transportation">
 
-                <Button
-                    android:id="@+id/btnRoute"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:drawableLeft="@drawable/ic_route"
-                    android:text="Button"
-                    android:textAllCaps="false"
-                    android:textColor="@color/orderButtonText2"
-                    android:textSize="13sp"
-                    app:backgroundTint="@color/orderButtonBackground"
-                    app:iconPadding="0dp"
-                    tools:text="Маршрут 3.2 км" />
-            </LinearLayout>
+                    <Button
+                        android:id="@+id/btnPhone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:drawableLeft="@drawable/btn_phone_selector"
+                        android:enabled="true"
+                        android:paddingLeft="16dp"
+                        android:text="Button"
+                        android:textAllCaps="false"
+                        android:textColor="@color/orderButtonText2"
+                        android:textSize="13sp"
+                        app:backgroundTint="@color/orderButtonBackground"
+                        app:iconPadding="0dp"
+                        tools:text="+7 950 379-53-88" />
 
-            <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="0.25" />
+
+                    <Button
+                        android:id="@+id/btnRoute"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:drawableLeft="@drawable/btn_route_selector"
+                        android:text="Button"
+                        android:textAllCaps="false"
+                        android:textColor="@color/orderButtonText2"
+                        android:textSize="13sp"
+                        app:backgroundTint="@color/orderButtonBackground"
+                        app:iconPadding="0dp"
+                        tools:text="Маршрут 3.2 км" />
+                </LinearLayout>
+
+                <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fab2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -203,7 +243,8 @@
                 android:focusable="true"
                 tools:ignore="VectorDrawableCompat" />-->
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
 
     </androidx.cardview.widget.CardView>
 </LinearLayout>

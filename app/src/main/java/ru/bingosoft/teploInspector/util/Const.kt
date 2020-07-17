@@ -18,6 +18,7 @@ class Const {
     object SharedPrefConst {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
+        const val TOKEN = "token"
         const val PASSWORD = "password"
         const val SESSION = "session_id"
         const val DATESYNC = "last_sync_date"
@@ -49,6 +50,31 @@ class Const {
         const val MINIMAL_DISTANCE=50.0
         const val USE_IN_BACKGROUND=false
 
+    }
+
+    object GeneralInformation {
+        val list=listOf("Номер договора",
+            "Дата договора",
+            "Юридический адрес",
+            "Телефон",
+            "Электронная почта",
+            "Почтовый адрес",
+            "Контрагент",
+            "Ответственный за ТХ",
+            "Руководитель",
+            "Телефон ответственного гор.",
+            "Телефон ответственного моб.",
+            "Телефон руководителя гор.",
+            "Телефон руководителя моб.",
+            "Принадлежность (ОР)",
+            "Принадлежность (УЭН)",
+            "Управл. организация (УЭН)",
+            "Подрядная организация",
+            "Принадлежность трассы",
+            "Принадлежность узла",
+            "РТС",
+            "Мастер РТС"
+        )
     }
 
 }

@@ -106,4 +106,12 @@
     <string name="orderType2">Приборы учета</string>
     <string name="orderType3">Качество услуг</string>
     <string name="orderType4">Другое</string>
+
+    <string name="search_by_address">Поиск по адресу</string>
+    <string name="strTypeTransportation">Тип транспортировки</string>
+    <string name="strTypeTransportationDefault">Самостоятельно на общественном транспорте</string>
+    <string name="strTypeTransportationClient">Транспортировка выполняется заказчиком</string>
+
+    <string name="strContractNumber">Номер договора</string>
+
 </resources>

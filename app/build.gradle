@@ -30,15 +30,20 @@ android {
         debug {
             resValue 'string', 'login', accent_login
             resValue 'string', 'password', accent_password
+            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
 
-            buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+
+            //buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
         }
         release {
             resValue 'string', 'login', ""
             resValue 'string', 'password', ""
+            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
 
-            buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            //buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
 
             minifyEnabled false

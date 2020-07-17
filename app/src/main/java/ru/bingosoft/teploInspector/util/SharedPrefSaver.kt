@@ -12,6 +12,7 @@ import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOCATION_TRACKING
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.SESSION
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.TOKEN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_FULLNAME
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_PHOTO_URL
 import timber.log.Timber
@@ -34,6 +35,17 @@ class SharedPrefSaver(ctx: Context) {
 
     fun getLogin(): String {
         return sharedPreference.getString(LOGIN, "") ?: ""
+    }
+
+    fun saveToken(token: String) {
+        Timber.d("saveToken")
+        val editor: SharedPreferences.Editor = sharedPreference.edit()
+        editor.putString(TOKEN, token)
+        editor.apply()
+    }
+
+    fun getToken(): String {
+        return sharedPreference.getString(TOKEN, "") ?: ""
     }
 
     fun savePassword(password: String) {

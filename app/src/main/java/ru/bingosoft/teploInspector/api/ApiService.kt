@@ -7,13 +7,25 @@ import retrofit2.http.*
 import ru.bingosoft.teploInspector.models.Models
 
 interface ApiService {
-    @POST("redis-session-php/login.php")
+    @POST("/defaultauthentication/auth/login")
+    @Headers("Content-Type: application/json")
+    fun getAuthentication(
+        @Body lp: RequestBody
+    ): Single<Models.Uuid>
+
+    @POST("/accesseditor/login/authorize")
+    @Headers("Content-Type: application/json")
+    fun getAuthorization(
+        @Body uuid: RequestBody
+    ): Single<Models.Token>
+
+    /*@POST("redis-session-php/login.php")
     @FormUrlEncoded
     fun getAuthorization(
         @Field("fingerprint") fingerprint: String?,
         @Field("login") login: String?,
         @Field("password") password: String?
-    ): Single<Models.Auth>
+    ): Single<Models.Auth>*/
 
     @GET("procs/androidAPI.php")
     fun getListOrder(

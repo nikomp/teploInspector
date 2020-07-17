@@ -36,7 +36,7 @@ data class Orders (
     var typeOrder: String? = "Тип заявки",
 
     @SerializedName("typeTransportation")
-    var typeTransportation: String? = "Транспортировка выполняется заказчиком",
+    var typeTransportation: String? = "Самостоятельно на общественном транспорте",
 
     @SerializedName("lat")
     var lat: Double = 0.0,

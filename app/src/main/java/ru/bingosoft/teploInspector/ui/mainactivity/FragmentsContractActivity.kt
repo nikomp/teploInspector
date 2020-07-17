@@ -10,4 +10,5 @@ interface FragmentsContractActivity {
     fun setCoordinates(point: Point, controlId: Int)
     //fun setDataForRouteDetail(order: Orders, mapFragment: MapFragment)
     fun setOrder(order: Orders)
+    fun setMode(isMap:Boolean=true)
 }

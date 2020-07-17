@@ -32,4 +32,7 @@
     <color name="enabledText">#C7CCD1</color>
 
     <color name="hypertext">#0082E5</color>
+
+    <color name="stepExpand">#007CCC</color>
+    <color name="stepNotExpand">#2D3239</color>
 </resources>

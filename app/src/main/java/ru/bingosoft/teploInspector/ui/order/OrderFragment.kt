@@ -20,9 +20,10 @@ import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
 import kotlinx.android.synthetic.main.fragment_order.*
 import ru.bingosoft.teploInspector.R
+import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.checkuplist.CheckupListFragment
+import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
@@ -97,6 +98,24 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             val pb=root.findViewById<ProgressBar>(R.id.progressBar)
             pb.visibility= View.INVISIBLE
         }
+
+        /*val searchView=root.findViewById<androidx.appcompat.widget.SearchView>(R.id.country_search)
+        searchView.setOnQueryTextListener(object:androidx.appcompat.widget.SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                Timber.d(newText)
+                val rcv=root.findViewById<RecyclerView>(R.id.orders_recycler_view)
+                (rcv.adapter as OrderListAdapter).filter.filter(newText)
+
+                return true
+            }
+
+        })*/
+
+
 
         return root
     }
@@ -180,6 +199,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
         sharedPref.saveLogin(stLogin)
         sharedPref.savePassword(stPassword)
+    }
+
+    override fun saveToken(token: String) {
+        sharedPref.saveToken(token)
     }
 
     override fun showFailureTextView() {
@@ -303,18 +326,38 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         //TODO реализую позже
     }
 
+    override fun openCheckup(checkup: Checkup) {
+        Timber.d("openCheckup");
+        Timber.d("idCheckup=${checkup.id}")
+        //Загружаем чеклист
+        val bundle = Bundle()
+        bundle.putBoolean("loadCheckupById", true)
+        bundle.putLong("checkupId",checkup.id)
+
+        val fragmentCheckup= CheckupFragment()
+        fragmentCheckup.arguments=bundle
+        val fragmentManager=this.requireActivity().supportFragmentManager
+
+        fragmentManager.beginTransaction()
+            .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
+            .addToBackStack(null)
+            .commit()
+
+        fragmentManager.executePendingTransactions()
+
+
+        (this.requireActivity() as FragmentsContractActivity).setCheckup(checkup)
+    }
+
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
 
         currentOrder=(orders_recycler_view.adapter as OrderListAdapter).getOrder(position)
-
         currentOrder.checked=!currentOrder.checked
-
-
         (activity as MainActivity).currentOrder=this.currentOrder
 
         //Включаем фрагмент со списком Обследований для конкретной заявки
-        val bundle = Bundle()
+        /*val bundle = Bundle()
         bundle.putBoolean("checkUpForOrder", true)
         bundle.putLong("idOrder",currentOrder.id)
 
@@ -329,7 +372,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         fragmentManager.executePendingTransactions()
 
-        (this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)
+        (this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)*/
+
+        // Получим чеклист для выбранной заявки
+
+        orderPresenter.getCheckup(currentOrder.id)
 
     }
 
@@ -350,11 +397,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     val fragmentManager=this.requireActivity().supportFragmentManager
 
                     fragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, fragmentMap, "")
+                        .replace(R.id.nav_host_fragment, fragmentMap, "fragment_map")
                         .addToBackStack(null)
                         .commit()
 
                     fragmentManager.executePendingTransactions()
+
+                    (fragmentMap.requireActivity() as FragmentsContractActivity).setMode()
 
                 }
 

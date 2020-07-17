@@ -10,6 +10,7 @@ import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import kotlin.math.round
 import kotlin.math.roundToInt
 
 class OtherUtil {
@@ -20,7 +21,6 @@ class OtherUtil {
             val controlList = Gson().fromJson(it.textResult, Models.ControlList::class.java)
             val controlPhoto=controlList.list.filter { it.type=="photo" }
             controlPhoto.forEach{
-                //val photoResult= Gson().fromJson(it.resvalue, Models.PhotoResult::class.java)
                 list.add(it.resvalue)
             }
         }
@@ -33,8 +33,8 @@ class OtherUtil {
         orderLocation.longitude=order.lon
         orderLocation.latitude=order.lat
 
-        // Округим до 1 знака после запятой
-        return  "%.1f".format((userLocation.distanceTo(orderLocation)/1000)).toFloat()
+        val dist=userLocation.distanceTo(orderLocation)/1000
+        return round(dist*10)/10
     }
 
     fun saveExifLocation(filename: String, photoLocation: Location?) {

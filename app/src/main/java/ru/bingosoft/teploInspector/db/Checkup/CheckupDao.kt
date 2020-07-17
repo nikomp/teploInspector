@@ -14,6 +14,9 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup WHERE idOrder = :id")
     fun getCheckupsOrder(id: Long): Flowable<List<Checkup>>
 
+    @Query("SELECT * FROM checkup WHERE idOrder = :id")
+    fun getCheckupByOrder(id: Long): Checkup
+
     @Query("SELECT id FROM checkup WHERE idOrder = :id")
     fun getCheckupIdByOrder(id: Long): Long
 

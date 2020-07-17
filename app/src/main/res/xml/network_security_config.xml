@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!--Разрешенный домен для доступа к Акценту-->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.1.100</domain>
+        <domain includeSubdomains="true">demo.bingosoft-office.ru</domain>
     </domain-config>
 
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">demo.bingosoft-office.ru</domain>
+        <domain includeSubdomains="true">teplomi.bingosoft-office.ru</domain>
     </domain-config>
 
     <!--Разрешенные домены для карты-->

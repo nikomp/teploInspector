@@ -36,12 +36,20 @@ class OrderPresenter @Inject constructor(
             }
 
         Timber.d("ОК")
-
-
-
-
     }
 
+    fun getCheckup(orderId: Long) {
+        Timber.d("openCheckup")
+        // Получим информацию о чеклисте, по orderId
+        Single.fromCallable {
+            val checkup=db.checkupDao().getCheckupByOrder(orderId)
+            view?.openCheckup(checkup)
+
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe()
+
+    }
 
     fun onDestroy() {
         this.view = null
