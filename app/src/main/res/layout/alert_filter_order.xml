@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:fontFamily="@font/roboto_medium"
-            android:text="8"
+            android:text="0"
             app:layout_constraintBaseline_toBaselineOf="@+id/nameType1"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -83,7 +83,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:fontFamily="@font/roboto_medium"
-            android:text="6"
+            android:text="0"
             app:layout_constraintBaseline_toBaselineOf="@+id/nameType2"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -123,7 +123,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:fontFamily="@font/roboto_medium"
-            android:text="7"
+            android:text="0"
             app:layout_constraintBaseline_toBaselineOf="@+id/nameType3"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -163,7 +163,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:fontFamily="@font/roboto_medium"
-            android:text="3"
+            android:text="0"
             app:layout_constraintBaseline_toBaselineOf="@+id/nameType4"
             app:layout_constraintEnd_toEndOf="parent" />
 

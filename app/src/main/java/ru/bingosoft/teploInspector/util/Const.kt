@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.util
 
+import android.os.Environment
 import com.yandex.mapkit.geometry.Point
 
 class Const {
@@ -19,6 +20,8 @@ class Const {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
         const val TOKEN = "token"
+        const val USER_ID = "user_id"
+        const val ROLE_ID = "role_id"
         const val PASSWORD = "password"
         const val SESSION = "session_id"
         const val DATESYNC = "last_sync_date"
@@ -27,6 +30,37 @@ class Const {
         const val FIREBASE_MESSAGE = "message_token"
         const val LOCATION_TRACKING= "location_tracking"
     }
+
+    object TypeTransportation {
+        var list =
+            arrayOf("Самостоятельно на общественном транспорте",
+                "Самостоятельно на личном транспорте",
+                "Самостоятельно пешком",
+                "Транспортировка выполняется заказчиком")
+    }
+
+    object StatusOrder {
+        var list =
+            /*arrayOf("ОТМЕНЕНА",
+                "ПРОВЕРЕНА",
+                "ВЫПОЛНЕНА",
+                "ПРИОСТАНОВЛЕНА",
+                "В ПУТИ",
+                "В РАБОТЕ",
+                "ОТКРЫТА")*/
+        arrayOf("Отменена",
+                "Проверена",
+                "Выполнена",
+                "Приостановлена",
+                "В пути",
+                "В работе",
+                "Открыта")
+    }
+
+    object Photo{
+        val DCIM_DIR= "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)}"
+    }
+
 
     object LocationStatus {
         const val PROVIDER_DISABLED="PROVIDER_DISABLED"
@@ -75,6 +109,18 @@ class Const {
             "РТС",
             "Мастер РТС"
         )
+    }
+
+    object TechnicalСharacteristicList {
+        val list=listOf("Номер узла",
+            "Кол-во шайб",
+            "Дш расч."
+        )
+    }
+
+    object Dialog {
+        const val DIALOG_DATE=1
+        const val DIALOG_TIME=2
     }
 
 }

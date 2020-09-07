@@ -5,4 +5,5 @@ interface MainActivityContractView {
     fun showMainActivityMsg(msg: String)
     fun dataSyncOK()
     fun updDataOK()
+    fun filesSend(countFiles: Int, indexCurrentFile: Int)
 }

@@ -31,6 +31,15 @@
                 android:layout_marginBottom="4dp"
                 android:orientation="horizontal">
 
+                <ImageView
+                    android:id="@+id/ivExpand"
+                    android:layout_width="20dp"
+                    android:layout_height="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/arrow_down" />
+
                 <TextView
                     android:id="@+id/number"
                     android:layout_width="wrap_content"
@@ -49,7 +58,7 @@
                     android:layout_height="0dp"
                     android:layout_weight="0.08" />
 
-                <TextView
+                <!--<TextView
                     android:id="@+id/order_state"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -59,7 +68,23 @@
                     android:textAllCaps="true"
                     android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
                     android:textSize="11sp"
-                    tools:text="В работе" />
+                    tools:text="В работе" />-->
+
+                <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+                    android:id="@+id/order_state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:dropDownWidth="200dp"
+                    android:fontFamily="@font/roboto_medium"
+                    android:singleLine="true"
+                    android:text="@string/status_OPEN"
+                    android:textSize="11sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/fio"
+                    app:met_floatingLabel="none"
+                    app:met_hideUnderline="true" />
 
             </LinearLayout>
 
@@ -82,7 +107,7 @@
                     android:textSize="17sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/number"
+                    app:layout_constraintTop_toTopOf="parent"
                     tools:text="Промывка ВСО" />
 
                 <TextView
@@ -147,20 +172,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/date"
                     tools:text="Иванов Иван Иванович" />
-
-                <!--<TextView
-                android:id="@+id/type_transportation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="4dp"
-                android:fontFamily="@font/roboto_medium"
-                android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
-                android:textColor="@color/orderTextTypeTransp"
-                android:textSize="13sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/fio"
-                tools:text="Транспортировка выполняется заказчиком" />-->
 
                 <!--#Spinner_без_underline #Spinner_dropDown_width-->
                 <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner

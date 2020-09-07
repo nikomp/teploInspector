@@ -12,6 +12,14 @@ apply plugin: 'com.google.firebase.crashlytics'
 
 
 android {
+    signingConfigs {
+        config {
+            storeFile file('D:\\РАБОТА\\keystore2.jks')
+            storePassword 'IkWMYC'
+            keyAlias 'map'
+            keyPassword 'F8ORTl'
+        }
+    }
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
     defaultConfig {
@@ -48,6 +56,7 @@ android {
 
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
     compileOptions {
@@ -88,11 +97,11 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.0-alpha05' //older 1.2.0-alpha04
 
     //Карта
-    implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:8.6.2'
-    implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v8:0.7.0'
+    //implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:8.6.2'
+    //implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v8:0.7.0'
 
     // Иконки Font Awesome
-    implementation 'info.androidhive:fontawesome:0.0.5'
+    //implementation 'info.androidhive:fontawesome:0.0.5'
 
     // Database
     def roomVersion = "1.1.1"
@@ -123,7 +132,6 @@ dependencies {
 
     // RecyclerView и CardView
     implementation 'androidx.cardview:cardview:1.0.0'
-    //implementation 'androidx.recyclerview:recyclerview:1.1.0-beta01'
     implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha02'
 
     // Новый логгер

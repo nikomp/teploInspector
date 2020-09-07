@@ -41,6 +41,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map_bottom.MapBottomSheet
 import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.route_detail.RouteDetailFragment
@@ -56,7 +57,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 
-class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickListener {
+class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContractView, IOnBackPressed, View.OnClickListener {
 
     val fragment=this
     lateinit var mapView: MapView
@@ -79,8 +80,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     var lastCarRouter=mutableListOf<PolylineMapObject>()
     var prevMapObjectMarker: MapObject?=null
 
-    lateinit var order: Orders
-
     private val mapLoadedListener=object:MapLoadedListener{
         override fun onMapLoaded(p0: MapLoadStatistics) {
             mapPresenter.attachView(fragment)
@@ -94,7 +93,12 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
             Timber.d("checkupId=$checkupId")
 
             if (tag==null || tag==false) {
-                mapPresenter.loadMarkers() // Грузим все маркеры Заявок
+                if (orders.isEmpty()) {
+                    mapPresenter.loadMarkers() // Грузим все маркеры Заявок
+                } else {
+                    showMarkers(orders)
+                }
+
             } else {
                 addCoordinatesTag=true
             }
@@ -328,6 +332,8 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
     override fun showMarkers(orders: List<Orders>) {
         Timber.d("showMarkers=$orders")
+        this.orders=orders
+        (activity as MainActivity).filteredOrders=orders
 
         map.mapObjects.clear()
         orders.forEach{
@@ -341,6 +347,22 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         val view=layoutInflater.inflate(R.layout.template_marker,null)
         val tvMarker=view.findViewById<TextView>(R.id.tvMarker)
         tvMarker.text=order.number
+        when (order.groupOrder) {
+            this.getString(R.string.orderType1).toLowerCase() -> {
+                Timber.d("R.string.orderType1")
+                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector1))
+            }
+            this.getString(R.string.orderType2).toLowerCase() -> {
+                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector2))
+            }
+            this.getString(R.string.orderType3).toLowerCase() -> {
+                Timber.d("R.string.orderType3")
+                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector3))
+            }
+            this.getString(R.string.orderType4).toLowerCase() -> {
+                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector4))
+            }
+        }
 
         val customMarker=Models.CustomMarker(order=order,markerView = tvMarker)
 
@@ -434,17 +456,20 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                     (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
 
                     val fragmentOrder= OrderFragment()
-                    //fragmentMap.arguments=bundle
+                    //fragmentOrder.filteredOrdersOrderFragment=this.orders
+
                     val fragmentManager=this.requireActivity().supportFragmentManager
 
                     fragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, fragmentOrder, "")
+                        .replace(R.id.nav_host_fragment, fragmentOrder, "order_fragment_tag")
                         .addToBackStack(null)
                         .commit()
 
                     fragmentManager.executePendingTransactions()
 
                     (fragmentOrder.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
+                    (fragmentOrder.requireActivity() as MainActivity).filteredOrders=this.orders
+
                 }
 
                 R.id.btnMap -> {
@@ -453,10 +478,11 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
                 }
 
-
             }
         }
     }
+
+
 
 
 }

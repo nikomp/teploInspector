@@ -11,4 +11,5 @@
 
     <dimen name="dialog_filter_horizontal_margin">20dp</dimen>
     <dimen name="dialog_filter_vertical_margin">20dp</dimen>
+    <dimen name="dot">1dp</dimen>
 </resources>

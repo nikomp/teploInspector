@@ -34,7 +34,7 @@ class App : Application(), HasAndroidInjector  {
 
         //https://proandroiddev.com/rxjava2-undeliverableexception-f01d19d18048
         //https://stackoverflow.com/questions/52631581/rxjava2-undeliverableexception-when-orientation-change-is-happening-while-fetchi
-        RxJavaPlugins.setErrorHandler { throwable: Throwable? -> }
+        RxJavaPlugins.setErrorHandler { error: Throwable? -> error?.printStackTrace()}
 
 
     }

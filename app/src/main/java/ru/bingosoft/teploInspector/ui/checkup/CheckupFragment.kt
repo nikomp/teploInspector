@@ -4,16 +4,17 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -21,14 +22,17 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
-import com.mapbox.mapboxsdk.geometry.LatLng
+import com.google.android.material.button.MaterialButton
+import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
-import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
 import ru.bingosoft.teploInspector.util.photoSliderHelper.HorizontalAdapter
@@ -46,6 +50,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var checkupPresenter: CheckupPresenter
 
     @Inject
+    lateinit var orderPresenter: OrderPresenter
+
+    @Inject
     lateinit var toaster: Toaster
 
     @Inject
@@ -58,11 +65,13 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var photoHelper: PhotoHelper
 
     lateinit var rootView: View
-    private lateinit var uiCreator: UICreator
 
-    lateinit var controlList: Models.ControlList
-    var savedcontrolList: Models.ControlList?=null
     lateinit var checkup: Checkup
+    lateinit var currentOrder: Orders
+    lateinit var techParams: List<TechParams>
+
+    var uiCreator: UICreator?=null
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -79,15 +88,31 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         this.rootView=view
 
+        val btnSave = view.findViewById(R.id.mbSaveCheckup) as MaterialButton
+        btnSave.setOnClickListener(this)
+
+
         val checkupSteps: ArrayList<String> = ArrayList()
         checkupSteps.add("Общие сведения об абоненте")
         checkupSteps.add("Технические характеристики объекта")
-        checkupSteps.add("Промывка ГВС Узел №1")
-        checkupSteps.add("Промывка ГВС Узел №2")
+
+        val typeOrderTag = arguments?.getString("typeOrder")
+        if (tag!=null) {
+            checkupSteps.add("$typeOrderTag")
+        } else {
+            checkupSteps.add("<Тиражирование по узлам>")
+        }
+
+
+        checkupPresenter.attachView(this)
+        //this.techParams=(rootView.context as MainActivity).techParams
+
+        val ivExpand=rootView.findViewById<ImageView>(R.id.ivExpand)
+        ivExpand.visibility=View.VISIBLE
 
         val stepsRecyclerView = rootView.findViewById(R.id.steps_recycler_view) as RecyclerView
         stepsRecyclerView.layoutManager = LinearLayoutManager(this.activity)
-        val adapter=StepsAdapter(checkupSteps)
+        val adapter=StepsAdapter(checkupSteps,this)
         stepsRecyclerView.adapter = adapter
 
         val titleOrder=rootView.findViewById<LinearLayout>(R.id.titleOrder)
@@ -95,34 +120,22 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             val dataOrder=rootView.findViewById<ConstraintLayout>(R.id.dataOrder)
             if (dataOrder.visibility==View.VISIBLE) {
                 dataOrder.visibility=View.GONE
+                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
             } else {
                 dataOrder.visibility=View.VISIBLE
+                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
             }
         }
 
         fillOrderData()
 
 
-        /*val btnSave = view.findViewById(R.id.mbSaveCheckup) as MaterialButton
-        btnSave.setOnClickListener(this)
-
-        val btnSend = view.findViewById(R.id.mbSendCheckup) as MaterialButton
-        btnSend.setOnClickListener(this)
-
-        checkupPresenter.attachView(this)
-
-        val tag = arguments?.getBoolean("loadCheckupById")
-        if (tag!=null && tag==true) {
-            Timber.d("loadCheckupById")
-            val checkupId= arguments?.getLong("checkupId")
-            Timber.d("checkupId=$checkupId")
-            if (checkupId!=null) {
-                checkupPresenter.loadCheckup(checkupId)
-            }
-        }
-
         checkPhotoPermission() // Проверим разрешения для фото*/
         return view
+    }
+
+    fun setTechParams(idOrder: Long) {
+        checkupPresenter.getTechParams(idOrder)
     }
 
 
@@ -131,29 +144,69 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         super.onStop()
     }*/
 
-    fun fillOrderData() {
+    private fun fillOrderData() {
         val order=(rootView.context as MainActivity).currentOrder
 
-        rootView.findViewById<TextView>(R.id.number).text=order.number
+        rootView.findViewById<TextView>(R.id.number).text="№ ${order.number}"
         rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         if (order.typeOrder.isNullOrEmpty()){
             rootView.findViewById<TextView>(R.id.order_type).text="Тип заявки"
         } else {
             rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         }
-        when (order.state) {
-            "1" -> rootView.findViewById<TextView>(R.id.order_state).text="В работе"
+        val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
+        mbsOrderState.setText(order.status?.toUpperCase())
+        changeColorMBSState(mbsOrderState, order.status)
+
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter<String>(
+            rootView.context,
+            R.layout.template_multiline_spinner_item_state_order,
+            R.id.text1,
+            Const.StatusOrder.list
+        )
+
+        mbsOrderState.setAdapter(adapterStatus)
+
+        mbsOrderState.addTextChangedListener(object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                order.status=s.toString()
+                uiCreator?.refresh()
+                changeColorMBSState(mbsOrderState, order.status)
+                //checkupPresenter.addHistoryState(order)
+                orderPresenter.addHistoryState(order)
+
+                mbsOrderState.removeTextChangedListener(this)
+                mbsOrderState.setText(s.toString().toUpperCase())
+                mbsOrderState.addTextChangedListener(this)
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                //TODO("Not yet implemented")
+            }
+
+        })
+
+        if (order.dateVisit!=null && order.timeVisit!=null) {
+            val strDateTimeVisit="${order.dateVisit} ${order.timeVisit}"
+            val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
+            rootView.findViewById<TextView>(R.id.date).text=
+                SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+        } else {
+            rootView.findViewById<TextView>(R.id.date).text=getString(R.string.not_date_visit)
         }
-        rootView.findViewById<TextView>(R.id.date).text=
-            SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(order.dateCreate)
-        rootView.findViewById<TextView>(R.id.name).text=order.name
+
+        rootView.findViewById<TextView>(R.id.name).text=order.purposeObject
         rootView.findViewById<TextView>(R.id.adress).text=order.address
         rootView.findViewById<TextView>(R.id.fio).text=order.contactFio
-        if (order.typeTransportation.isNullOrEmpty()) {
-            rootView.findViewById<TextView>(R.id.type_transportation).text="Нет данных"
-        } else {
-            rootView.findViewById<TextView>(R.id.type_transportation).text=order.typeTransportation
+
+        if (!order.typeTransportation.isNullOrEmpty()) {
+            rootView.findViewById<MaterialBetterSpinner>(R.id.type_transportation).setText(order.typeTransportation)
         }
+
         val btnPhone=rootView.findViewById<Button>(R.id.btnPhone)
         if (order.phone.isNullOrEmpty()) {
             btnPhone.text=btnPhone.context.getString(R.string.no_contact)
@@ -168,14 +221,21 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
         btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
 
-        btnPhone.setOnClickListener { _ ->
+        if (userLocationNative.userLocation.latitude!=0.0 && userLocationNative.userLocation.longitude!=0.0) {
+            val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
+            btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
+        } else {
+            btnRoute.text=rootView.context.getString(R.string.route)
+        }
+
+        btnPhone.setOnClickListener {
             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.phone}"))
             if (intent.resolveActivity(btnPhone.context.packageManager) != null) {
                 ContextCompat.startActivity(btnPhone.context, intent, null)
             }
         }
 
-        btnRoute.setOnClickListener { _ ->
+        btnRoute.setOnClickListener {
             Timber.d("btnRoute.setOnClickListener")
 
             //Включаем фрагмент со списком Маршрутов для конкретной заявки
@@ -202,53 +262,119 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             (rootView.context as FragmentsContractActivity).setOrder(order)
 
         }
+
+        val adapter: ArrayAdapter<String> = ArrayAdapter<String>(
+            rootView.context,
+            R.layout.template_multiline_spinner_item,
+            Const.TypeTransportation.list
+        )
+
+        val mbsTypeTransportation=rootView.findViewById<MaterialBetterSpinner>(R.id.type_transportation)
+        mbsTypeTransportation.setAdapter(adapter)
+
+        mbsTypeTransportation.addTextChangedListener(object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                btnRoute.isEnabled = s.toString() != rootView.context.getString(R.string.strTypeTransportationClient)
+                if (btnRoute.isEnabled) {
+                    btnRoute.setTextColor(Color.parseColor("#2D3239"))
+                } else {
+                    btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
+                }
+                order.typeTransportation=s.toString()
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                //TODO("Not yet implemented")
+            }
+
+        })
     }
 
 
+    fun changeColorMBSState(view: MaterialBetterSpinner, status:String?) {
+        when (status) {
+            getString(R.string.status_CANCEL) -> {
+                view.setTextColor(Color.parseColor("#E94435"))
+            }
+            getString(R.string.status_TESTED) -> {
+                view.setTextColor(Color.parseColor("#B370D7"))
+            }
+            getString(R.string.status_DONE) -> {
+                view.setTextColor(Color.parseColor("#3DB650"))
+            }
+            getString(R.string.status_PAUSED) -> {
+                view.setTextColor(Color.parseColor("#A5AEB6"))
+            }
+            getString(R.string.status_IN_WORK) -> {
+                view.setTextColor(Color.parseColor("#309EFD"))
+            }
+            getString(R.string.status_IN_WAY) -> {
+                view.setTextColor(Color.parseColor("#F28D17"))
+            }
+            getString(R.string.status_OPEN) -> {
+                view.setTextColor(Color.parseColor("#56D5BE"))
+            }
+
+        }
+    }
+
 
     override fun dataIsLoaded(checkup: Checkup) {
-        Timber.d("Checkup готов к работе")
+        Timber.d("dataIsLoaded")
         Timber.d(checkup.toString())
 
         this.checkup=checkup
         photoHelper.parentFragment=this
-        /*if (savedcontrolList!=null) {
-            uiCreator= UICreator(this, checkup)
-            controlList=uiCreator.create(root, controls = savedcontrolList)
-        } else {
-           uiCreator= UICreator(this, checkup)
-            controlList=uiCreator.create(root)
-        }*/
-        uiCreator= UICreator(this, checkup)
-        controlList=uiCreator.create(rootView)
-
-
     }
 
-    fun setResultMapPoint(point: LatLng, controlId: Int) {
-        Timber.d("CheckupFragment setResultMapPoint $point, $controlId")
-        /*val templateStep=root.findViewById<LinearLayout>(controlId)
-        val mapResultTextView=templateStep.findViewById<TextView>(R.id.mapCoordinatesResult)
-        mapResultTextView.text=point.toString()*/
-
-    }
 
 
     override fun showCheckupMessage(resID: Int) {
         toaster.showToast(resID)
+        // Отправляем данные на сервер
+        (this.activity as MainActivity).mainPresenter.sendData3(currentOrder.id)
     }
+
+    override fun setAnsweredCount(count: Int) {
+        Timber.d("setAnsweredCount")
+        //rootView.findViewById<TextView>(R.id.countQuestion).text="${currentOrder.questionCount}/${count}"
+        rootView.findViewWithTag<TextView>("countQuestionChecklist").text="${currentOrder.questionCount}/${count}"
+        currentOrder.answeredCount=count
+
+    }
+
+    override fun techParamsLoaded(techParams: List<TechParams>) {
+        Timber.d("techParamsLoaded $techParams")
+        this.techParams=techParams
+        /*val rv=rootView.findViewById<RecyclerView>(R.id.steps_recycler_view)
+        val vh=rv.findViewHolderForAdapterPosition(1)
+        val tp=vh?.itemView?.findViewById<TextView>(R.id.countQuestion)
+        tp?.text="${techParams.size}/${techParams.size}"*/
+    }
+
 
     override fun onClick(v: View?) {
         if (v != null) {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
-                    checkupPresenter.saveCheckup(uiCreator)
+                    Timber.d("mbSaveCheckup")
+                    if (uiCreator!=null) {
+                        Timber.d("checkupPresenter.saveCheckup")
+                        checkupPresenter.saveCheckup(uiCreator!!)
+                    } else {
+                        toaster.showToast(R.string.checklist_not_loaded)
+                    }
+
                     //checkupPresenter.saveCheckup(controlList,this.checkup)
                 }
-                R.id.mbSendCheckup -> {
+                /*R.id.mbSendCheckup -> {
                     Timber.d("Отправляем данные на сервер")
                     (this.requireActivity() as MainActivity).mainPresenter.sendData()
-                }
+                }*/
             }
         }
     }
@@ -260,7 +386,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
 
-    fun checkPhotoPermission() {
+    private fun checkPhotoPermission() {
         // Проверим разрешения
         if (ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.READ_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.WRITE_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
@@ -354,5 +480,13 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         myList.adapter = horizontalAdapter
         horizontalAdapter.notifyDataSetChanged()
     }
+
+    fun setCheckup(order: Orders) {
+        Timber.d("showCheckupOrder ${order.status}")
+        currentOrder=order
+        checkupPresenter.loadCheckupByOrder(order.id)
+    }
+
+    fun isCheckupInitialized() =::checkup.isInitialized
 
 }

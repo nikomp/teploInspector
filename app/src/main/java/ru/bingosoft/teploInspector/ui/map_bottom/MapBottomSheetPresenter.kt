@@ -23,6 +23,7 @@ class MapBottomSheetPresenter @Inject constructor(
 
     }
 
+
     /*fun loadData(symbolNumber: String) {
         Timber.d("loadData $symbolNumber")
         disposable=db.ordersDao().getByNumber(symbolNumber)

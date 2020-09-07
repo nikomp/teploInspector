@@ -35,7 +35,7 @@ class PhotoHelper {
             (parentFragment.requireActivity() as MainActivity).lastKnownFilenamePhoto=photoFile.absolutePath
 
             uri = FileProvider.getUriForFile(
-                parentFragment.requireContext(), "ru.bingosoft.taxInspector.provider",
+                parentFragment.requireContext(), "${parentFragment.context?.packageName}.provider",
                 photoFile
             )
             intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)

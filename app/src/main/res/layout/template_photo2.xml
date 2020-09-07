@@ -146,7 +146,7 @@
                     android:id="@+id/btnPhoto"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="4dp"
                     android:background="@color/buttonBackgroundLight"
                     android:fontFamily="@font/roboto_medium"
                     android:text="@string/btnAddPhoto"
@@ -155,7 +155,7 @@
                     app:backgroundTint="@color/buttonBackgroundLight"
                     app:cornerRadius="22dp"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/btnPhotoDeleteAll"
+                    app:layout_constraintStart_toEndOf="@+id/photoCount"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintVertical_bias="0.0" />
 
@@ -163,7 +163,6 @@
                     android:id="@+id/btnPhotoDeleteAll"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
                     android:background="@color/buttonBackgroundLight"
                     android:fontFamily="@font/roboto_medium"
                     android:text="@string/btnDeleteAllPhoto"
@@ -173,11 +172,11 @@
                     app:backgroundTint="@color/buttonBackgroundLight"
                     app:cornerRadius="22dp"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/fabCheck"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintVertical_bias="0.0" />
 
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/fabCheck"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -187,7 +186,7 @@
                     android:focusable="true"
                     app:fabCustomSize="32dp"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:srcCompat="@drawable/ic_check_black_8dp" />
+                    app:srcCompat="@drawable/ic_check_black_8dp" />-->
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <TextView

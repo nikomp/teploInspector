@@ -1,12 +1,10 @@
 package ru.bingosoft.teploInspector.models
 
 import android.widget.TextView
+import com.google.gson.JsonArray
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
-import ru.bingosoft.teploInspector.db.CheckupGuide.CheckupGuide
 import ru.bingosoft.teploInspector.db.Orders.Orders
-import java.util.*
 
 class Models {
     class SimpleMsg (
@@ -29,10 +27,6 @@ class Models {
         @SerializedName("name") var name: String = ""
     )
 
-    class UserResult(
-        @SerializedName("data") var userInfo: User? = null
-    )
-
     class User(
         @SerializedName("photo_url") var photoUrl: String = "",
         @SerializedName("fullname") var fullname: String = "",
@@ -41,24 +35,29 @@ class Models {
         @SerializedName("fname") var fname: String = ""
     )
 
-    class UserLocation(
-        var date: Date,
-        var lat: Double,
-        var lon: Double
+    class Result (
+        @SerializedName("id_order") var id_order: Int=0,
+        @SerializedName("history_order_state") var history_order_state: String?="",
+        @SerializedName("controls") var controls: String=""
     )
 
-    class OrderList(
-        @SerializedName("success") var success: Boolean = false,
-        @SerializedName("data") var orders: List<Orders> = listOf()
+
+    class Result2 (
+        @SerializedName("id_order") var id_order: Int = 0,
+        @SerializedName("history_order_state") var history_order_state: JsonArray = JsonArray(),
+        @SerializedName("controls") var controls: JsonArray = JsonArray()
     )
 
-    class CheckupList(
-        @SerializedName("success") var success: Boolean = false,
-        @SerializedName("data") var checkups: List<Checkup> = listOf()
+    class HistoryOrderOnServer (
+        @SerializedName("unique_id") var unique_id: Long = 0,
+        @SerializedName("idOrder") var idOrder: Long? =null,
+        @SerializedName("stateOrder") var stateOrder: String="",
+        @SerializedName("dateChange") var dateChange: Long=0L
     )
 
-    class CheckupGuideList(
-        @SerializedName("data") var guides: List<CheckupGuide> = listOf()
+
+    class FileRoute(
+        @SerializedName("fileRoute") var fileRoute: String=""
     )
 
     class ControlList(
@@ -70,44 +69,48 @@ class Models {
     )
 
     class TemplateControl (
-        @Expose @SerializedName("id") var id: Int = 0,
-        @Expose @SerializedName("guid") var guid: String = "",
+        @Expose @SerializedName("id_question") var id: Int = 0,
+        @Expose @SerializedName("results_id") var results_id: Int = 0,
+        @Expose @SerializedName("question_guid") var guid: String = "",
         @Expose @SerializedName("type") var type: String = "",
         @Expose @SerializedName("value") var value: Array<String> = arrayOf(),
-        @Expose @SerializedName("idvalue") var idvalue: Array<Int> = arrayOf(),
-        @Expose @SerializedName("subvalue") var subvalue: Array<Subvalue> = arrayOf(),
         @Expose @SerializedName("question") var question: String="",
         @Expose @SerializedName("hint") var hint: String="",
-        @Expose @SerializedName("resvalue") var resvalue: String="",
-        @Expose @SerializedName("subcheckup") var subcheckup: List<Checkup> = listOf(),
-        @Expose @SerializedName("multiplicity") var multiplicity: Int=0,
+        @Expose @SerializedName("resvalue") var resvalue: String?=null,
+        @Expose @SerializedName("maxrange") var maxRange: Double? = null,
+        @Expose @SerializedName("minrange") var minRange: Double? = null,
+        @Expose @SerializedName("datetime_question_answered") var datetime: Long=0L,
 
-        @Expose var checked: Boolean=false,
-        //var controlList: ControlList?=null
-        var groupControlList: CommonControlList?=null,
-        var parent: TemplateControl?=null
+        @Expose @SerializedName("answered") var answered: Boolean = false
     )
 
-    class Subvalue(
-        @SerializedName("idlink") var id: Int = 0,
-        @SerializedName("value") var value: Array<String> = arrayOf()
-    )
-
-    /*class PhotoResult(
-        @SerializedName("dir") var dir: String = "",
-        @SerializedName("lat") var lat: Double? = 0.0,
-        @SerializedName("lon") var lon: Double? = 0.0
-    )*/
 
     class CustomMarker(
         val order: Orders,
         val markerView: TextView
     )
 
-    class MapPoint(
-        @SerializedName("lat") var lat: Double? = 0.0,
-        @SerializedName("lon") var lon: Double? = 0.0
+    class DataFile(
+        @SerializedName("idOrder") var idOrder: Int=0,
+        @SerializedName("id") var id: Int=0,
+        @SerializedName("resValue") var dir: String=""
     )
 
+    class FilesFromServer(
+        @SerializedName("guid") var guid: String="",
+        @SerializedName("fileName") var fileName: String=""
+    )
+
+    class ReverseData(
+        @SerializedName("data") var data: List<Result2> = listOf()
+    )
+
+    class MessageData(
+        @SerializedName("text") var text: String="",
+        @SerializedName("date") var date: Long=0L,
+        @SerializedName("event_type") var event_type: Int=0,
+        @SerializedName("lat") var lat: Double?=0.0,
+        @SerializedName("lon") var lon: Double?=0.0
+    )
 
 }

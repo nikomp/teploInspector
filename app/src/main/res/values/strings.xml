@@ -114,4 +114,18 @@
 
     <string name="strContractNumber">Номер договора</string>
 
+    <string name="data_and_files_sends">Данные и файлы отправлены</string>
+
+    <string name="status_CANCEL">Отменена</string>
+    <string name="status_TESTED">Проверена</string>
+    <string name="status_DONE">Выполнена</string>
+    <string name="status_PAUSED">Приостановлена</string>
+    <string name="status_IN_WAY">В пути</string> нд
+    <string name="status_IN_WORK">В работе</string>
+    <string name="status_OPEN">Открыта</string> нд
+
+    <string name="checklist_is_empty">Чеклист пуст</string>
+    <string name="checklist_not_loaded">Чеклист не загружен</string>
+    <string name="not_date_visit">Нет даты визита</string>
+
 </resources>

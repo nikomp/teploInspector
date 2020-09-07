@@ -34,5 +34,8 @@
     <color name="hypertext">#0082E5</color>
 
     <color name="stepExpand">#007CCC</color>
-    <color name="stepNotExpand">#2D3239</color>
+    <color name="stepNotExpand">#2D3239</color> 3DB650
+
+    <color name="status_IN_WORK">#3DB650</color>
+    <color name="status_IN_WAY">#F28D17</color>
 </resources>

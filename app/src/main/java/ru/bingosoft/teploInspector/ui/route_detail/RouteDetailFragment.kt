@@ -378,7 +378,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         val btnFoot = root.findViewById(R.id.btnFoot) as Button
         btnFoot.setOnClickListener(this)
 
-        root.findViewById<TextView>(R.id.symbolNumber).text=order.number
+        root.findViewById<TextView>(R.id.symbolNumber).text="Заявка №${order.number}"
         root.findViewById<TextView>(R.id.address).text=order.address
 
         //Сохраним маршрут с точками

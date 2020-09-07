@@ -1,19 +1,28 @@
 package ru.bingosoft.teploInspector.ui.order
 
+import com.google.gson.Gson
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
+import ru.bingosoft.teploInspector.db.HistoryOrderState.HistoryOrderState
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
 class OrderPresenter @Inject constructor(
-    val db: AppDatabase
-    ) {
+    val db: AppDatabase,
+    private val apiService: ApiService
+) {
+
+    var tempHistory= HistoryOrderState()
 
     var view: OrderContractView? = null
 
@@ -23,6 +32,39 @@ class OrderPresenter @Inject constructor(
         this.view=view
     }
 
+    fun addHistoryState(order: Orders) {
+        Single.fromCallable {
+            db.ordersDao().update(order)
+            val history=HistoryOrderState(idOrder = order.id, stateOrder = order.status!!, dateChange = Date())
+            tempHistory=history
+            db.historyOrderStateDao().insert(history)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{id ->
+                Timber.d("inserted ID=$id")
+                val history= Models.HistoryOrderOnServer(unique_id=id,
+                    idOrder = tempHistory.idOrder,
+                    stateOrder = tempHistory.stateOrder,
+                    dateChange = tempHistory.dateChange.time)
+                sendHistoryToServer(history)
+            }
+    }
+
+    private fun sendHistoryToServer(history: Models.HistoryOrderOnServer) {
+        Timber.d("sendHistoryToServer=$history")
+        val jsonBody2 = Gson().toJson(history)
+            .toRequestBody("application/json".toMediaType())
+
+        apiService.sendStatusOrder(jsonBody2)
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                Timber.d("Отправили статус")
+            },{ throwable ->
+                throwable.printStackTrace()
+            })
+
+    }
 
     fun loadOrders() {
         Timber.d("loadOrders")
@@ -38,18 +80,6 @@ class OrderPresenter @Inject constructor(
         Timber.d("ОК")
     }
 
-    fun getCheckup(orderId: Long) {
-        Timber.d("openCheckup")
-        // Получим информацию о чеклисте, по orderId
-        Single.fromCallable {
-            val checkup=db.checkupDao().getCheckupByOrder(orderId)
-            view?.openCheckup(checkup)
-
-        }
-            .subscribeOn(Schedulers.io())
-            .subscribe()
-
-    }
 
     fun onDestroy() {
         this.view = null
@@ -58,17 +88,33 @@ class OrderPresenter @Inject constructor(
         }
     }
 
+    /*fun getTechParams(idOrder: Long) {
+        Timber.d("techParams=$idOrder")
+        Single.fromCallable {
+            db.techParamsDao().getTechParamsOrder(idOrder)
+            //Timber.d("checkupxxxx=$checkup")
+            //view?.checkupIsLoaded(checkup)
+
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { techParams ->
+                Timber.d("techParams=$techParams")
+                view?.techParamsLoaded(techParams)
+            }
+    }*/
+
     fun importData() {
         // Вставка данных в БД
         Single.fromCallable{
             val order1 = Orders(
                 number="A-001",
-                name = "Обследование жилого здания",
+                //name = "Обследование жилого здания",
                 guid = "05d9365f-f176-45a7-b2df-7bf939d0c1e6",
                 address = "Нижний Новгород, Россия, 603146, Михайловская улица, 24",
                 contactFio = "Иванов Иван Иванович",
                 phone = "+79503795388",
-                state = "1",
+                status = "1",
                 lat = 56.298322,
                 lon = 44.024007,
                 dateCreate = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).parse("30.01.2020")
@@ -77,12 +123,12 @@ class OrderPresenter @Inject constructor(
 
             val order2 = Orders(
                 number="A-002",
-                name = "Обследование нежилого здания",
+                //name = "Обследование нежилого здания",
                 guid = "c4d40211-1687-4485-9b4a-aea7b5353f2b",
                 address = "Нижний Новгород, Россия, 603146, улица Ванеева, 147",
                 contactFio = "Петров Петр Петрович",
                 phone = "+79503795388",
-                state = "1",
+                status = "1",
                 lat = 56.299301,
                 lon = 44.032029,
                 dateCreate = SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).parse("29.01.2020")
@@ -92,6 +138,8 @@ class OrderPresenter @Inject constructor(
             .subscribeOn(Schedulers.io())
             .subscribe()
     }
+
+
 
 
 }

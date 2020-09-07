@@ -11,4 +11,9 @@ interface FragmentsContractActivity {
     //fun setDataForRouteDetail(order: Orders, mapFragment: MapFragment)
     fun setOrder(order: Orders)
     fun setMode(isMap:Boolean=true)
+    fun setChecupOrder(order: Orders)
+    fun setChecupTechParams(order: Orders)
+
+    fun showMarkers(orders: List<Orders>)
+    fun showSearchedOrders(orders: List<Orders>)
 }

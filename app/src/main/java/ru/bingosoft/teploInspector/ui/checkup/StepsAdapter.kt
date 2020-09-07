@@ -15,12 +15,13 @@ import kotlinx.android.synthetic.main.item_cardview_step.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
+import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
 
 //#Компонент_аккордион
 //Используется RecyclerView, в item, которого добавляется скрытый элемент,
 // при нажатии на item, он разворачивается в onBindViewHolder
-class StepsAdapter (private val lists: List<String>) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
+class StepsAdapter (private val lists: List<String>, val parentFragment: CheckupFragment) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
 
     private var expandedPosition=-1
 
@@ -35,13 +36,23 @@ class StepsAdapter (private val lists: List<String>) : RecyclerView.Adapter<Step
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
+
         holder.stepNumber.text="${position+1}"
         holder.stepName.text=lists[position]
-        if (position==0) {
-            holder.countQuestion.text="${Const.GeneralInformation.list.size}/${Const.GeneralInformation.list.size}"
-        } else {
-            holder.countQuestion.text="6/6"
+        when (position) {
+            0-> holder.countQuestion.text="${Const.GeneralInformation.list.size}/${Const.GeneralInformation.list.size}"
+            1-> {
+                //holder.countQuestion.text="${Const.TechnicalСharacteristicList.list.size}/${Const.TechnicalСharacteristicList.list.size}"
+                //holder.countQuestion.text="0/0"
+                holder.countQuestion.text="${parentFragment.currentOrder.techParamsCount}/${parentFragment.currentOrder.techParamsCount}"
+            }
+            else -> {
+                //holder.countQuestion.text="6/6"
+                holder.countQuestion.text="${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
+                holder.countQuestion.tag="countQuestionChecklist"
+            }
         }
+
 
         val isExpanded = position == expandedPosition
         val drawable = if (isExpanded) {
@@ -62,10 +73,10 @@ class StepsAdapter (private val lists: List<String>) : RecyclerView.Adapter<Step
         if (position==0 && isExpanded) {
             holder.details.removeAllViews()
             Timber.d("Общие_сведения")
-            //val rvgi = holder.details.findViewById(R.id.rvgi) as RecyclerView
+
             val rvgi=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_general_information, holder.details, false) as RecyclerView
             rvgi.layoutManager = LinearLayoutManager(holder.itemView.context)
-            val adapter=GeneralInformationAdapter(Const.GeneralInformation.list)
+            val adapter=GeneralInformationAdapter(Const.GeneralInformation.list, parentFragment.currentOrder)
             rvgi.adapter = adapter
 
             //val llGeneralInformation=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_general_information, holder.details, false) as LinearLayout
@@ -73,15 +84,36 @@ class StepsAdapter (private val lists: List<String>) : RecyclerView.Adapter<Step
         }
         if (position==1 && isExpanded) {
             holder.details.removeAllViews()
-            val textview=TextView(holder.itemView.context)
-            textview.text="Тех. характеристики"
-            holder.details.addView(textview)
+            val rvtc=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_technical_characteristics, holder.details, false) as RecyclerView
+            rvtc.layoutManager = LinearLayoutManager(holder.itemView.context)
+            //val adapter=TechnicalCharacteristicAdapter(Const.TechnicalСharacteristicList.list)
+            val adapter=TechnicalCharacteristicAdapter(parentFragment.techParams)
+            rvtc.adapter = adapter
+
+            holder.details.addView(rvtc)
         }
         if (position>1 && isExpanded){
             holder.details.removeAllViews()
-            val textview=TextView(holder.itemView.context)
-            textview.text="VVVVV"
-            holder.details.addView(textview)
+
+            //Генерируем чеклист
+            if (parentFragment.isCheckupInitialized()) {
+                val uiCreator=UICreator(parentFragment, parentFragment.checkup)
+                //Timber.d("parentFragment.currentOrder.typeOrder=${parentFragment.currentOrder.typeOrder}")
+                /*if (parentFragment.currentOrder.status==parentFragment.getString(R.string.status_IN_WAY)||
+                    parentFragment.currentOrder.status==parentFragment.getString(R.string.status_OPEN)) {
+                    uiCreator.create(holder.details)
+                } else {
+                    uiCreator.create(holder.details)
+                }*/
+
+                uiCreator.create(holder.details)
+
+                parentFragment.uiCreator=uiCreator
+            } else {
+                parentFragment.toaster.showToast(R.string.checklist_is_empty)
+            }
+
+
         }
         holder.itemView.isActivated = isExpanded
         holder.itemView.setOnClickListener {

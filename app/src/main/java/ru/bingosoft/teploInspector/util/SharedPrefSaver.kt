@@ -2,7 +2,9 @@ package ru.bingosoft.teploInspector.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Base64
 import android.util.Log
+import org.json.JSONObject
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.LogTags.SPS
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.APP_PREFERENCES
@@ -11,14 +13,17 @@ import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.FIREBASE_MESSAGE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOCATION_TRACKING
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ROLE_ID
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.SESSION
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.TOKEN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_FULLNAME
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_ID
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_PHOTO_URL
 import timber.log.Timber
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 class SharedPrefSaver(ctx: Context) {
     private val sharedPreference: SharedPreferences = ctx.getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -38,10 +43,26 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun saveToken(token: String) {
-        Timber.d("saveToken")
         val editor: SharedPreferences.Editor = sharedPreference.edit()
         editor.putString(TOKEN, token)
+
+        //#token #user_id
+        val strTemp=token.split(".")
+        Timber.d(strTemp.toString())
+        //val decodedBytes = Base64.getDecoder().decode(strTemp[1])
+        val decodedBytes = Base64.decode(strTemp[1],Base64.DEFAULT)
+        val decodedString = String(decodedBytes)
+
+        val tokenObject = JSONObject(decodedString)
+        Timber.d("${tokenObject.getJSONObject("user").get("id")}")
+        editor.putInt(USER_ID, tokenObject.getJSONObject("user").getInt("id"))
+        editor.putInt(ROLE_ID,tokenObject.getJSONObject("user").getInt("role_id"))
+
         editor.apply()
+    }
+
+    fun getUserId(): Int {
+        return sharedPreference.getInt(USER_ID,0)
     }
 
     fun getToken(): String {

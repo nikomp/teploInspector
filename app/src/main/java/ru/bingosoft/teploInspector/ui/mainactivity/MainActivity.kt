@@ -27,6 +27,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
@@ -43,18 +44,21 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
-import ru.bingosoft.teploInspector.ui.checkuplist.CheckupListFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
+import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.QR_SCAN
 import timber.log.Timber
+import java.util.*
 import javax.inject.Inject
 
 
@@ -82,11 +86,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var lastKnownFilenamePhoto=""
     var photoStep: Models.TemplateControl?=null
     lateinit var currentOrder: Orders
+    lateinit var techParams: List<TechParams>
     private lateinit var locationManager: LocationManager
     lateinit var dialogView: View
     lateinit var filterView: ConstraintLayout
 
     var isMapFragmentShow=false
+    lateinit var orders: List<Orders>
+    var isBackPressed=false
+    var isSearchView=false
+
+    var filteredOrders: List<Orders> = listOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -170,7 +180,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.nav_home,
-                R.id.nav_gallery,
                 R.id.nav_slideshow,
                 R.id.nav_checkup
             ), drawerLayout
@@ -185,7 +194,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             Timber.d("Auth")
             // Запустим активити с настройками
             val intent = Intent(this, LoginActivity::class.java)
-            startActivityForResult(intent, Const.RequestCodes.AUTH)
+            startActivityForResult(intent, AUTH)
+            drawerLayout.closeDrawer(Gravity.LEFT)
         }
 
     }
@@ -217,8 +227,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private fun requestPermission() {
         // Проверим разрешения
+        Timber.d("requestPermission")
         if (ContextCompat.checkSelfPermission(this,(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+            Timber.d("requestPermission1")
             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
+                Timber.d("requestPermission2")
                 requestPermissions(arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION
                 ),
@@ -275,16 +288,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_src_text) as EditText
             searchPlate.hint = getString(R.string.search_by_address)
 
+
             searchView.setOnCloseListener (object: SearchView.OnCloseListener{
                 override fun onClose(): Boolean {
+                    isSearchView=false
                     if (isMapFragmentShow) {
                         Timber.d("Включена карта")
                         val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-                        (rcv.adapter as OrderListAdapter).filter.filter("")
-                        Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
+                        //(rcv.adapter as OrderListAdapter).filter.filter("")
+                        //Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
 
-                        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+                        /*val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
+                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)*/
                     }
 
                     return false
@@ -300,11 +315,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                 override fun onQueryTextChange(newText: String?): Boolean {
                     Timber.d(newText)
+                    Timber.d("isMapFragmentShow=$isMapFragmentShow")
+                    isSearchView=true
                     if (!isMapFragmentShow) {
                         val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
                     } else {
-                        Timber.d("Включена карта")
+                        Timber.d("Включена карта11 $newText")
                         val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
                         Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
@@ -312,8 +329,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                         val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
                         mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
                     }
-
-
                     return true
                 }
 
@@ -353,6 +368,21 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
                 }
+                AUTH -> {
+                    Timber.d("Авторизуемся повторно")
+                    val fragmentMap= OrderFragment()
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.nav_host_fragment, fragmentMap, "order_fragment_tag")
+                        .addToBackStack(null)
+                        .commit()
+
+                    supportFragmentManager.executePendingTransactions()
+
+                    val of=supportFragmentManager.findFragmentByTag("order_fragment_tag") as? OrderFragment
+                    of?.doAuthorization()
+
+
+                }
                 else -> {
                     Timber.d("Неизвестный requestCode")
                 }
@@ -380,15 +410,50 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onBackPressed() {
         super.onBackPressed()
+        isBackPressed=true
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
 
+
+
         if (supportFragmentManager.backStackEntryCount==0) {
+            Timber.d("onBackPressed_Заявки")
             supportActionBar?.setTitle(R.string.menu_orders)
+            setMode(false) // Включены Заявки, а не карта
             // Выделим кнопку Список
             findViewById<Button>(R.id.btnList).isEnabled=false
             findViewById<Button>(R.id.btnMap).isEnabled=true
+
+            val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+            if (!filteredOrders.isEmpty()) {
+                (rv.adapter as OrderListAdapter).ordersFilterList=this.filteredOrders
+            }
+
+            rv.adapter?.notifyDataSetChanged()
         }
+
+        val fragment1=supportFragmentManager.findFragmentByTag("order_fragment_tag")
+        if (fragment1!=null && fragment1.isVisible) {
+            setMode(false) // Включены Заявки, а не карта
+        }
+
+        /*val currentFragment=supportFragmentManager.fragments.get(supportFragmentManager.backStackEntryCount-1)
+        Timber.d("currentFragment=$currentFragment")
+        if (currentFragment is NavHostFragment) {
+            Timber.d("onBackPressed Заявки")
+            supportActionBar?.setTitle(R.string.menu_orders)
+            setMode(false) // Включены Заявки, а не карта
+            // Выделим кнопку Список
+            findViewById<Button>(R.id.btnList).isEnabled=false
+            findViewById<Button>(R.id.btnMap).isEnabled=true
+
+            val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+            rv.adapter?.notifyDataSetChanged()
+
+        }
+        if (currentFragment is OrderFragment) {
+            setMode(false) // Включены Заявки, а не карта
+        }*/
 
         val fragment=supportFragmentManager.findFragmentByTag("checkup_fragment_tag")
         if (fragment!=null) {
@@ -400,16 +465,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
         }
 
-        val fragment2=supportFragmentManager.findFragmentByTag("checkup_list_fragment_tag")
-        if (fragment2!=null) {
-            Timber.d("onBackPressed_checkup_list_fragment_tag")
-            val idOrder = fragment2.arguments?.getLong("idOrder")
-            if (idOrder!=null) {
-                (fragment2 as CheckupListFragment).checkupListPresenter.loadCheckupListByOrder(idOrder) // Грузим объекты только выбранной заявки
-            } else {
-                (fragment2 as CheckupListFragment).checkupListPresenter.loadCheckupList() // Грузим все объекты
-            }
-        }
     }
 
     override fun setCheckup(checkup: Checkup) {
@@ -419,9 +474,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
     override fun setChecupListOrder(order: Orders) {
-        Timber.d("setChecupListOrder from Activity")
+        /*Timber.d("setChecupListOrder from Activity")
         val clf=this.supportFragmentManager.findFragmentByTag("checkup_list_fragment_tag") as? CheckupListFragment
-        clf?.showCheckupListOrder(order)
+        clf?.showCheckupListOrder(order)*/
     }
 
     override fun setCoordinates(point: Point, controlId: Int) {
@@ -437,8 +492,41 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
     override fun setMode(isMap: Boolean) {
+        Timber.d("setMode=$isMap")
         isMapFragmentShow=isMap
     }
+
+    override fun setChecupOrder(order: Orders) {
+        Timber.d("setChecupOrder from Activity")
+        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
+        cf?.setCheckup(order)
+    }
+
+    override fun setChecupTechParams(order: Orders) {
+        Timber.d("setChecupTechParams from Activity")
+        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
+        cf?.setTechParams(order.id)
+    }
+
+    override fun showMarkers(orders: List<Orders>) {
+        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
+        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+    }
+
+    override fun showSearchedOrders(orders: List<Orders>) {
+        Timber.d("showSearchedOrders=$orders")
+        val of=supportFragmentManager.findFragmentByTag("order_fragment_tag") as? OrderFragment
+        if (of==null) {
+            val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+            rcv.adapter?.notifyDataSetChanged()
+        } else {
+            of.showOrders(orders)
+        }
+
+
+    }
+
 
     private fun setPhotoResult() {
         var photoLocation:Location?=Location(LocationManager.GPS_PROVIDER)
@@ -458,7 +546,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("setPhotoResult from Activity")
         val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
         cf?.setPhotoResult(photoStep?.id, photoDir)
+        photoStep?.answered = true
         photoStep?.resvalue=photoDir
+        photoStep?.datetime= Date().time
 
     }
 
@@ -477,13 +567,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 navController.navigate(R.id.nav_slideshow)
                 return true
             }
-            R.id.nav_send_data -> {
+            /*R.id.nav_send_data -> {
                 Timber.d("Отправляем данные на сервер")
-                mainPresenter.sendData()
-                //mainPresenter.sendUserRoute()
-                //mainPresenter.isCheckupWithResult()
+                mainPresenter.sendData2()
                 return true
-            }
+            }*/
             else -> {
                 return false
             }
@@ -510,6 +598,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         //Передаем маршрут пользователя
         mainPresenter.sendUserRoute()
 
+    }
+
+    override fun filesSend(countFiles: Int, indexCurrentFile: Int) {
+        if (countFiles==indexCurrentFile) {
+            mainPresenter.updData()
+            toaster.showToast(R.string.data_and_files_sends)
+        }
     }
 
     fun invalidateNavigationDrawer() {
@@ -555,6 +650,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                 val builder = AlertDialog.Builder(this)
 
+                setCountFiltersGroup()
+
                 builder.setView(dialogView)
                 builder.setCancelable(true)
                 dialogFilterOrder=builder.create()
@@ -583,7 +680,16 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    val dialogCancelListener=object: DialogInterface.OnCancelListener{
+    private fun setCountFiltersGroup() {
+        Timber.d("setCountFiltersGroup")
+
+        dialogView.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
+        dialogView.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
+        dialogView.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
+        dialogView.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
+    }
+
+    private val dialogCancelListener=object: DialogInterface.OnCancelListener{
         override fun onCancel(dialog: DialogInterface?) {
             Timber.d("setOnCancelListener")
             // Считаем сколько фильтров поставили
@@ -592,18 +698,55 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val cb3=dialogView.findViewById<CheckBox>(R.id.cbType3)
             val cb4=dialogView.findViewById<CheckBox>(R.id.cbType4)
 
+            val filterGroupList= mutableListOf<String>()
             var filterCount=0
-            if (cb1.isChecked) { filterCount+=1 }
-            if (cb2.isChecked) { filterCount+=1 }
-            if (cb3.isChecked) { filterCount+=1 }
-            if (cb4.isChecked) { filterCount+=1 }
+            if (cb1.isChecked) {
+                filterCount+=1
+                filterGroupList.add(dialogView.context.getString(R.string.orderType1).toLowerCase())
+            }
+            if (cb2.isChecked) {
+                filterCount+=1
+                filterGroupList.add(dialogView.context.getString(R.string.orderType2).toLowerCase())
+            }
+            if (cb3.isChecked) {
+                filterCount+=1
+                filterGroupList.add(dialogView.context.getString(R.string.orderType3).toLowerCase())
+            }
+            if (cb4.isChecked) {
+                filterCount+=1
+                filterGroupList.add(dialogView.context.getString(R.string.orderType4).toLowerCase())
+            }
 
             Timber.d("filterCount=$filterCount")
+            Timber.d("filterGroupList=$filterGroupList")
 
             filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
+            if (filterCount==4) {
+                Timber.d("filterCount==4")
+                filteredOrders= listOf()
+                Timber.d("filteredOrders=$filteredOrders")
+            }
 
             // Фильтруем заявки
-            Timber.d("Фильтруем заявки")
+            val navHostFragment=(dialogView.context as MainActivity).supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+            Timber.d("navHostFragment=$navHostFragment")
+            if (navHostFragment is NavHostFragment) {
+                val of=navHostFragment.childFragmentManager.fragments.get(0) as? OrderFragment
+                Timber.d("ofZZ=$of")
+                of?.filteredOrderByGroup(filterGroupList)
+            }
+            if (navHostFragment is OrderFragment) {
+                navHostFragment.filteredOrderByGroup(filterGroupList)
+            }
+            if (navHostFragment is MapFragment){
+                Timber.d("Включена карта")
+                val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
+
+                val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
+                mf?.showMarkers(filteredOrderByGroup)
+            }
+
+
         }
 
     }

@@ -1,20 +1,23 @@
 package ru.bingosoft.teploInspector.ui.checkup
 
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
+import com.google.gson.JsonArray
+import com.google.gson.reflect.TypeToken
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AppDatabase
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
+import java.lang.reflect.Type
 import javax.inject.Inject
 
-class CheckupPresenter @Inject constructor(val db: AppDatabase) {
+class CheckupPresenter @Inject constructor(
+    val db: AppDatabase
+) {
     var view: CheckupContractView? = null
 
     private lateinit var disposable: Disposable
@@ -40,43 +43,38 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
 
     }
 
+    fun loadCheckupByOrder(orderId: Long) {
+        Timber.d("loadCheckupByOrder orderId=$orderId")
+        // Получим информацию о чеклисте, по orderId
+        Single.fromCallable {
+            db.checkupDao().getCheckupByOrder(orderId)
+            //Timber.d("checkupxxxx=$checkup")
+            //view?.checkupIsLoaded(checkup)
+
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { checkup ->
+                Timber.d("checkupxxxx=$checkup")
+                view?.dataIsLoaded(checkup)
+            }
+
+    }
+
+
     fun saveCheckup(uiCreator: UICreator) {
         Timber.d("Сохраняем данные чеклиста")
 
-        // Проверим нет ли групповых контролов
-        val groupControls=uiCreator.controlList.list.filter { it.type=="group_questions" }
-        if (groupControls.size>0) {
-            groupControls.forEach {
-                //Сохраним групповы чеклисты
-                val controlList2 = it.groupControlList
-                Timber.d("${controlList2?.list?.get(0)?.list?.get(0)?.resvalue}")
-                val gson= GsonBuilder()
-                    .excludeFieldsWithoutExposeAnnotation()
-                    .create()
-                val resCheckup =gson.toJson(controlList2)
-                it.resvalue=resCheckup.toString()
-
-                // Заменим в главном чеклисте групповой чеклист
-                val index=uiCreator.controlList.list.indexOf(it)
-                if (index>-1) {
-                    Timber.d("ОК!!")
-                    uiCreator.controlList.list[index] = it
-                }
-
-
-            }
-        }
-        Timber.d("groupControls=${groupControls.size}")
-        Timber.d("uiCreator.controlList=${uiCreator.controlList.list[0].groupControlList?.list?.get(0)?.list?.get(0)?.resvalue}")
+        val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
 
         // Исключаем ненужные поля
         val gson= GsonBuilder()
             .excludeFieldsWithoutExposeAnnotation()
             .create()
-        val resCheckup= gson.toJsonTree(uiCreator.controlList, Models.ControlList::class.java)
+        val resCheckup= gson.toJsonTree(uiCreator.controlList, listType)
 
         Timber.d("resCheckup=$resCheckup")
-        uiCreator.checkup.textResult=resCheckup as JsonObject
+        uiCreator.checkup.textResult=resCheckup as JsonArray
 
 
         disposable=Single.fromCallable{
@@ -84,14 +82,51 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
-        .subscribe({_->
+        .subscribe({
             view?.showCheckupMessage(R.string.msgSaveCheckup)
-        },{trowable ->
-            trowable.printStackTrace()
+            updateAnsweredCount(uiCreator)
+        },{error ->
+            error.printStackTrace()
         })
     }
 
-    fun saveCheckup(controlList: Models.ControlList, checkup: Checkup) {
+    private fun updateAnsweredCount(uiCreator: UICreator) {
+        // Отфильтруем только вопросы у которых answered=true
+        val filterControls = uiCreator.controlList.filter { it.answered }
+
+        Timber.d("filterControls=${filterControls.size}")
+
+
+        disposable = Single.fromCallable {
+            db.ordersDao().updateAnsweredCount(uiCreator.checkup.idOrder, filterControls.size)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe{_ ->
+                view?.setAnsweredCount(filterControls.size)
+            }
+
+
+    }
+
+    private fun updateTechParamsCount(uiCreator: UICreator) {
+        // Отфильтруем только вопросы у которых answered=true
+        val filterControls = uiCreator.controlList.filter { it.answered }
+
+        Timber.d("filterControls=${filterControls.size}")
+
+
+        disposable = Single.fromCallable {
+            db.ordersDao().updateAnsweredCount(uiCreator.checkup.idOrder, filterControls.size)
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe{_ ->
+                view?.setAnsweredCount(filterControls.size)
+            }
+
+
+    }
+    /*fun saveCheckup(controlList: Models.ControlList, checkup: Checkup) {
         Timber.d("Сохраняем данные чеклиста")
         Timber.d("controlList=${controlList.list[1].type}")
         Timber.d("controlList=${controlList.list[1].subcheckup[0]}")
@@ -102,19 +137,19 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
             .excludeFieldsWithoutExposeAnnotation()
             .create()
         val resCheckup= gson.toJsonTree(controlList, Models.ControlList::class.java)
-        checkup.textResult=resCheckup as JsonObject
+        checkup.textResult=resCheckup as JsonArray
 
         disposable=Single.fromCallable{
             db.checkupDao().insert(checkup)
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({_->
+            .subscribe({
                 view?.showCheckupMessage(R.string.msgSaveCheckup)
             },{trowable ->
                 trowable.printStackTrace()
             })
-    }
+    }*/
 
     fun onDestroy() {
         this.view = null
@@ -122,5 +157,21 @@ class CheckupPresenter @Inject constructor(val db: AppDatabase) {
             disposable.dispose()
         }
 
+    }
+
+    fun getTechParams(idOrder: Long) {
+        Timber.d("techParams=$idOrder")
+        Single.fromCallable {
+            db.techParamsDao().getTechParamsOrder(idOrder)
+            //Timber.d("checkupxxxx=$checkup")
+            //view?.checkupIsLoaded(checkup)
+
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { techParams ->
+                Timber.d("techParams=$techParams")
+                view?.techParamsLoaded(techParams)
+            }
     }
 }

@@ -19,19 +19,6 @@ class CheckupPagerAdapter(private val control: Models.TemplateControl, private v
             R.layout.pager_checkup_item, container, false) as LinearLayout
         container.addView(itemView)
 
-        // Генерируем вопросы группы
-        Timber.d("control=${control}")
-        val uiCreator= UICreator(parentFragment, control.subcheckup[position])
-        val cl=uiCreator.create(rootView = itemView,parent = control)
-        Timber.d("cl=${cl.list}")
-
-        adapterControlList.list.add(cl)
-        Timber.d("adapterControlList=${adapterControlList.list}")
-
-        if (control.subcheckup.size==position+1) {
-            control.groupControlList=adapterControlList
-        }
-
         return itemView
     }
 
@@ -40,11 +27,12 @@ class CheckupPagerAdapter(private val control: Models.TemplateControl, private v
     }
 
     override fun getCount(): Int {
-        return if (control.subcheckup!=null) {
+        /*return if (control.subcheckup!=null) {
             control.subcheckup.size
         } else {
             0
-        }
+        }*/
+        return 0
 
     }
 

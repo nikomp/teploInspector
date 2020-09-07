@@ -13,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
@@ -23,6 +22,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.util.Const
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,12 +31,6 @@ import java.util.*
 class OrderListAdapter (val orders: List<Orders>, private val itemListener: OrdersRVClickListeners, private val parentFragment: OrderFragment, private val userLocation: Location) : RecyclerView.Adapter<OrderListAdapter.OrderViewHolder>(), Filterable {
 
     var ordersFilterList: List<Orders> = listOf()
-
-    var SPINNER_TYPE_TRANSPORTATION =
-        arrayOf("Самостоятельно на общественном транспорте",
-            "Самостоятельно на личном транспорте",
-            "Самостоятельно пешком",
-            "Транспортировка выполняется заказчиком")
 
     init {
         ordersFilterList=orders
@@ -56,21 +50,66 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
     }
 
 
-
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
-        holder.orderNumber.text = ordersFilterList[position].number
+        Timber.d("XXX=$ordersFilterList")
+        holder.orderNumber.text = "№ ${ordersFilterList[position].number}"
 
         if (ordersFilterList[position].typeOrder.isNullOrEmpty()){
             holder.orderType.text="Тип заявки"
         } else {
             holder.orderType.text=ordersFilterList[position].typeOrder
         }
-        when (ordersFilterList[position].state) {
-            "1" -> holder.orderState.text="В работе"
+
+
+        holder.orderState.setText(ordersFilterList[position].status?.toUpperCase())
+        changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter<String>(
+            parentFragment.requireContext(),
+            R.layout.template_multiline_spinner_item_state_order,
+            R.id.text1,
+            Const.StatusOrder.list
+        )
+
+        holder.orderState.setAdapter(adapterStatus)
+
+        holder.orderState.addTextChangedListener(object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                Timber.d("bool=${(parentFragment.activity as MainActivity).isSearchView}")
+                if (!(parentFragment.activity as MainActivity).isBackPressed &&
+                    !(parentFragment.activity as MainActivity).isSearchView) {
+                    Timber.d("addTextChangedListener=${s.toString()}")
+                    ordersFilterList[position].status=s.toString()
+                    changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+                    parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+
+                    holder.orderState.removeTextChangedListener(this)
+                    holder.orderState.setText(s.toString().toUpperCase())
+                    holder.orderState.addTextChangedListener(this)
+                }
+
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                //TODO("Not yet implemented")
+            }
+
+        })
+
+        if (ordersFilterList[position].dateVisit!=null && ordersFilterList[position].timeVisit!=null) {
+            val strDateTimeVisit="${ordersFilterList[position].dateVisit} ${ordersFilterList[position].timeVisit}"
+            val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
+            holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+        } else {
+            holder.orderDate.text=parentFragment.getString(R.string.not_date_visit)
         }
-        holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(ordersFilterList[position].dateCreate)
-        holder.orderName.text = ordersFilterList[position].name
+
+        holder.orderPurposeObject.text = ordersFilterList[position].purposeObject
         holder.orderadress.text = ordersFilterList[position].address
         holder.fio.text = ordersFilterList[position].contactFio
         /*if (ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
@@ -79,11 +118,15 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.typeTransportation.text=orders[position].typeTransportation
         }*/
 
+        if (!ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
+            holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
+        }
+
 
         val adapter: ArrayAdapter<String> = ArrayAdapter<String>(
             parentFragment.requireContext(),
             R.layout.template_multiline_spinner_item, //android.R.layout.simple_dropdown_item_1line,
-            SPINNER_TYPE_TRANSPORTATION
+            Const.TypeTransportation.list
         )
         holder.typeTransportation.setAdapter(adapter)
 
@@ -158,7 +201,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         holder.listener=itemListener
 
-        if (ordersFilterList[position].checked) {
+        /*if (ordersFilterList[position].checked) {
             holder.cardView.setCardBackgroundColor(
                 ContextCompat.getColor(
                     parentFragment.requireContext(),
@@ -170,23 +213,50 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     parentFragment.requireContext(),
                     R.color.colorCardItem
                 ))
+        }*/
+    }
+
+    private fun changeColorMBSState(view: MaterialBetterSpinner, status:String?) {
+        Timber.d("changeColorMBSState=$status")
+        when (status) {
+            parentFragment.requireContext().getString(R.string.status_CANCEL) -> {
+                view.setTextColor(Color.parseColor("#E94435"))
+            }
+            parentFragment.requireContext().getString(R.string.status_TESTED) -> {
+                view.setTextColor(Color.parseColor("#B370D7"))
+            }
+            parentFragment.requireContext().getString(R.string.status_DONE) -> {
+                view.setTextColor(Color.parseColor("#3DB650"))
+            }
+            parentFragment.requireContext().getString(R.string.status_PAUSED) -> {
+                view.setTextColor(Color.parseColor("#A5AEB6"))
+            }
+            parentFragment.requireContext().getString(R.string.status_IN_WORK) -> {
+                view.setTextColor(Color.parseColor("#309EFD"))
+            }
+            parentFragment.requireContext().getString(R.string.status_IN_WAY) -> {
+                view.setTextColor(Color.parseColor("#F28D17"))
+            }
+            parentFragment.requireContext().getString(R.string.status_OPEN) -> {
+                view.setTextColor(Color.parseColor("#56D5BE"))
+            }
+
         }
     }
 
     class OrderViewHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
         override fun onClick(v: View?) {
-            Timber.d("11_recyclerViewListClicked")
+            Timber.d("orderlistadapter_recyclerViewListClicked")
             listener.recyclerViewListClicked(v, this.layoutPosition)
         }
 
         var orderNumber: TextView = itemView.number
         var orderType: TextView = itemView.order_type
-        var orderState: TextView = itemView.order_state
+        var orderState: MaterialBetterSpinner = itemView.order_state
         var orderDate: TextView = itemView.date
-        var orderName: TextView = itemView.name
+        var orderPurposeObject: TextView = itemView.name
         var orderadress: TextView = itemView.adress
         var fio: TextView = itemView.fio
-        //var typeTransportation: TextView = itemView.type_transportation
         var typeTransportation: MaterialBetterSpinner = itemView.type_transportation
         var btnPhone: Button=itemView.btnPhone
         var btnRoute: Button=itemView.btnRoute
@@ -206,7 +276,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun performFiltering(constraint: CharSequence?): FilterResults {
 
                 val charSearch = constraint.toString()
-                Timber.d(charSearch)
+                Timber.d("charSearch=$charSearch")
 
                 if (charSearch.isEmpty()) {
                     //originalOrdersList.addAll(orders)
@@ -230,25 +300,20 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
                 Timber.d("publishResults")
                 ordersFilterList=results?.values as List<Orders>
-                notifyDataSetChanged()
+                Timber.d("ordersFilterList=$ordersFilterList")
+                //notifyDataSetChanged()
+                //refreshData(ordersFilterList)
+
+                if ((parentFragment.requireActivity() as MainActivity).isMapFragmentShow) {
+                    (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
+                } else {
+                    (parentFragment.requireContext() as FragmentsContractActivity).showSearchedOrders(ordersFilterList)
+                }
+
             }
 
         }
     }
 
-    val typeTransportationChange=object:TextWatcher{
-        override fun afterTextChanged(s: Editable?) {
-
-        }
-
-        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-            TODO("Not yet implemented")
-        }
-
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            TODO("Not yet implemented")
-        }
-
-    }
 
 }

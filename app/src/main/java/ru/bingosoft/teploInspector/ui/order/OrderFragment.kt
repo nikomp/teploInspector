@@ -1,17 +1,22 @@
 package ru.bingosoft.teploInspector.ui.order
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Context.LOCATION_SERVICE
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.view.*
 import android.widget.Button
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -22,6 +27,7 @@ import kotlinx.android.synthetic.main.fragment_order.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
@@ -58,6 +64,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     private lateinit var currentOrder: Orders
     private lateinit var root: View
+    lateinit var orders: List<Orders>
+    //var filteredOrdersOrderFragment: List<Orders> = listOf()
 
 
     override fun onCreateView(
@@ -95,27 +103,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             orderPresenter.attachView(this)
             orderPresenter.loadOrders()
 
+
             val pb=root.findViewById<ProgressBar>(R.id.progressBar)
             pb.visibility= View.INVISIBLE
         }
-
-        /*val searchView=root.findViewById<androidx.appcompat.widget.SearchView>(R.id.country_search)
-        searchView.setOnQueryTextListener(object:androidx.appcompat.widget.SearchView.OnQueryTextListener{
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                Timber.d(newText)
-                val rcv=root.findViewById<RecyclerView>(R.id.orders_recycler_view)
-                (rcv.adapter as OrderListAdapter).filter.filter(newText)
-
-                return true
-            }
-
-        })*/
-
-
 
         return root
     }
@@ -127,10 +118,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         loginPresenter.onDestroy()
     }
 
-    private fun doAuthorization() {
+    fun doAuthorization(factivity: FragmentActivity=this.requireActivity()) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
-        val sharedPref = this.activity?.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        val sharedPref = factivity.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
         if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
 
             val login = this.sharedPref.getLogin()
@@ -171,12 +162,58 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+       Timber.d("OrderFragment onCreate")
        AndroidSupportInjection.inject(this)
        super.onCreate(savedInstanceState)
 
-       val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
-       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+       requestGPSPermission()
+       /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
+       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
    }
+
+    private fun requestGPSPermission() {
+        // Проверим разрешения
+        Timber.d("requestPermission")
+        if (ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+            Timber.d("requestPermission1")
+            if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.M) {
+                Timber.d("requestPermission2")
+                requestPermissions(arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ),
+                    Const.RequestCodes.PERMISSION
+                )
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        Timber.d("onRequestPermissionsResult")
+        when (requestCode) {
+            Const.RequestCodes.PERMISSION -> {
+                if (grantResults.isNotEmpty()
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) {
+                    // Разрешения выданы
+                    Timber.d("startService_Permission")
+                    val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+                } else {
+                    // Разрешения не выданы оповестим юзера
+                    toaster.showToast(R.string.not_permissions)
+                    Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ")
+                    //mainPresenter.sendMessageToAdmin(Const.MessageCode.REFUSED_PERMISSION)
+                }
+            }
+            else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
+        }
+
+    }
 
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -304,6 +341,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun showOrders(orders: List<Orders>) {
+        longInfo("showOrdersVV=${orders}")
+
+        this.orders=orders
+        (activity as MainActivity).orders=orders
+        //Timber.d("filteredOrders=$filteredOrdersOrderFragment")
+        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
 
         // инициализируем контейнер SwipeRefreshLayout
         val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
@@ -314,20 +357,54 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             swipeRefreshLayout.isRefreshing = false
         }
 
-        Timber.d("userLocation2342342=${userLocationNative.userLocation}")
-
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
-        val adapter = OrderListAdapter(orders,this, this, userLocationNative.userLocation)
+        val adapter=
+        /*if (filteredOrdersOrderFragment.isEmpty()) {
+            OrderListAdapter(orders,this, this, userLocationNative.userLocation)
+        } else {
+            OrderListAdapter(filteredOrdersOrderFragment,this, this, userLocationNative.userLocation)
+        }*/
+        if ((activity as MainActivity).filteredOrders.isEmpty()) {
+            OrderListAdapter(orders,this, this, userLocationNative.userLocation)
+        } else {
+            OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
+        }
+
+
         ordersRecyclerView.adapter = adapter
+    }
+
+    //#Android_Studio #длинный_лог
+    // Функция для вывода длинных строк в лог. Использовать вместо Timber.d
+    fun longInfo(str: String) {
+        if (str.length > 3000) {
+            Timber.d( str.substring(0, 3000))
+            longInfo(str.substring(3000))
+        } else Timber.d(str)
     }
 
     override fun showMessageOrders(msg: String) {
         //TODO реализую позже
     }
 
+    fun filteredOrderByGroup(filterGroupList: List<String>) {
+        Timber.d("filteredOrderByGroup")
+        val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+
+        Timber.d("orders=${orders}")
+        val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
+
+        Timber.d("test=$filteredOrderByGroup")
+
+        val adapter = OrderListAdapter(filteredOrderByGroup,this, this, userLocationNative.userLocation)
+        rcv.adapter = adapter
+
+        adapter.ordersFilterList=filteredOrderByGroup
+    }
+
     override fun openCheckup(checkup: Checkup) {
-        Timber.d("openCheckup");
+        Timber.d("openCheckup")
         Timber.d("idCheckup=${checkup.id}")
         //Загружаем чеклист
         val bundle = Bundle()
@@ -349,6 +426,31 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         (this.requireActivity() as FragmentsContractActivity).setCheckup(checkup)
     }
 
+    override fun techParamsLoaded(techParams: List<TechParams>) {
+        Timber.d("techParamsLoaded $techParams")
+        (activity as MainActivity).techParams=techParams
+
+        //Включаем фрагмент с чеклистом для конкретной заявки
+        /*val bundle = Bundle()
+        bundle.putBoolean("checkUpForOrder", true)
+        bundle.putLong("idOrder",currentOrder.id)
+        bundle.putString("typeOrder",currentOrder.typeOrder)
+
+        val fragmentCheckupList= CheckupFragment()
+        fragmentCheckupList.arguments=bundle
+        val fragmentManager=this.requireActivity().supportFragmentManager
+
+        fragmentManager.beginTransaction()
+            .replace(R.id.nav_host_fragment, fragmentCheckupList, "checkup_fragment_tag")
+            .addToBackStack(null)
+            .commit()
+
+        fragmentManager.executePendingTransactions()
+
+        (this.requireActivity() as FragmentsContractActivity).setChecupOrder(currentOrder)*/
+
+    }
+
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
 
@@ -356,27 +458,27 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         currentOrder.checked=!currentOrder.checked
         (activity as MainActivity).currentOrder=this.currentOrder
 
-        //Включаем фрагмент со списком Обследований для конкретной заявки
-        /*val bundle = Bundle()
+        val bundle = Bundle()
         bundle.putBoolean("checkUpForOrder", true)
         bundle.putLong("idOrder",currentOrder.id)
+        bundle.putString("typeOrder",currentOrder.typeOrder)
 
-        val fragmentCheckupList= CheckupListFragment()
+        val fragmentCheckupList= CheckupFragment()
         fragmentCheckupList.arguments=bundle
         val fragmentManager=this.requireActivity().supportFragmentManager
 
         fragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragmentCheckupList, "checkup_list_fragment_tag")
+            .replace(R.id.nav_host_fragment, fragmentCheckupList, "checkup_fragment_tag")
             .addToBackStack(null)
             .commit()
 
         fragmentManager.executePendingTransactions()
 
-        (this.requireActivity() as FragmentsContractActivity).setChecupListOrder(currentOrder)*/
+        (this.requireActivity() as FragmentsContractActivity).setChecupOrder(currentOrder)
+        (this.requireActivity() as FragmentsContractActivity).setChecupTechParams(currentOrder)
 
-        // Получим чеклист для выбранной заявки
+        //orderPresenter.getTechParams(currentOrder.id)
 
-        orderPresenter.getCheckup(currentOrder.id)
 
     }
 
@@ -392,8 +494,9 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     v.isEnabled=false
                     (v.parent as View).findViewById<Button>(R.id.btnList).isEnabled=true
 
-                    val fragmentMap= MapFragment()
-                    //fragmentMap.arguments=bundle
+                    val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+                    val fragmentMap= MapFragment((rcv.adapter as OrderListAdapter).ordersFilterList)
+
                     val fragmentManager=this.requireActivity().supportFragmentManager
 
                     fragmentManager.beginTransaction()

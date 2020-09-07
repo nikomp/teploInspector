@@ -14,7 +14,7 @@
             android:title="@string/menu_map" />
     </group>
 
-    <item
+    <!--<item
         android:orderInCategory="1"
         android:title="@string/other">
         <menu>
@@ -24,7 +24,7 @@
                 android:orderInCategory="1"
                 android:title="@string/send_data"/>
         </menu>
-    </item>
+    </item>-->
 
 
 </menu>

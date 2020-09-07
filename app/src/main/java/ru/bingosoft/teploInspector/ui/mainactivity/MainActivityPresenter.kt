@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.os.Bundle
 import androidx.fragment.app.FragmentManager
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -14,24 +15,29 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
+import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
-import ru.bingosoft.teploInspector.util.OtherUtil
-import ru.bingosoft.teploInspector.util.PhotoHelper
+import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
+import ru.bingosoft.teploInspector.util.UserLocationNative
 import timber.log.Timber
 import java.io.File
+import java.util.*
 import javax.inject.Inject
 
-class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val photoHelper: PhotoHelper) {
+class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     var view: MainActivityContractView? = null
 
     @Inject
     lateinit var apiService: ApiService
 
+    @Inject
+    lateinit var userLocationNative: UserLocationNative
+
     private lateinit var disposable: Disposable
-    private lateinit var checkupsWasSync: List<Checkup>
-    lateinit var zipFile: File
+    private lateinit var checkupsWasSync: MutableList<Int>
+
 
     fun attachView(view: MainActivityContractView) {
         this.view=view
@@ -43,18 +49,20 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
             .getAll()
             .subscribeOn(Schedulers.io())
             .map{trackingUserLocation ->
-                val actionBody = "trackingUserLocation".toRequestBody("multipart/form-data".toMediaType())
-                Timber.d("trackingUserLocation_${Gson().toJson(trackingUserLocation)}")
-                val jsonBody=Gson().toJson(trackingUserLocation)
+
+                val route=Models.FileRoute()
+                val jsonStr=Gson().toJson(trackingUserLocation)
+                route.fileRoute=jsonStr
+
+                //return@map jsonStr.toRequestBody("application/json; charset=utf-8".toMediaType())
+                return@map Gson().toJson(route)
                     .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-                //Timber.d("sendUserRoute_jsonBody.toString()=${jsonBody}")
-                return@map actionBody to jsonBody
             }
-            .flatMap { actionAndJsonBodies ->
-                Timber.d(actionAndJsonBodies.toString())
+            .flatMap { jsonBodies ->
+                Timber.d("jsonBodies=${jsonBodies}")
 
-                apiService.sendTrackingUserLocation(actionAndJsonBodies.first, actionAndJsonBodies.second).toFlowable()
+                apiService.sendTrackingUserLocation(jsonBodies).toFlowable()
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
@@ -85,69 +93,70 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
             }
     }
 
-    fun sendData() {
+    fun sendData2() {
         Timber.d("sendData")
         disposable =
             db.checkupDao()
-                .getResultAll()
+                .getResultAll2()
                 .subscribeOn(Schedulers.io())
-                .takeWhile{listCheckup ->
-                    if (listCheckup.isEmpty()) {
+                .takeWhile { listResult ->
+                    Timber.d("listResult=$listResult")
+                    if (listResult.isEmpty()) {
                         throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
                     } else {
-                        listCheckup.isNotEmpty()
+                        listResult.isNotEmpty()
                     }
                 }
-                .map { checkups ->
-                    val actionBody = "reverseSync".toRequestBody("multipart/form-data".toMediaType())
-                    Timber.d("GSON=${Gson().toJson(checkups)}")
+                .flatMap { results ->
+                    // Конвертируем строку controls в JsonArray
+                    Timber.d("Данные=${Gson().toJson(results)}")
+                    val resultX= mutableListOf<Models.Result2>()
 
-                    val jsonBody=Gson().toJson(checkups)
-                    .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-                    checkupsWasSync=checkups // Сохраняю данные, которые должны быть переданы
+                    checkupsWasSync= mutableListOf()
+                    results.forEach {
+                        Timber.d("controls=${it.controls}")
+                        checkupsWasSync.add(it.id_order) // Сохраняю данные, которые должны быть переданы
 
-                    return@map actionBody to jsonBody
-                }
-                .flatMap { actionAndJsonBodies ->
-                    //Timber.d(actionAndJsonBodies.toString())
-                    // Архив с файлами
-                    var fileBody: MultipartBody.Part? = null
+                        val result=Models.Result2()
+                        result.id_order=it.id_order
 
-                    val syncDirs=OtherUtil().getDirForSync(checkupsWasSync)
+                        Timber.d("it.history_order_state=${it.history_order_state}")
+                        if (it.history_order_state!=null) {
+                            result.history_order_state=Gson().fromJson(it.history_order_state, JsonArray::class.java)
+                        }
+                        result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
 
-                    Timber.d("syncDirs=$syncDirs")
-
-                    val zipF= photoHelper.prepareZip(syncDirs)
-                    if (zipF!=null) {
-                        zipFile=zipF
-                        Timber.d("Есть ZIP отправляем ${zipF.name}")
-
-                        val requestBody = zipF.asRequestBody("multipart/form-data".toMediaType())
-                        fileBody = MultipartBody.Part.createFormData(
-                            "zip", zipF.name,
-                            requestBody
-                        )
-
-                    } else {
-                        Timber.d( "zipFile == null")
+                        resultX.add(result)
                     }
-                    apiService.doReverseSync(actionAndJsonBodies.first, actionAndJsonBodies.second, fileBody).toFlowable()
+
+                    val reverseData=Models.ReverseData()
+                    reverseData.data=resultX
+
+                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
+                    longInfo("Данные222=${Gson().toJson(reverseData)}")
+
+                    val jsonBody = Gson().toJson(reverseData)
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+
+                    Timber.d("Данные3=${jsonBody}")
+
+                    apiService.doReverseSync(jsonBody)?.toFlowable()
                 }
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                    { response ->
-                        Timber.d(response.toString())
-                        zipFile.delete() // удалим переданный архив
-
-                        view?.dataSyncOK() // Пометим чеклисты как переданные
-                        view?.showMainActivityMsg(R.string.msgDataSendOk)
-
+                    {response: List<Models.DataFile> ->
+                        if (response.isNotEmpty()) {
+                            Timber.d("response=${response[0].id}")
+                            sendFile(response)
+                        } else {
+                            view?.dataSyncOK()
+                            view?.showMainActivityMsg(R.string.msgDataSendOk)
+                        }
                     }, { throwable ->
                         throwable.printStackTrace()
                         if (throwable is ThrowHelper) {
-                            //view?.showMainActivityMsg("${throwable.message}")
-                            //view?.showMainActivityMsg(R.string.isCheckupWithResult)
                             isCheckupWithResult("${throwable.message}")
                         } else {
                             view?.showMainActivityMsg(R.string.msgDataSendError)
@@ -156,11 +165,189 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
                 )
     }
 
+    fun sendData3(idOrder:Long) {
+        Timber.d("sendData3")
+        disposable =
+            db.checkupDao()
+                .getResultByOrderId(idOrder)
+                .subscribeOn(Schedulers.io())
+                .takeWhile { listResult ->
+                    Timber.d("listResult=$listResult")
+                    if (listResult.isEmpty()) {
+                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
+                    } else {
+                        listResult.isNotEmpty()
+                    }
+                }
+                .flatMap { results ->
+                    // Конвертируем строку controls в JsonArray
+                    Timber.d("Данные=${Gson().toJson(results)}")
+                    val resultX= mutableListOf<Models.Result2>()
+
+
+                    checkupsWasSync= mutableListOf()
+                    results.forEach {
+                        Timber.d("controls=${it.controls}")
+                        checkupsWasSync.add(it.id_order) // Сохраняю данные, которые должны быть переданы
+
+                        val result=Models.Result2()
+                        result.id_order=it.id_order
+
+                        Timber.d("it.history_order_state=${it.history_order_state}")
+                        if (it.history_order_state!=null) {
+                            result.history_order_state=Gson().fromJson(it.history_order_state, JsonArray::class.java)
+                        }
+                        result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
+
+                        resultX.add(result)
+                    }
+
+                    val reverseData=Models.ReverseData()
+                    reverseData.data=resultX
+
+                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
+                    longInfo("Данные222=${Gson().toJson(reverseData)}")
+
+                    val jsonBody = Gson().toJson(reverseData)
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+
+                    Timber.d("Данные3=${jsonBody}")
+
+                    apiService.doReverseSync(jsonBody)?.toFlowable()
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {response: List<Models.DataFile> ->
+                        if (response.isNotEmpty()) {
+                            Timber.d("response=${response[0].id}")
+                            sendFile(response)
+                        } else {
+                            view?.dataSyncOK()
+                            view?.showMainActivityMsg(R.string.msgDataSendOk)
+                        }
+                    }, { throwable ->
+                        throwable.printStackTrace()
+                        if (throwable is ThrowHelper) {
+                            isCheckupWithResult("${throwable.message}")
+                        } else {
+                            view?.showMainActivityMsg(R.string.msgDataSendError)
+                        }
+                    }
+                )
+    }
+
+    private fun getHistory(order: Orders) {
+        val hos=db.historyOrderStateDao()
+
+        Single.fromCallable {
+            db.historyOrderStateDao().getHistoryStateByIdOrder(order.id)
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe ()
+    }
+
+    private fun sendFile(dataFileArray: List<Models.DataFile>) {
+        dataFileArray.forEachIndexed {index, datafile->
+            Timber.d("$DCIM_DIR/PhotoForApp/${datafile.dir}")
+            val directory = File("$DCIM_DIR/PhotoForApp/${datafile.dir}")
+            val filesBody= mutableListOf<MultipartBody.Part>()
+            val filesBody2= mutableListOf<MultipartBody.Part>()
+            if (directory.exists()) {
+                val files = directory.listFiles()
+
+                Timber.d("files=${files.size}")
+
+                files?.forEach {
+                    val part = MultipartBody.Part.createFormData(
+                        "attr_2614_[]", it.name, it.asRequestBody("multipart/form-data".toMediaType())
+                    )
+                    filesBody.add(part)
+
+                    val part2 = MultipartBody.Part.createFormData(
+                        "attr_2530_[]", it.name, it.asRequestBody("multipart/form-data".toMediaType())
+                    )
+                    filesBody2.add(part2)
+                }
+
+
+            }
+
+            apiService.sendFiles(datafile.id, 2518, filesBody)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {response ->
+                        Timber.d("sendingFiles $response")
+                        //view?.filesSend(dataFileArray.size,index+1)
+                        // Фотографии сохраним еще и для заявки
+                        apiService.sendFiles(datafile.idOrder, 2380, filesBody2)
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(
+                                {_ ->
+                                    view?.filesSend(dataFileArray.size,index+1)
+                                },
+                                {throwable ->
+                                    throwable.printStackTrace()
+                                }
+                            )
+                    },
+                    {throwable ->
+                        throwable.printStackTrace()
+                    }
+                )
+
+        }
+    }
+
+    private fun longInfo(str: String) {
+        if (str.length > 3000) {
+            Timber.d( str.substring(0, 3000))
+            longInfo(str.substring(3000))
+        } else Timber.d(str)
+    }
+
 
 
     fun sendMessageToAdmin(codeMsg: Int) {
         Timber.d("sendMessageToAdmin codeMsg=$codeMsg")
-        disposable=apiService.sendMessageToAdmin(action="sendMessageToAdmin",codeMessage = codeMsg)
+        val textMessage: String
+        val eventType: Int
+        when (codeMsg) {
+            1-> {
+                textMessage="Пользователь отказался выдать разрешение на Геолокацию"
+                eventType=1 // Геолокация отключена
+            }
+            2-> {
+                textMessage="Пользователь повторно отказался включить GPS"
+                eventType=1 // Геолокация отключена
+            }
+            3-> {
+                textMessage="Пользователь выключил GPS"
+                eventType=1 // Геолокация отключена
+            }
+            else -> {
+                textMessage=""
+                eventType=0
+            }
+        }
+
+
+        val messageData=Models.MessageData(
+            text = textMessage,
+            date= Date().time,
+            event_type = eventType,
+            lat = userLocationNative.userLocation.latitude,
+            lon = userLocationNative.userLocation.longitude
+        )
+
+        Timber.d("Данные4=${Gson().toJson(messageData)}")
+
+        val jsonBody = Gson().toJson(messageData)
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        disposable=apiService.sendMessageToAdmin(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
@@ -174,29 +361,18 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase, private val
     fun updData() {
         Timber.d("updData")
         if (this::disposable.isInitialized) {
+            Timber.d("disposable.dispose()")
             disposable.dispose()
         }
-        Single.fromCallable{
-            Timber.d("Single")
+        Single.fromCallable {
+            Timber.d("${checkupsWasSync}")
+
             checkupsWasSync.forEach {
-                it.sync=true
-                db.checkupDao().update(it)
-
-                // Обновим состояние заявки
-                /*val idOrder=it.idOrder
-                if (idOrder!=null) {
-                    val order=db.ordersDao().getById(idOrder)
-                    order.state=STATE_DONE // выполнено
-
-                    db.ordersDao().update(order)
-                }*/
-
+                db.checkupDao().updateSync(it)
             }
         }
-        .subscribeOn(Schedulers.io())
-        .subscribe{response ->
-            view?.updDataOK()
-        }
+            .subscribeOn(Schedulers.io())
+            .subscribe ()
     }
 
     fun openCheckup(fragmentManager: FragmentManager, orderId: Long) {

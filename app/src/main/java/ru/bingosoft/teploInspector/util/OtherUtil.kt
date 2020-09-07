@@ -21,7 +21,7 @@ class OtherUtil {
             val controlList = Gson().fromJson(it.textResult, Models.ControlList::class.java)
             val controlPhoto=controlList.list.filter { it.type=="photo" }
             controlPhoto.forEach{
-                list.add(it.resvalue)
+                it.resvalue?.let { it1 -> list.add(it1) }
             }
         }
 

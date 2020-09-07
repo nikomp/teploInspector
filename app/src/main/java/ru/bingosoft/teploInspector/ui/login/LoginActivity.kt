@@ -13,8 +13,8 @@ import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_login.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Toaster
+import timber.log.Timber
 import javax.inject.Inject
-
 
 
 class LoginActivity : AppCompatActivity(), View.OnClickListener {
@@ -34,9 +34,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         val toolbar=logintoolbar
         setSupportActionBar(toolbar)
 
-        stUrl = edUrl.text.toString()
-        stLogin = edLogin.text.toString()
-        stPassword = edPassword.text.toString()
+
     }
 
     override fun onClick(v: View?) {
@@ -44,6 +42,11 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             when (v.id) {
                 R.id.btnGo -> {
                     if (isNetworkConnected()) {
+                        Timber.d("LoginActivity onClick")
+                        stUrl = edUrl.text.toString()
+                        stLogin = edLogin.text.toString()
+                        stPassword = edPassword.text.toString()
+
                         // Авторизация
                         val intent = Intent()
                         intent.putExtra("login", stLogin)

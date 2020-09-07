@@ -4,6 +4,9 @@ import io.reactivex.Single
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
+import ru.bingosoft.teploInspector.db.Checkup.Checkup
+import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 
 interface ApiService {
@@ -19,56 +22,52 @@ interface ApiService {
         @Body uuid: RequestBody
     ): Single<Models.Token>
 
-    /*@POST("redis-session-php/login.php")
-    @FormUrlEncoded
-    fun getAuthorization(
-        @Field("fingerprint") fingerprint: String?,
-        @Field("login") login: String?,
-        @Field("password") password: String?
-    ): Single<Models.Auth>*/
+    @GET("registryservice/plugins/execute/GetRequestDataQuery")
+    fun getListOrder():Single<List<Orders>>
 
-    @GET("procs/androidAPI.php")
-    fun getListOrder(
-        @Query("action") action: String
-    ): Single<Models.OrderList>
+    @GET("datawarehouseservice/query/7")
+    fun getTechParams(
+        @Query("user_id") user: Int
+    ):Single<List<TechParams>>
 
-    @GET("procs/androidAPI.php")
-    fun getInfoAboutCurrentUser(
-        @Query("action") action: String
-    ): Single<Models.User>
+    @GET("registryservice/plugins/execute/ReceiveCheckListQuery")
+    fun getCheckups():Single<List<Checkup>>
 
-    @GET("procs/androidAPI.php")
-    fun getCheckups(
-        @Query("action") action: String
-    ): Single<Models.CheckupList>
+    @POST("registryservice/attachments")
+    @Multipart
+    fun sendFiles(
+        @Part("record_id") record_id: Int,
+        @Part("registry_id") registry_id: Int,
+        @Part files: List<MultipartBody.Part>
+    ): Single<List<Models.FilesFromServer>>
 
-    @GET("procs/androidAPI.php")
-    fun getCheckupGuide(
-        @Query("action") action: String
-    ): Single<Models.CheckupGuideList>
 
-    @GET("procs/androidAPI.php")
+    @POST("registryservice/plugins/execute/SaveApplicationHistoryStatusCommand")
+    @Headers("Content-Type: application/json")
+    fun sendStatusOrder(
+        @Body json: RequestBody
+    ): Single<Unit>
+
+
+    @POST("registryservice/plugins/execute/SaveAdministratorMessageCommand")
+    @Headers("Content-Type: application/json")
     fun sendMessageToAdmin(
-        @Query("action") action: String,
-        @Query("codeMessage") codeMessage: Int
-    ): Single<Models.CheckupGuideList>
+        @Body json: RequestBody
+    ): Single<Unit>
 
-    @POST("procs/androidAPI.php")
-    @Multipart
+
+    @POST("registryservice/plugins/execute/SaveSurveyResultCommand")
+    @Headers("Content-Type: application/json")
     fun doReverseSync(
-        @Part("action") action: RequestBody?,
-        @Part("jsonData") jsonData: RequestBody?,
-        @Part file: MultipartBody.Part?
-        //@Part("filemap") filemap: RequestBody?
-    ): Single<Models.SimpleMsg>
+        @Body json: RequestBody
+    ): Single<List<Models.DataFile>>?
 
 
-    @POST("procs/androidAPI.php")
-    @Multipart
+    @POST("registryservice/plugins/execute/SaveInspectorRouteCommand")
+    @Headers("Content-Type: application/json")
     fun sendTrackingUserLocation(
-        @Part("action") action: RequestBody?,
-        @Part("jsonData") jsonData: RequestBody?
-    ): Single<Models.SimpleMsg>
+        @Body json: RequestBody
+    ): Single<Unit>
 
     @POST("procs/androidAPI.php")
     @FormUrlEncoded
