@@ -99,8 +99,6 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val typeOrderTag = arguments?.getString("typeOrder")
         if (tag!=null) {
             checkupSteps.add("$typeOrderTag")
-        } else {
-            checkupSteps.add("<Тиражирование по узлам>")
         }
 
 
@@ -171,6 +169,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             override fun afterTextChanged(s: Editable?) {
                 order.status=s.toString()
                 uiCreator?.refresh()
+
+
                 changeColorMBSState(mbsOrderState, order.status)
                 //checkupPresenter.addHistoryState(order)
                 orderPresenter.addHistoryState(order)

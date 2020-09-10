@@ -35,8 +35,7 @@ android {
         multiDexEnabled true
     }
     buildTypes {
-        debug {
-            resValue 'string', 'login', accent_login
+        debug {resValue 'string', 'login', accent_login
             resValue 'string', 'password', accent_password
             resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
 

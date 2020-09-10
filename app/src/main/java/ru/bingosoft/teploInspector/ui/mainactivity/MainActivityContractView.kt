@@ -6,4 +6,6 @@ interface MainActivityContractView {
     fun dataSyncOK()
     fun updDataOK()
     fun filesSend(countFiles: Int, indexCurrentFile: Int)
+
+    fun errorReceived(throwable: Throwable)
 }

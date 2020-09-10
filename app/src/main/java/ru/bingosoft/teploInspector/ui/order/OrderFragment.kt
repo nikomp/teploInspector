@@ -24,6 +24,7 @@ import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
 import kotlinx.android.synthetic.main.fragment_order.*
+import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
@@ -38,6 +39,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.util.*
 import timber.log.Timber
+import java.net.UnknownHostException
 import java.util.*
 import javax.inject.Inject
 
@@ -448,6 +450,25 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         fragmentManager.executePendingTransactions()
 
         (this.requireActivity() as FragmentsContractActivity).setChecupOrder(currentOrder)*/
+
+    }
+
+    override fun errorReceived(throwable: Throwable) {
+        when (throwable) {
+            is HttpException -> {
+                Timber.d("throwable.code()=${throwable.code()}")
+                when (throwable.code()) {
+                    401 -> toaster.showToast(R.string.unauthorized)
+                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                }
+            }
+            is UnknownHostException ->{
+                toaster.showToast(R.string.no_address_hostname)
+            }
+            else -> {
+                toaster.showToast("Ошибка! ${throwable.message}")
+            }
+        }
 
     }
 

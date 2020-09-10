@@ -9,6 +9,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 
+//@Suppress("unused")
 interface ApiService {
     @POST("/defaultauthentication/auth/login")
     @Headers("Content-Type: application/json")
@@ -69,17 +70,4 @@ interface ApiService {
         @Body json: RequestBody
     ): Single<Unit>
 
-    @POST("procs/androidAPI.php")
-    @FormUrlEncoded
-    fun saveGCMToken(
-        @Field("action") action: String,
-        @Field("token") token: String
-    ): Single<Models.SimpleMsg>
-
-    @GET("procs/androidAPI.php")
-    fun saveUserLocation(
-        @Query("action") action: String,
-        @Query("lat") lat: Double,
-        @Query("lon") lon: Double
-    ): Single<Models.SimpleMsg>
 }

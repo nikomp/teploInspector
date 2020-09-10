@@ -71,6 +71,7 @@ class Models {
     class TemplateControl (
         @Expose @SerializedName("id_question") var id: Int = 0,
         @Expose @SerializedName("results_id") var results_id: Int = 0,
+        @Expose @SerializedName("node") val node: Int? = null,
         @Expose @SerializedName("question_guid") var guid: String = "",
         @Expose @SerializedName("type") var type: String = "",
         @Expose @SerializedName("value") var value: Array<String> = arrayOf(),
@@ -80,6 +81,10 @@ class Models {
         @Expose @SerializedName("maxrange") var maxRange: Double? = null,
         @Expose @SerializedName("minrange") var minRange: Double? = null,
         @Expose @SerializedName("datetime_question_answered") var datetime: Long=0L,
+
+        @Expose @SerializedName("replication_nodes") var replication_nodes: Boolean?=null,
+        @Expose @SerializedName("replicating_archival_records") var replicating_archival_records: Boolean?=null,
+        @Expose @SerializedName("group_checklist") val group_checklist: String?=null,
 
         @Expose @SerializedName("answered") var answered: Boolean = false
     )

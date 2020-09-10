@@ -39,6 +39,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
+import retrofit2.HttpException
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
@@ -58,6 +59,7 @@ import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.QR_SCAN
 import timber.log.Timber
+import java.net.UnknownHostException
 import java.util.*
 import javax.inject.Inject
 
@@ -558,22 +560,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         Timber.d("onNavigationItemSelected")
 
-        when (item.itemId) {
+        return when (item.itemId) {
             R.id.nav_home -> {
                 navController.navigate(R.id.nav_home)
-                return true
+                true
             }
             R.id.nav_slideshow -> {
                 navController.navigate(R.id.nav_slideshow)
-                return true
+                true
             }
-            /*R.id.nav_send_data -> {
-                Timber.d("Отправляем данные на сервер")
-                mainPresenter.sendData2()
-                return true
-            }*/
             else -> {
-                return false
+                false
             }
         }
     }
@@ -604,6 +601,24 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (countFiles==indexCurrentFile) {
             mainPresenter.updData()
             toaster.showToast(R.string.data_and_files_sends)
+        }
+    }
+
+    override fun errorReceived(throwable: Throwable) {
+        when (throwable) {
+            is HttpException -> {
+                Timber.d("throwable.code()=${throwable.code()}")
+                when (throwable.code()) {
+                    401 -> toaster.showToast(R.string.unauthorized)
+                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                }
+            }
+            is UnknownHostException ->{
+                toaster.showToast(R.string.no_address_hostname)
+            }
+            else -> {
+                toaster.showToast("Ошибка! ${throwable.message}")
+            }
         }
     }
 

@@ -32,7 +32,7 @@ interface CheckupDao {
             "where textResult is not null and sync=0")
     fun getResultAll2(): Flowable<List<Models.Result>>
 
-    @Query("SELECT c.idOrder id_order, c.textResult as controls,'['||group_concat('{\\\"unique_id\\\":'||h.id||', \\\"idOrder\\\":'||h.idOrder||', \\\"stateOrder\\\":\\\"'||h.stateOrder||'\\\", \\\"dateChange\\\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
+    @Query("SELECT c.idOrder id_order, c.textResult as controls,'['||group_concat('{\"unique_id\":'||h.id||', \"idOrder\":'||h.idOrder||', \"stateOrder\":\"'||h.stateOrder||'\", \"dateChange\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
             "left join HistoryOrderState h on h.idOrder=c.idOrder \n" +
             "where textResult is not null and c.idOrder=:id")
     fun getResultByOrderId(id: Long): Flowable<List<Models.Result>>

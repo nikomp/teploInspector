@@ -24,6 +24,7 @@ import timber.log.Timber
 class StepsAdapter (private val lists: List<String>, val parentFragment: CheckupFragment) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
 
     private var expandedPosition=-1
+    private var checupIsCreated=false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StepsViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_cardview_step, parent, false)
@@ -93,28 +94,23 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
             holder.details.addView(rvtc)
         }
         if (position>1 && isExpanded){
-            holder.details.removeAllViews()
+            //holder.details.removeAllViews()
 
             //Генерируем чеклист
-            if (parentFragment.isCheckupInitialized()) {
-                val uiCreator=UICreator(parentFragment, parentFragment.checkup)
-                //Timber.d("parentFragment.currentOrder.typeOrder=${parentFragment.currentOrder.typeOrder}")
-                /*if (parentFragment.currentOrder.status==parentFragment.getString(R.string.status_IN_WAY)||
-                    parentFragment.currentOrder.status==parentFragment.getString(R.string.status_OPEN)) {
+            if (!checupIsCreated) {
+                if (parentFragment.isCheckupInitialized() ) {
+                    val uiCreator=UICreator(parentFragment, parentFragment.checkup)
                     uiCreator.create(holder.details)
+                    parentFragment.uiCreator=uiCreator
+                    checupIsCreated=true
                 } else {
-                    uiCreator.create(holder.details)
-                }*/
-
-                uiCreator.create(holder.details)
-
-                parentFragment.uiCreator=uiCreator
-            } else {
-                parentFragment.toaster.showToast(R.string.checklist_is_empty)
+                    parentFragment.toaster.showToast(R.string.checklist_is_empty)
+                }
             }
 
 
         }
+
         holder.itemView.isActivated = isExpanded
         holder.itemView.setOnClickListener {
             expandedPosition = if (isExpanded) -1 else position

@@ -13,4 +13,6 @@ interface LoginContractView {
     fun saveDateSyncToSharedPreference(date: Date)
     fun saveInfoUserToSharedPreference(user: Models.User)
     fun startLocationService()
+
+    fun errorReceived(throwable: Throwable)
 }

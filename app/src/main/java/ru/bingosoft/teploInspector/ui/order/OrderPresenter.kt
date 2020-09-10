@@ -58,9 +58,13 @@ class OrderPresenter @Inject constructor(
 
         apiService.sendStatusOrder(jsonBody2)
             .subscribeOn(Schedulers.io())
-            .subscribe({
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ response ->
+                Timber.d("response=$response")
                 Timber.d("Отправили статус")
             },{ throwable ->
+                Timber.d("throwable.message=${throwable.message}")
+                view?.errorReceived(throwable)
                 throwable.printStackTrace()
             })
 

@@ -9,4 +9,6 @@ interface OrderContractView {
     fun showMessageOrders(msg: String)
     fun openCheckup(checkup: Checkup)
     fun techParamsLoaded(techParams:List<TechParams>)
+
+    fun errorReceived(throwable: Throwable)
 }

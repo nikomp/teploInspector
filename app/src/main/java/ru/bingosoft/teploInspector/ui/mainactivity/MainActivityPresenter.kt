@@ -71,6 +71,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     view?.showMainActivityMsg(R.string.msgRouteUserSendOk)
 
                 }, { throwable ->
+                    view?.errorReceived(throwable)
                     throwable.printStackTrace()
 
                 }
@@ -159,6 +160,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         if (throwable is ThrowHelper) {
                             isCheckupWithResult("${throwable.message}")
                         } else {
+                            view?.errorReceived(throwable)
                             view?.showMainActivityMsg(R.string.msgDataSendError)
                         }
                     }
@@ -195,7 +197,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
                         Timber.d("it.history_order_state=${it.history_order_state}")
                         if (it.history_order_state!=null) {
-                            result.history_order_state=Gson().fromJson(it.history_order_state, JsonArray::class.java)
+                            /*val gson = Gson()
+                            val reader = JsonReader(StringReader(it.history_order_state))
+                            reader.setLenient(true)*/
+                            result.history_order_state=Gson().fromJson(it.history_order_state?.trim(), JsonArray::class.java)
                         }
                         result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
 
@@ -289,11 +294,13 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                                     view?.filesSend(dataFileArray.size,index+1)
                                 },
                                 {throwable ->
+                                    view?.errorReceived(throwable)
                                     throwable.printStackTrace()
                                 }
                             )
                     },
                     {throwable ->
+                        view?.errorReceived(throwable)
                         throwable.printStackTrace()
                     }
                 )
@@ -352,9 +359,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
-            },{
+            },{ throwable ->
                 Timber.d("ошибка!!!")
-                Timber.d(it.printStackTrace().toString())
+                throwable.printStackTrace()
+                view?.errorReceived(throwable)
             })
     }
 

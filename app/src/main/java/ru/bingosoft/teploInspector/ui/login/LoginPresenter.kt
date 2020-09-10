@@ -205,6 +205,8 @@ class LoginPresenter @Inject constructor(
                 throwable.printStackTrace()
                 if (throwable is ThrowHelper) {
                     view?.showMessageLogin("${throwable.message}")
+                } else {
+                    view?.errorReceived(throwable)
                 }
             })
     }
@@ -230,7 +232,7 @@ class LoginPresenter @Inject constructor(
                     view?.showMessageLogin(R.string.order_refresh)
 
                 },{throwable ->
-                    Timber.d("throwable syncOrder")
+                    view?.errorReceived(throwable)
                     throwable.printStackTrace()
                 })
             }
@@ -266,6 +268,10 @@ class LoginPresenter @Inject constructor(
                     Timber.d("Сохранили тех характеристики в БД")
                 }
 
+        }
+        .doOnError { throwable ->
+            view?.errorReceived(throwable)
+            throwable.printStackTrace()
         }
         .ignoreElement()
 
