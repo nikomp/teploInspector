@@ -1,7 +1,5 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentManager
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import io.reactivex.Single
@@ -17,7 +15,6 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
 import ru.bingosoft.teploInspector.util.UserLocationNative
@@ -383,31 +380,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .subscribe ()
     }
 
-    fun openCheckup(fragmentManager: FragmentManager, orderId: Long) {
-        Timber.d("openCheckup")
-        // Получим информацию о чеклисте, по orderId
-        Single.fromCallable {
-            val idCheckup=db.checkupDao().getCheckupIdByOrder(orderId)
-            Timber.d("idCheckup=$idCheckup")
-            //Загружаем чеклист
-            val bundle = Bundle()
-            bundle.putBoolean("loadCheckupById", true)
-            bundle.putLong("checkupId",idCheckup)
 
-            val fragmentCheckup= CheckupFragment()
-            fragmentCheckup.arguments=bundle
-
-            fragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
-                .addToBackStack(null)
-                .commit()
-
-            fragmentManager.executePendingTransactions()
-        }
-            .subscribeOn(Schedulers.io())
-            .subscribe()
-
-    }
 
 
     fun onDestroy() {

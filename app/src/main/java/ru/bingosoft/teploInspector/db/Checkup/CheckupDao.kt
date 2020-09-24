@@ -9,17 +9,11 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup")
     fun getAll(): Flowable<List<Checkup>>
 
-    @Query("SELECT * FROM checkup WHERE id = :id")
-    fun getById(id: Long): Flowable<Checkup>
-
     @Query("SELECT * FROM checkup WHERE idOrder = :id")
-    fun getCheckupsOrder(id: Long): Flowable<List<Checkup>>
+    fun getCheckupByOrderId(id: Long): Flowable<Checkup>
 
     @Query("SELECT * FROM checkup WHERE idOrder = :id")
     fun getCheckupByOrder(id: Long): Checkup
-
-    @Query("SELECT id FROM checkup WHERE idOrder = :id")
-    fun getCheckupIdByOrder(id: Long): Long
 
     @Query("SELECT * FROM checkup where textResult is not null and sync=0 and textResult not like '%\"checked\":false%'")
     fun getResultAll(): Flowable<List<Checkup>>
@@ -46,7 +40,7 @@ interface CheckupDao {
     @Query("DELETE FROM checkup")
     fun clearCheckup()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) //OnConflictStrategy.REPLACE
     fun insert(checkup: Checkup)
 
     @Update

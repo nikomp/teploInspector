@@ -36,6 +36,7 @@ import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.util.*
 import timber.log.Timber
@@ -48,6 +49,9 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     @Inject
     lateinit var loginPresenter: LoginPresenter
+
+    @Inject
+    lateinit var mainPresenter: MainActivityPresenter
 
     @Inject
     lateinit var orderPresenter: OrderPresenter
@@ -98,17 +102,16 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
 
         // Если логин/пароль есть не авторизуемся
-        if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
+        /*if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
             doAuthorization()
         } else {
             Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
             orderPresenter.attachView(this)
             orderPresenter.loadOrders()
 
-
             val pb=root.findViewById<ProgressBar>(R.id.progressBar)
             pb.visibility= View.INVISIBLE
-        }
+        }*/
 
         return root
     }
@@ -164,18 +167,27 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-       Timber.d("OrderFragment onCreate")
-       AndroidSupportInjection.inject(this)
-       super.onCreate(savedInstanceState)
+        Timber.d("OrderFragment onCreate")
+        AndroidSupportInjection.inject(this)
+        super.onCreate(savedInstanceState)
 
-       requestGPSPermission()
+        if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
+            doAuthorization()
+        } else {
+            Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
+            orderPresenter.attachView(this)
+            orderPresenter.loadOrders()
+
+        }
+
+
        /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
    }
 
     private fun requestGPSPermission() {
         // Проверим разрешения
-        Timber.d("requestPermission")
+        Timber.d("requestGPSPermission")
         if (ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
             Timber.d("requestPermission1")
             if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.M) {
@@ -186,6 +198,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     Const.RequestCodes.PERMISSION
                 )
             }
+        } else {
+            activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
         }
     }
 
@@ -205,11 +219,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     Timber.d("startService_Permission")
                     val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+
+                    activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
                     Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ")
-                    //mainPresenter.sendMessageToAdmin(Const.MessageCode.REFUSED_PERMISSION)
+                    mainPresenter.sendMessageToAdmin(Const.MessageCode.REFUSED_PERMISSION)
                 }
             }
             else -> Timber.d("Неизвестный PERMISSION_REQUEST_CODE")
@@ -238,6 +254,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
         sharedPref.saveLogin(stLogin)
         sharedPref.savePassword(stPassword)
+        requestGPSPermission()
     }
 
     override fun saveToken(token: String) {
@@ -345,6 +362,9 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     override fun showOrders(orders: List<Orders>) {
         longInfo("showOrdersVV=${orders}")
 
+        val pb=root.findViewById<ProgressBar>(R.id.progressBar)
+        pb.visibility= View.INVISIBLE
+
         this.orders=orders
         (activity as MainActivity).orders=orders
         //Timber.d("filteredOrders=$filteredOrdersOrderFragment")
@@ -407,11 +427,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun openCheckup(checkup: Checkup) {
         Timber.d("openCheckup")
-        Timber.d("idCheckup=${checkup.id}")
+        Timber.d("idCheckup=${checkup.idOrder}")
         //Загружаем чеклист
         val bundle = Bundle()
         bundle.putBoolean("loadCheckupById", true)
-        bundle.putLong("checkupId",checkup.id)
+        bundle.putLong("checkupId",checkup.idOrder)
 
         val fragmentCheckup= CheckupFragment()
         fragmentCheckup.arguments=bundle

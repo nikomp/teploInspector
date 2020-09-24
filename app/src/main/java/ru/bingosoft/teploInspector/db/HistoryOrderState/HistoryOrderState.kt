@@ -19,12 +19,16 @@ import java.util.*
 
 @TypeConverters(DateConverter::class)
 data class HistoryOrderState (
-    @PrimaryKey(autoGenerate = true)
-    var id: Long = 0,
+    @PrimaryKey
+    var id: Int = 0,
     @SerializedName("id_order")
     var idOrder: Long? =null,
     @SerializedName("state_order")
     var stateOrder: String="",
     @SerializedName("date")
     var dateChange: Date=Date()
-)
+) {
+    override fun toString(): String {
+        return "HistoryOrderState(id=$id, idOrder=$idOrder, stateOrder='$stateOrder', dateChange=$dateChange)"
+    }
+}

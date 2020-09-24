@@ -177,7 +177,7 @@ class LoginPresenter @Inject constructor(
                     //val data: Models.CheckupList = checkups
 
                     Single.fromCallable {
-                        db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
+                        //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
                         checkups.forEach {
                             Timber.d("it=$it")
                             db.checkupDao().insert(it)
@@ -217,10 +217,9 @@ class LoginPresenter @Inject constructor(
             if (orders.isEmpty()) {
                 throw ThrowHelper("Нет заявок")
             } else {
-                Timber.d("ordersXXX")
-                Timber.d("orders=$orders")
+                Timber.d("ordersXXX=$orders")
                 Single.fromCallable{
-                    db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
+                    //db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
                     db.historyOrderStateDao().clearHistory() // Очистим таблицу с историей смены статуса заявок
                     orders.forEach{
                         db.ordersDao().insert(it)
@@ -237,7 +236,9 @@ class LoginPresenter @Inject constructor(
                 })
             }
         }
-        .doOnError { throwable ->  throwable.printStackTrace()}
+        .doOnError { throwable ->
+            view?.errorReceived(throwable)
+            throwable.printStackTrace()}
         .ignoreElement()
 
 
@@ -251,6 +252,7 @@ class LoginPresenter @Inject constructor(
             Single.fromCallable{
                 db.techParamsDao().clearTechParams() // Перед вставкой очистим таблицу
                 response.forEach{
+                    Timber.d("techParamsDao=${it}")
                     db.techParamsDao().insert(it)
 
                     //#Группировка_List

@@ -61,6 +61,40 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.orderType.text=ordersFilterList[position].typeOrder
         }
 
+        val orderStateListener=object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
+                Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
+                if (!(parentFragment.activity as MainActivity).isBackPressed &&
+                    !(parentFragment.activity as MainActivity).isSearchView) {
+
+                    Timber.d("addTextChangedListener=${s.toString().toLowerCase().capitalize()}")
+                    ordersFilterList[position].status=s.toString().toLowerCase().capitalize()
+                    changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+                    parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+
+                    holder.orderState.removeTextChangedListener(this)
+                    holder.orderState.setText(s.toString().toUpperCase())
+                    holder.orderState.addTextChangedListener(this)
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                //TODO("Not yet implemented")
+            }
+
+        }
+
+        Timber.d("ordersFilterList[position].status=${ordersFilterList[position].status}")
+        if (!(parentFragment.activity as MainActivity).isBackPressed &&
+            !(parentFragment.activity as MainActivity).isSearchView) {
+            Timber.d("removeTextChangedListener")
+            holder.orderState.removeTextChangedListener(orderStateListener)
+        }
 
         holder.orderState.setText(ordersFilterList[position].status?.toUpperCase())
         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
@@ -74,32 +108,9 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         holder.orderState.setAdapter(adapterStatus)
 
-        holder.orderState.addTextChangedListener(object: TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                Timber.d("bool=${(parentFragment.activity as MainActivity).isSearchView}")
-                if (!(parentFragment.activity as MainActivity).isBackPressed &&
-                    !(parentFragment.activity as MainActivity).isSearchView) {
-                    Timber.d("addTextChangedListener=${s.toString()}")
-                    ordersFilterList[position].status=s.toString()
-                    changeColorMBSState(holder.orderState, ordersFilterList[position].status)
-                    parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
 
-                    holder.orderState.removeTextChangedListener(this)
-                    holder.orderState.setText(s.toString().toUpperCase())
-                    holder.orderState.addTextChangedListener(this)
-                }
 
-            }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
-
-        })
+        holder.orderState.addTextChangedListener(orderStateListener)
 
         if (ordersFilterList[position].dateVisit!=null && ordersFilterList[position].timeVisit!=null) {
             val strDateTimeVisit="${ordersFilterList[position].dateVisit} ${ordersFilterList[position].timeVisit}"
@@ -214,6 +225,17 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     R.color.colorCardItem
                 ))
         }*/
+
+        // После того как обновлен последний элемент списка сбросим isBackPressed, isSearchView, если они установлены
+        if (position==itemCount-1) {
+            if ((parentFragment.activity as MainActivity).isBackPressed) {
+                (parentFragment.activity as MainActivity).isBackPressed=false
+            }
+            if ((parentFragment.activity as MainActivity).isSearchView) {
+                (parentFragment.activity as MainActivity).isSearchView=false
+            }
+        }
+
     }
 
     private fun changeColorMBSState(view: MaterialBetterSpinner, status:String?) {

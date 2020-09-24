@@ -15,6 +15,7 @@ import ru.bingosoft.teploInspector.util.Const.LocationStatus.NOT_AVAILABLE
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import timber.log.Timber
+import java.util.*
 
 
 class UserLocationService: Service() {
@@ -22,6 +23,8 @@ class UserLocationService: Service() {
     private var locationManager: LocationManager?=null
     private val locationInterval = 1000L
     private val locationDistance = 10f
+
+    var startTimeService: Long = 0L
 
 
     var userLocationListener =
@@ -31,7 +34,8 @@ class UserLocationService: Service() {
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Timber.d("onStartCommand")
+        startTimeService=Date().time
+        Timber.d("onStartCommand in time=$startTimeService")
         super.onStartCommand(intent, flags, startId)
         return START_STICKY
     }
@@ -137,6 +141,15 @@ class UserLocationService: Service() {
                 intent.putExtra("lat",location.latitude)
                 intent.putExtra("lon",location.longitude)
             }
+            // Получим разницу времени старта слежения и текущего времении
+            val currentTime=Date().time
+            val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as UserLocationService).startTimeService, Date().time)
+            Timber.d("diffTimeMinute=$diffTimeMinute")
+            if (diffTimeMinute>=15) {
+                intent.putExtra("sendRouteToServer",true)
+                ctx.startTimeService=currentTime
+            }
+
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
         }
     }

@@ -57,7 +57,6 @@ import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
-import ru.bingosoft.teploInspector.util.Const.RequestCodes.QR_SCAN
 import timber.log.Timber
 import java.net.UnknownHostException
 import java.util.*
@@ -109,43 +108,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-
         mainPresenter.attachView(this)
 
         // Запросим разрешение на геолокацию, нужны для сервиса
-        requestPermission()
-        Timber.d("startService_MainActivity")
-        // Стартуем фоновый сервис для отслеживания пользователя
-        // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
-        // Сейчас данные уходят так как стоит заглушка на проверку сессии
-        startService(Intent(this,UserLocationService::class.java))
+        //requestPermission()
+
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
             !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             buildAlertMessageNoGps()
-            Timber.d("startService_MainActivity22")
         }
 
-        /*if (!sharedPref.isLocationTracking()) {
-            Timber.d("zzz=${sharedPref.getLogin()}_${sharedPref.getPassword()}")
-            // Проверим авторизован ли пользователь
-            if (sharedPref.getLogin()!="" && sharedPref.getPassword()!="") {
-                Timber.d("startService_MainActivity")
-                // Стартуем фоновый сервис для отслеживания пользователя
-                startService(Intent(this,UserLocationService::class.java))
-            }
-        } else {
-            val locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            Timber.d("GPS_PROVIDER=${locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)}")
-            Timber.d("NETWORK_PROVIDER=${locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)}")
-            if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
-                !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                buildAlertMessageNoGps()
-                Timber.d("startService_MainActivity22")
-                // Стартуем фоновый сервис для отслеживания пользователя
-                startService(Intent(this,UserLocationService::class.java))
-            }
-        }*/
+
         // Регистрируем широковещательный слушатель для получения данных от фонового сервиса
         LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
 
@@ -154,7 +128,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         drawerLayout.addDrawerListener(object: DrawerLayout.DrawerListener {
             override fun onDrawerStateChanged(newState: Int) {
                 Timber.d("onDrawerStateChanged")
-
             }
 
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
@@ -240,6 +213,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     Const.RequestCodes.PERMISSION
                 )
             }
+        } else {
+            Timber.d("startService_MainActivity")
+            // Стартуем фоновый сервис для отслеживания пользователя
+            // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
+            startService(Intent(this,UserLocationService::class.java))
         }
     }
 
@@ -262,7 +240,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
-                    Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ")
+                    Timber.d("ОТКАЗАЛСЯ ОТ ГЕОЛОКАЦИИ MainActivity")
                     mainPresenter.sendMessageToAdmin(REFUSED_PERMISSION)
                 }
             }
@@ -357,24 +335,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     setPhotoResult()
 
                 }
-                QR_SCAN ->{
-                    Timber.d(data?.getStringExtra("SCAN_RESULT"))
-                    val scanResult=data?.getStringExtra("SCAN_RESULT")
-                    val orderId=scanResult?.toLongOrNull()
-                    Timber.d(orderId.toString())
-                    if (orderId!=null) {
-                        mainPresenter.openCheckup(this.supportFragmentManager,orderId)
-                    } else {
-                        toaster.showToast(R.string.not_checkup)
-                    }
-
-
-                }
                 AUTH -> {
                     Timber.d("Авторизуемся повторно")
-                    val fragmentMap= OrderFragment()
+                    val orderFragment= OrderFragment()
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, fragmentMap, "order_fragment_tag")
+                        .replace(R.id.nav_host_fragment, orderFragment, "order_fragment_tag")
                         .addToBackStack(null)
                         .commit()
 
@@ -416,8 +381,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
 
-
-
         if (supportFragmentManager.backStackEntryCount==0) {
             Timber.d("onBackPressed_Заявки")
             supportActionBar?.setTitle(R.string.menu_orders)
@@ -438,24 +401,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (fragment1!=null && fragment1.isVisible) {
             setMode(false) // Включены Заявки, а не карта
         }
-
-        /*val currentFragment=supportFragmentManager.fragments.get(supportFragmentManager.backStackEntryCount-1)
-        Timber.d("currentFragment=$currentFragment")
-        if (currentFragment is NavHostFragment) {
-            Timber.d("onBackPressed Заявки")
-            supportActionBar?.setTitle(R.string.menu_orders)
-            setMode(false) // Включены Заявки, а не карта
-            // Выделим кнопку Список
-            findViewById<Button>(R.id.btnList).isEnabled=false
-            findViewById<Button>(R.id.btnMap).isEnabled=true
-
-            val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-            rv.adapter?.notifyDataSetChanged()
-
-        }
-        if (currentFragment is OrderFragment) {
-            setMode(false) // Включены Заявки, а не карта
-        }*/
 
         val fragment=supportFragmentManager.findFragmentByTag("checkup_fragment_tag")
         if (fragment!=null) {
@@ -594,7 +539,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("updDataOK")
         //Передаем маршрут пользователя
         mainPresenter.sendUserRoute()
-
     }
 
     override fun filesSend(countFiles: Int, indexCurrentFile: Int) {
@@ -764,6 +708,25 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         }
 
+    }
+
+    fun doAuthorization() {
+        Timber.d("doAuthorization")
+        // Получим логин и пароль из настроек
+        val sharedPref = getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
+
+            /*val login = this.sharedPref.getLogin()
+            val password = this.sharedPref.getPassword()
+
+            loginPresenter.attachView(this)
+            loginPresenter.authorization(login, password) // Проверим есть ли авторизация*/
+        } else {
+            Timber.d("логин/пароль=ОТСУТСТВУЮТ")
+            // Запустим активити с настройками
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivityForResult(intent, Const.RequestCodes.AUTH)
+        }
     }
 
 }

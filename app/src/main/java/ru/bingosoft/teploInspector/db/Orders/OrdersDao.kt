@@ -25,12 +25,12 @@ interface OrdersDao {
     fun updateQuestionCount(idOrder: Long?, count: Int)
 
     @Query("UPDATE orders SET answeredCount=:count WHERE id = :idOrder")
-    fun updateAnsweredCount(idOrder: Long?, count: Int)
+    fun updateAnsweredCount(idOrder: Long, count: Int)
 
     @Query("UPDATE orders SET techParamsCount=:count WHERE id = :idOrder")
     fun updateTechParamsCount(idOrder: Long?, count: Int)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(orders: Orders)
 
     @Update

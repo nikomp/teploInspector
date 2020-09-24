@@ -74,6 +74,7 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
         if (position==0 && isExpanded) {
             holder.details.removeAllViews()
             Timber.d("Общие_сведения")
+            Timber.d("parentFragment.currentOrder=${parentFragment.currentOrder}")
 
             val rvgi=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_general_information, holder.details, false) as RecyclerView
             rvgi.layoutManager = LinearLayoutManager(holder.itemView.context)

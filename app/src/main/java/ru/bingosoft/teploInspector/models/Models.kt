@@ -85,9 +85,16 @@ class Models {
         @Expose @SerializedName("replication_nodes") var replication_nodes: Boolean?=null,
         @Expose @SerializedName("replicating_archival_records") var replicating_archival_records: Boolean?=null,
         @Expose @SerializedName("group_checklist") val group_checklist: String?=null,
+        @Expose @SerializedName("replicated_on") val replicated_on: Int?=null,
+        @Expose @SerializedName("node_itp") val node_itp: String?=null,
+
 
         @Expose @SerializedName("answered") var answered: Boolean = false
-    )
+    ) {
+        override fun toString(): String {
+            return "TemplateControl(id=$id, results_id=$results_id, node=$node, guid='$guid', type='$type', value=${value.contentToString()}, question='$question', hint='$hint', resvalue=$resvalue, maxRange=$maxRange, minRange=$minRange, datetime=$datetime, replication_nodes=$replication_nodes, replicating_archival_records=$replicating_archival_records, group_checklist=$group_checklist, answered=$answered)"
+        }
+    }
 
 
     class CustomMarker(

@@ -128,9 +128,9 @@
     <string name="checklist_not_loaded">Чеклист не загружен</string>
     <string name="not_date_visit">Нет даты визита</string>
 
-    <string name="not_count_node">Не указано количество узло</string>
+    <string name="not_count_node">Не указано количество узлов</string>
 
-    <string name="unauthorized">Вы не авторизованы, повторите авторизацию</string>
+    <string name="unauthorized">Связь с сервером потеряна, повторите авторизацию</string>
     <string name="no_address_hostname">Нет связи с сетью Интернет</string>
 
 </resources>

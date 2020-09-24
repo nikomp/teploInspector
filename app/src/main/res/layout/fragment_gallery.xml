@@ -6,29 +6,6 @@
     android:background="@android:color/white">
 
 
-    <ScrollView
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/colorListBackground"
-        app:layout_constraintBottom_toTopOf="@+id/mbSaveCheckup"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <LinearLayout
-            android:id="@+id/mainControl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/colorListBackground"
-            android:orientation="vertical"
-            android:paddingBottom="4dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-    </ScrollView>
-
-
     <!--<com.google.android.material.button.MaterialButton
         android:id="@+id/mbSaveCheckup"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -52,6 +29,30 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/mbSaveCheckup" />-->
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/colorListBackground"
+        app:layout_constraintBottom_toTopOf="@+id/mbSaveCheckup"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <LinearLayout
+            android:id="@+id/mainControl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorListBackground"
+            android:orientation="vertical"
+            android:paddingBottom="4dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </ScrollView>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/mbSaveCheckup"

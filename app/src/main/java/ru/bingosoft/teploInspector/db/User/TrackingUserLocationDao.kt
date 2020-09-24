@@ -8,6 +8,10 @@ interface TrackingUserLocationDao {
     @Query("SELECT * FROM TrackingUserLocation")
     fun getAll(): Flowable<List<TrackingUserLocation>>
 
+    @Query("SELECT * FROM TrackingUserLocation\n" +
+            "where datetime(round(dateLocation/1000), 'unixepoch')>date()")
+    fun getTrackingForCurrentDay(): Flowable<List<TrackingUserLocation>>
+
     @Query("SELECT count(*) FROM TrackingUserLocation")
     fun getSize(): Int
 

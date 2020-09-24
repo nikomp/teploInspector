@@ -10,6 +10,8 @@ import kotlinx.android.synthetic.main.item_general_information.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.*
 
 class GeneralInformationAdapter(private val lists: List<String>, val order :Orders) : RecyclerView.Adapter<GeneralInformationAdapter.GiItemsViewHolder>() {
     override fun onCreateViewHolder(
@@ -28,7 +30,7 @@ class GeneralInformationAdapter(private val lists: List<String>, val order :Orde
         holder.giName.text=lists[position]
         when (lists[position]) {
             "Номер договора"->holder.giValue.setText(order.giContractNumber)
-            "Дата договора"->holder.giValue.setText(order.giContractDate.toString())
+            "Дата договора"->holder.giValue.setText(SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(order.giContractDate))
             "Юридический адрес"->holder.giValue.setText(order.giLegalAddress)
             "Телефон"->holder.giValue.setText(order.giPhone)
             "Электронная почта"->holder.giValue.setText(order.giEmail)

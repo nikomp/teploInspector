@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -46,6 +45,9 @@ import kotlin.collections.ArrayList
 
 class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
+    var uiCreator: UICreator?=null
+
+
     @Inject
     lateinit var checkupPresenter: CheckupPresenter
 
@@ -70,7 +72,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var currentOrder: Orders
     lateinit var techParams: List<TechParams>
 
-    var uiCreator: UICreator?=null
+
 
 
     override fun onCreateView(
@@ -156,7 +158,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         mbsOrderState.setText(order.status?.toUpperCase())
         changeColorMBSState(mbsOrderState, order.status)
 
-        val adapterStatus: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,
             R.layout.template_multiline_spinner_item_state_order,
             R.id.text1,
@@ -167,6 +169,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                Timber.d("s.toString()=${s.toString()}")
                 order.status=s.toString()
                 uiCreator?.refresh()
 
@@ -193,8 +196,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         if (order.dateVisit!=null && order.timeVisit!=null) {
             val strDateTimeVisit="${order.dateVisit} ${order.timeVisit}"
             val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
-            rootView.findViewById<TextView>(R.id.date).text=
-                SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            if (date!=null) {
+                rootView.findViewById<TextView>(R.id.date).text=
+                    SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            }
+
         } else {
             rootView.findViewById<TextView>(R.id.date).text=getString(R.string.not_date_visit)
         }
@@ -222,8 +228,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
 
         if (userLocationNative.userLocation.latitude!=0.0 && userLocationNative.userLocation.longitude!=0.0) {
-            val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
-            btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
+            val distanceRoute=otherUtil.getDistance(userLocationNative.userLocation, order)
+            btnRoute.text=rootView.context.getString(R.string.distance, distanceRoute.toString())//"Маршрут 3.2 км"
         } else {
             btnRoute.text=rootView.context.getString(R.string.route)
         }
@@ -263,7 +269,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         }
 
-        val adapter: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapter: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,
             R.layout.template_multiline_spinner_item,
             Const.TypeTransportation.list
@@ -445,7 +451,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             val stDir = "PhotoForApp/$photoDir"
             val storageDir =
                 File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                    Const.Photo.DCIM_DIR,
                     stDir
                 )
 

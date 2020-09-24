@@ -6,7 +6,6 @@ import com.google.gson.JsonArray
 import com.google.gson.annotations.SerializedName
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.util.JsonArrayConverter
-import ru.bingosoft.teploInspector.util.JsonConverter
 
 @Entity(tableName = "Checkup",
         foreignKeys = arrayOf(
@@ -17,22 +16,30 @@ import ru.bingosoft.teploInspector.util.JsonConverter
                 onDelete = CASCADE)),
         indices = [Index("idOrder")]
     )
-@TypeConverters(JsonConverter::class, JsonArrayConverter::class)
+@TypeConverters(JsonArrayConverter::class)
 data class Checkup (
     @PrimaryKey(autoGenerate = true)
-    var id: Long = 0,
+    //var id: Long = 0,
     @SerializedName("id_order")
-    var idOrder: Long? =null,
+    var idOrder: Long =0,
     @SerializedName("number_order")
     var numberOrder: String,
     @SerializedName("order_guid")
     var orderGuid: String,
     @SerializedName("type_order")
     var typeOrder: String="",
-    //var kindObject: String="",
-    //var nameObject: String="",
     @SerializedName("controls")
     var text: JsonArray? = null,
     var textResult: JsonArray? = null,
     var sync: Boolean = false
-)
+) {
+
+    /**
+     * Возвращает сотроку с описанием чеклиста. Поля могут меняться
+     */
+    override fun toString(): String {
+        return "Checkup(idOrder=$idOrder, numberOrder='$numberOrder', orderGuid='$orderGuid', typeOrder='$typeOrder', text=$text, textResult=$textResult, sync=$sync)"
+    }
+
+
+}

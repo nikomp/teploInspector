@@ -35,7 +35,8 @@ class OrderPresenter @Inject constructor(
     fun addHistoryState(order: Orders) {
         Single.fromCallable {
             db.ordersDao().update(order)
-            val history=HistoryOrderState(idOrder = order.id, stateOrder = order.status!!, dateChange = Date())
+            val date=Date()
+            val history=HistoryOrderState(id = date.hashCode(), idOrder = order.id, stateOrder = order.status!!, dateChange = date)
             tempHistory=history
             db.historyOrderStateDao().insert(history)
         }

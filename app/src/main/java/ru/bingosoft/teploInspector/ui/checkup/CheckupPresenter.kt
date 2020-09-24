@@ -28,7 +28,7 @@ class CheckupPresenter @Inject constructor(
 
     fun loadCheckup(id: Long) {
         Timber.d("loadCheckups")
-        disposable=db.checkupDao().getById(id)
+        disposable=db.checkupDao().getCheckupByOrderId(id)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
@@ -78,7 +78,9 @@ class CheckupPresenter @Inject constructor(
 
 
         disposable=Single.fromCallable{
-            db.checkupDao().insert(uiCreator.checkup)
+            Timber.d("uiCreator.checkup11=${uiCreator.checkup}")
+            //db.checkupDao().insert(uiCreator.checkup)
+            db.checkupDao().update(uiCreator.checkup)
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
@@ -95,9 +97,11 @@ class CheckupPresenter @Inject constructor(
         val filterControls = uiCreator.controlList.filter { it.answered }
 
         Timber.d("filterControls=${filterControls.size}")
+        Timber.d("uiCreator.checkup=${uiCreator.checkup}")
 
 
         disposable = Single.fromCallable {
+            Timber.d("uiCreator.checkup=${uiCreator.checkup.idOrder}__${filterControls.size}")
             db.ordersDao().updateAnsweredCount(uiCreator.checkup.idOrder, filterControls.size)
         }
             .subscribeOn(Schedulers.io())
@@ -126,30 +130,6 @@ class CheckupPresenter @Inject constructor(
 
 
     }
-    /*fun saveCheckup(controlList: Models.ControlList, checkup: Checkup) {
-        Timber.d("Сохраняем данные чеклиста")
-        Timber.d("controlList=${controlList.list[1].type}")
-        Timber.d("controlList=${controlList.list[1].subcheckup[0]}")
-        //Timber.d("controlList=${controlList.list[1].subcheckup[1]}")
-
-        // Исключаем ненужные поля
-        val gson= GsonBuilder()
-            .excludeFieldsWithoutExposeAnnotation()
-            .create()
-        val resCheckup= gson.toJsonTree(controlList, Models.ControlList::class.java)
-        checkup.textResult=resCheckup as JsonArray
-
-        disposable=Single.fromCallable{
-            db.checkupDao().insert(checkup)
-        }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                view?.showCheckupMessage(R.string.msgSaveCheckup)
-            },{trowable ->
-                trowable.printStackTrace()
-            })
-    }*/
 
     fun onDestroy() {
         this.view = null

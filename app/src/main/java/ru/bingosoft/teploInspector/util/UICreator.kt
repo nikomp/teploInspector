@@ -38,7 +38,7 @@ import java.util.*
 @Suppress("unused")
 class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: List<Models.TemplateControl>
-    val dateAndTime: Calendar =Calendar.getInstance()
+    private val dateAndTime: Calendar =Calendar.getInstance()
 
     private val photoHelper=parentFragment.photoHelper
     private lateinit var rootView:View
@@ -93,29 +93,33 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             if (it.group_checklist==null) {
                 // Тиражируем по узлам
                 if (it.node!=null) {
-                    val llCurrentNode=listllNode[it.node-1]
-                    when (it.type) {
-                        "combobox" -> createCombobox(it,llCurrentNode)
-                        "textinput" -> createTextInput(it,llCurrentNode)
-                        "numeric" -> createNumeric(it,llCurrentNode)
-                        "date" -> createDate(it,llCurrentNode)
-                        "time" -> createTime(it,llCurrentNode)
-                        "photo" -> createPhoto(it,llCurrentNode)
+                    if (listllNode.isNotEmpty()) {
+                        val llCurrentNode=listllNode[it.node-1]
+                        when (it.type) {
+                            "combobox" -> createCombobox(it,llCurrentNode)
+                            "textinput" -> createTextInput(it,llCurrentNode)
+                            "numeric" -> createNumeric(it,llCurrentNode)
+                            "date" -> createDate(it,llCurrentNode)
+                            "time" -> createTime(it,llCurrentNode)
+                            "photo" -> createPhoto(it,llCurrentNode)
+                        }
                     }
-
                 }
             } else {
+                Timber.d("it.group_checklist=${it.group_checklist}")
                 // Есть еще и группа
                 if (it.node!=null) {
-                    val llCurrentNode=listllNode[it.node-1]
-                    val llGroup=createGroup(it.group_checklist,llCurrentNode,it.node.toString())
-                    when (it.type) {
-                        "combobox" -> createCombobox(it, llGroup)
-                        "textinput" -> createTextInput(it, llGroup)
-                        "numeric" -> createNumeric(it, llGroup)
-                        "date" -> createDate(it, llGroup)
-                        "time" -> createTime(it, llGroup)
-                        "photo" -> createPhoto(it, llGroup)
+                    if (listllNode.isNotEmpty()) {
+                        val llCurrentNode=listllNode[it.node-1]
+                        val llGroup=createGroup(it.group_checklist,llCurrentNode,it.node.toString())
+                        when (it.type) {
+                            "combobox" -> createCombobox(it, llGroup)
+                            "textinput" -> createTextInput(it, llGroup)
+                            "numeric" -> createNumeric(it, llGroup)
+                            "date" -> createDate(it, llGroup)
+                            "time" -> createTime(it, llGroup)
+                            "photo" -> createPhoto(it, llGroup)
+                        }
                     }
                 }
             }
@@ -124,7 +128,17 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             // Тиражирования по узлам нет
             if (it.group_checklist!=null) {
                 //..., но есть Группа
-                val llGroup=createGroup(it.group_checklist,rootView.findViewById(R.id.llMain))
+                var llGroup=createGroup(it.group_checklist,rootView.findViewById(R.id.llMain))
+                // Проверим, возможно эта группа тиражируется по узлам (как ИТП(общий ввод))
+                Timber.d("_it=$it")
+                if (it.replicated_on!=null) {
+                    Timber.d("it.replicated_on=${it.replicated_on}")
+                    if (it.node_itp!=null) {
+                        Timber.d("it.node_itp=${it.node_itp}")
+                        llGroup=createGroup("Узел ${it.group_checklist} ${it.node_itp}",llGroup,it.node_itp)
+                    }
+                }
+
                 when (it.type) {
                     "combobox" -> createCombobox(it, llGroup)
                     "textinput" -> createTextInput(it, llGroup)
@@ -133,6 +147,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     "time" -> createTime(it, llGroup)
                     "photo" -> createPhoto(it, llGroup)
                 }
+
             } else {
                 // Ничего нет, ни тиражирования, ни группы
                 when (it.type) {
@@ -436,6 +451,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                 doAssociateParent(templateStep, llContainer)
             }
         } else {
+            Timber.d("parentFragment.currentOrder.countNode==null")
             parentFragment.toaster.showToast(R.string.not_count_node)
         }
 
@@ -475,7 +491,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     }
 
     private fun createGroup(name: String, parent: LinearLayout, node: String=""): LinearLayout {
-        Timber.d("генерим группу $name")
+        Timber.d("генерим группу $name$node")
 
         // Проверим, возможно группа уже создана
         val ll=listllGroupOther.filter { it.tag=="$name$node" }

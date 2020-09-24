@@ -90,4 +90,9 @@ class OtherUtil {
 
         return list
     }
+
+    fun getDifferenceTime(startTime: Long, endTime: Long): Long {
+        val seconds=(endTime-startTime)/1000
+        return seconds/60
+    }
 }
