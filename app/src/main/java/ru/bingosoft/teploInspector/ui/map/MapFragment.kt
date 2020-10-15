@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.fragment.app.Fragment
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.Directions
 import com.yandex.mapkit.directions.DirectionsFactory
@@ -77,6 +78,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
 
     lateinit var directions: Directions
     lateinit var transports: Transport
+    lateinit var mkfInstatnce: MapKit
     var lastCarRouter=mutableListOf<PolylineMapObject>()
     var prevMapObjectMarker: MapObject?=null
 
@@ -94,6 +96,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
 
             if (tag==null || tag==false) {
                 if (orders.isEmpty()) {
+                    Timber.d("Грузим все маркеры Заявок")
                     mapPresenter.loadMarkers() // Грузим все маркеры Заявок
                 } else {
                     showMarkers(orders)
@@ -159,6 +162,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
     }
 
     fun removeRouter(list: MutableList<PolylineMapObject>) {
+        Timber.d("removeRouter")
         list.forEach{
             map.mapObjects.remove(it)
         }
@@ -208,6 +212,13 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
             )
 
             userLocationView.accuracyCircle.fillColor = Color.BLUE
+
+            if (lastCarRouter.isNotEmpty()) {
+                Timber.d("показываем маршрут ${lastCarRouter.size}")
+                lastCarRouter.forEach {
+                    map.mapObjects.addPolyline(it.geometry)
+                }
+            }
         }
     }
 
@@ -280,6 +291,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         AndroidSupportInjection.inject(this)
 
         locationManager=MapKitFactory.getInstance().createLocationManager()
+        //locationManager=mkfInstatnce.createLocationManager()
 
         val root = inflater.inflate(R.layout.fragment_map, container, false)
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
@@ -313,8 +325,11 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         DirectionsFactory.initialize(this.context)
         TransportFactory.initialize(this.context)
 
+        mkfInstatnce=MapKitFactory.getInstance()
+
         directions=DirectionsFactory.getInstance()
         transports=TransportFactory.getInstance()
+
     }
 
 
@@ -322,12 +337,14 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         super.onStart()
         mapView.onStart()
         MapKitFactory.getInstance().onStart()
+        //mkfInstatnce.onStart()
     }
 
     override fun onStop() {
         super.onStop()
         mapView.onStop()
         MapKitFactory.getInstance().onStop()
+        //mkfInstatnce.onStop()
     }
 
     override fun showMarkers(orders: List<Orders>) {
@@ -391,8 +408,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
 
     private fun initUserLocationLayer() {
         Timber.d("initUserLocationLayer")
-        val mapKit=MapKitFactory.getInstance()
-        userLocationLayer=mapKit.createUserLocationLayer(mapView.mapWindow)
+        userLocationLayer=MapKitFactory.getInstance().createUserLocationLayer(mapView.mapWindow)
         userLocationLayer.isVisible=true
         userLocationLayer.isHeadingEnabled=true
         userLocationLayer.setObjectListener(userLocationObjectListener)

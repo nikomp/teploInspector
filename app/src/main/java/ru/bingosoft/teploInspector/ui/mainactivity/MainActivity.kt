@@ -111,11 +111,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         mainPresenter.attachView(this)
 
         // Запросим разрешение на геолокацию, нужны для сервиса
-        //requestPermission()
+        requestPermission()
 
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
-            !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) /*&&
+            !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)*/) {
+            //toaster.showToast("buildAlertMessageNoGps")
             buildAlertMessageNoGps()
         }
 
@@ -167,7 +168,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val imgButtonAuth=header.findViewById<ImageButton>(R.id.imgbAuth)
         imgButtonAuth.setOnClickListener {
             Timber.d("Auth")
-            // Запустим активити с настройками
+            //clearBackstack()
+            // Запустим активити с авторизацией
             val intent = Intent(this, LoginActivity::class.java)
             startActivityForResult(intent, AUTH)
             drawerLayout.closeDrawer(Gravity.LEFT)
@@ -336,17 +338,24 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                 }
                 AUTH -> {
-                    Timber.d("Авторизуемся повторно")
-                    val orderFragment= OrderFragment()
+                    Timber.d("Авторизуемся_повторно")
+                    /*val orderFragment= OrderFragment()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.nav_host_fragment, orderFragment, "order_fragment_tag")
-                        .addToBackStack(null)
+                        //.addToBackStack(null)
                         .commit()
 
                     supportFragmentManager.executePendingTransactions()
 
+
                     val of=supportFragmentManager.findFragmentByTag("order_fragment_tag") as? OrderFragment
+                    of?.doAuthorization()*/
+
+                    val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+                    Timber.d("navHostFragment=$navHostFragment")
+                    val of=navHostFragment.childFragmentManager.fragments.get(0) as? OrderFragment
                     of?.doAuthorization()
+
 
 
                 }
@@ -394,11 +403,38 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 (rv.adapter as OrderListAdapter).ordersFilterList=this.filteredOrders
             }
 
+            //#Recyclerview_binding_finish
+            rv.addOnLayoutChangeListener(object: View.OnLayoutChangeListener{
+                override fun onLayoutChange(
+                    v: View?,
+                    left: Int,
+                    top: Int,
+                    right: Int,
+                    bottom: Int,
+                    oldLeft: Int,
+                    oldTop: Int,
+                    oldRight: Int,
+                    oldBottom: Int
+                ) {
+                    rv.removeOnLayoutChangeListener(this)
+                    Timber.d("onLayoutChange")
+                    if (isBackPressed) {
+                        isBackPressed=false
+                    }
+                    if (isSearchView) {
+                        isSearchView=false
+                    }
+                }
+
+            })
             rv.adapter?.notifyDataSetChanged()
+
         }
+
 
         val fragment1=supportFragmentManager.findFragmentByTag("order_fragment_tag")
         if (fragment1!=null && fragment1.isVisible) {
+            Timber.d("VVVCCC")
             setMode(false) // Включены Заявки, а не карта
         }
 

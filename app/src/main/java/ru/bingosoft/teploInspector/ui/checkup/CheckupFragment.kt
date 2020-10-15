@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,6 +23,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
+import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
@@ -37,6 +37,7 @@ import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
 import ru.bingosoft.teploInspector.util.photoSliderHelper.HorizontalAdapter
 import timber.log.Timber
 import java.io.File
+import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -105,6 +106,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
 
         checkupPresenter.attachView(this)
+        //orderPresenter.attachView(this)
         //this.techParams=(rootView.context as MainActivity).techParams
 
         val ivExpand=rootView.findViewById<ImageView>(R.id.ivExpand)
@@ -130,7 +132,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         fillOrderData()
 
 
-        checkPhotoPermission() // Проверим разрешения для фото*/
+        checkPermission()
         return view
     }
 
@@ -171,12 +173,20 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             override fun afterTextChanged(s: Editable?) {
                 Timber.d("s.toString()=${s.toString()}")
                 order.status=s.toString()
-                uiCreator?.refresh()
+                //uiCreator?.refresh()
+                uiCreator?.checkEnabled()
 
 
                 changeColorMBSState(mbsOrderState, order.status)
-                //checkupPresenter.addHistoryState(order)
-                orderPresenter.addHistoryState(order)
+
+                try {
+                    orderPresenter.addHistoryState(order)
+                } catch (e: Throwable) {
+                    Timber.d("ERROR=$e")
+                    //orderPresenter.view?.errorReceived(e)
+                    errorReceived(e)
+                }
+
 
                 mbsOrderState.removeTextChangedListener(this)
                 mbsOrderState.setText(s.toString().toUpperCase())
@@ -392,7 +402,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
 
-    private fun checkPhotoPermission() {
+    private fun checkPermission() {
+        Timber.d("checkPermission")
         // Проверим разрешения
         if (ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.READ_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.WRITE_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
@@ -420,7 +431,6 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        Log.d(Const.LogTags.LOGTAG,"onRequestPermissionsResult")
         when (requestCode) {
             Const.RequestCodes.PERMISSION -> {
                 if (grantResults.isNotEmpty()
@@ -494,5 +504,25 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     fun isCheckupInitialized() =::checkup.isInitialized
+
+    override fun errorReceived(throwable: Throwable) {
+        Timber.d("errorReceived222")
+        when (throwable) {
+            is HttpException -> {
+                Timber.d("throwable.code()=${throwable.code()}")
+                when (throwable.code()) {
+                    401 -> toaster.showToast(R.string.unauthorized)
+                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                }
+            }
+            is UnknownHostException ->{
+                toaster.showToast(R.string.no_address_hostname)
+            }
+            else -> {
+                toaster.showToast("Ошибка! ${throwable.message}")
+            }
+        }
+
+    }
 
 }

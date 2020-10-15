@@ -26,7 +26,7 @@ interface ApiService {
     @GET("registryservice/plugins/execute/GetRequestDataQuery")
     fun getListOrder():Single<List<Orders>>
 
-    @GET("datawarehouseservice/query/7")
+    @GET("datawarehouseservice/query/23")
     fun getTechParams(
         @Query("user_id") user: Int
     ):Single<List<TechParams>>

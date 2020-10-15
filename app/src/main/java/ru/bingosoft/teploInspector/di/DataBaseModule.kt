@@ -19,6 +19,7 @@ class DataBaseModule {
             application.applicationContext,
             AppDatabase::class.java, "mydatabase.db"
         )
+        .fallbackToDestructiveMigration()
         .build()
     }
 

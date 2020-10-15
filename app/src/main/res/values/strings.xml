@@ -133,4 +133,7 @@
     <string name="unauthorized">Связь с сервером потеряна, повторите авторизацию</string>
     <string name="no_address_hostname">Нет связи с сетью Интернет</string>
 
+    <string name="checklist_is_blocked">Чек-лист заблокирован. Смените статус заявки на \"В работе\"</string>
+    <string name="points_less_than_2">Недостаточно точек для построения маршрута. Проверьте GPS</string>
+
 </resources>

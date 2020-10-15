@@ -22,9 +22,15 @@ data class TechParams (
     @SerializedName("tech_char_guid")
     var guid: String="",
     @SerializedName("order_id")
-    var idOrder: Long? =null,
+    var idOrder: Long,
     @SerializedName("technical_characteristic")
     var technical_characteristic: String = "",
     @SerializedName("val")
-    var value: String = ""
-)
+    var value: String? = "",
+    @SerializedName("node")
+    var node: String? = null
+) {
+    override fun toString(): String {
+        return "TechParams(id=$id, guid='$guid', idOrder=$idOrder, technical_characteristic='$technical_characteristic', value='$value', node=$node)"
+    }
+}

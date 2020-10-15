@@ -7,19 +7,24 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.HttpException
+import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.HistoryOrderState.HistoryOrderState
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
+import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
 class OrderPresenter @Inject constructor(
     val db: AppDatabase,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    val toaster: Toaster
 ) {
 
     var tempHistory= HistoryOrderState()
@@ -31,6 +36,7 @@ class OrderPresenter @Inject constructor(
     fun attachView(view: OrderContractView) {
         this.view=view
     }
+
 
     fun addHistoryState(order: Orders) {
         Single.fromCallable {
@@ -65,9 +71,45 @@ class OrderPresenter @Inject constructor(
                 Timber.d("Отправили статус")
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
-                view?.errorReceived(throwable)
+                Timber.d("view=$view")
                 throwable.printStackTrace()
+                /*if (view!=null) {
+                    view?.errorReceived(throwable)
+                } else {
+
+                }*/
+                errorHandler(throwable)
+
             })
+
+    }
+
+    fun changeTypeTransortation(order: Orders) {
+        Single.fromCallable {
+            db.ordersDao().update(order)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe()
+    }
+
+    private fun errorHandler(throwable: Throwable) {
+        Timber.d("errorHandler")
+        when (throwable) {
+            is HttpException -> {
+                Timber.d("throwable.code()=${throwable.code()}")
+                when (throwable.code()) {
+                    401 -> toaster.showToast(R.string.unauthorized)
+                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                }
+            }
+            is UnknownHostException ->{
+                toaster.showToast(R.string.no_address_hostname)
+            }
+            else -> {
+                toaster.showToast("Ошибка! ${throwable.message}")
+            }
+        }
 
     }
 
@@ -80,6 +122,7 @@ class OrderPresenter @Inject constructor(
                 Timber.d("Данные получили из БД")
                 Timber.d(it.toString())
                 view?.showOrders(it)
+                disposable.dispose()
             }
 
         Timber.d("ОК")

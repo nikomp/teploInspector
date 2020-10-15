@@ -54,6 +54,13 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                         intent.putExtra("url", stUrl)
                         setResult(Activity.RESULT_OK, intent)
 
+                        /*val intent = Intent(this, MainActivity::class.java)
+                        intent.putExtra("login", stLogin)
+                        intent.putExtra("password", stPassword)
+                        intent.putExtra("url", stUrl)
+                        //intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivityForResult(intent, Const.RequestCodes.AUTH)*/
+
                         this.finish()
                     } else {
                         toaster.showToast(R.string.not_internet)

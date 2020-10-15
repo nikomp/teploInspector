@@ -45,6 +45,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map.MapFragment
+import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import javax.inject.Inject
@@ -94,6 +95,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
     }
 
     override fun onClick(v: View?) {
+        Timber.d("onClick_ROUTE")
         if (v != null) {
             //Очистим предыдущий маршрут
             /*if (parentFragment.lastCarRouter.isNotEmpty()) {
@@ -115,7 +117,13 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
 
                     carRouter=directions.createDrivingRouter()
-                    drivingSession = carRouter.requestRoutes(requestPoints, DrivingOptions(), drivingRouteListener)
+                    if (requestPoints.size>1) {
+                        drivingSession = carRouter.requestRoutes(requestPoints, DrivingOptions(), drivingRouteListener)
+                        Timber.d("carRouter_created")
+                    } else {
+                        toaster.showToast(R.string.points_less_than_2)
+                    }
+
 
                     hideBottomSheet()
                 }
@@ -135,9 +143,13 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
                     busRouter = TransportFactory.getInstance().createMasstransitRouter()
                     Timber.d("busRouter=$busRouter")
-                    Timber.d("requestPoints=${requestPoints[0].point.latitude} ${requestPoints[1].point.latitude}")
+                    //Timber.d("requestPoints=${requestPoints[0].point.latitude} ${requestPoints[1].point.latitude}")
                     val options = MasstransitOptions(ArrayList<String>(), ArrayList<String>(), TimeOptions())
-                    busRouter.requestRoutes(requestPoints, options, routeListener)
+                    if (requestPoints.size>1) {
+                        busRouter.requestRoutes(requestPoints, options, routeListener)
+                    } else {
+                        toaster.showToast(R.string.points_less_than_2)
+                    }
 
                     isPedestrianRouter=false
                 }
@@ -155,7 +167,13 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                     btnCar.isEnabled=true
 
                     pedestrianRouter=transports.createPedestrianRouter()
-                    pedestrianRouter.requestRoutes(requestPoints,TimeOptions(),routeListener)
+
+                    if (requestPoints.size>1) {
+                        pedestrianRouter.requestRoutes(requestPoints,TimeOptions(),routeListener)
+                    } else {
+                        toaster.showToast(R.string.points_less_than_2)
+                    }
+
 
                     isPedestrianRouter=true
 
@@ -205,10 +223,6 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             Timber.d("showRoutersList=${routes.size}")
             val routesRecyclerView = root.findViewById(R.id.routers_recycler_view) as RecyclerView
 
-            /*val params=routesRecyclerView.layoutParams
-            params.height=330
-            routesRecyclerView.layoutParams=params*/
-
             routesRecyclerView.layoutManager = LinearLayoutManager(root.context)
             val adapter = RouterListAdapter(routes,routerRVClickListeners, isPedestrianRouter)
             routesRecyclerView.adapter = adapter
@@ -236,6 +250,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                 }
             }
         }
+
     }
 
     private val routerRVClickListeners=object: RouterRVClickListeners {
@@ -355,6 +370,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         super.onStart()
         //mapView.onStart()
         MapKitFactory.getInstance().onStart()
+        //parentFragment.mkfInstatnce.onStart()
     }
 
     override fun setupDialog(dialog: Dialog, style: Int) {
@@ -378,9 +394,12 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         val btnFoot = root.findViewById(R.id.btnFoot) as Button
         btnFoot.setOnClickListener(this)
 
+
+
         root.findViewById<TextView>(R.id.symbolNumber).text="Заявка №${order.number}"
         root.findViewById<TextView>(R.id.address).text=order.address
 
+        Timber.d("order=$order")
         //Сохраним маршрут с точками
         requestPoints.add(
             RequestPoint(
@@ -390,17 +409,48 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             )
         )
 
-        val userLocation=(this.activity as MainActivity).userLocationReceiver.lastKnownLocation
+        Timber.d("requestPoints=${requestPoints[0].point.latitude}_${requestPoints[0].point.longitude}")
+
+        if ((this.activity as MainActivity).userLocationReceiver.isInitLocation()) {
+            Timber.d("userLocationReceiver_isInitLocation")
+            val userLocation=(this.activity as MainActivity).userLocationReceiver.lastKnownLocation
 
 
-        Timber.d("userLocation=${userLocation.latitude} =${userLocation.longitude}")
-        requestPoints.add(
-            RequestPoint(
-                Point(userLocation.latitude, userLocation.longitude),
-                RequestPointType.WAYPOINT,
-                null
+            Timber.d("userLocation=${userLocation.latitude} =${userLocation.longitude}")
+            requestPoints.add(
+                RequestPoint(
+                    Point(userLocation.latitude, userLocation.longitude),
+                    RequestPointType.WAYPOINT,
+                    null
+                )
             )
-        )
+        }
+
+        Timber.d("AUTOCLICK!")
+        if (order.typeTransportation==null) {
+            order.typeTransportation="Самостоятельно на общественном транспорте"
+        }
+        Timber.d("order.typeTransportation=${order.typeTransportation}")
+        val indexTypeTransport=Const.TypeTransportation.list.indexOf(order.typeTransportation)
+        Timber.d("indexTypeTransport=$indexTypeTransport")
+        when (indexTypeTransport) {
+            0 -> {
+                Timber.d("Самостоятельно на общественном транспорте")
+                btnBus.performClick()
+            }
+            1 -> {
+                Timber.d("Самостоятельно на личном транспорте")
+                //Фактически маршркут будет показан после инициализации локации пользователя
+                // см. MapFragmnet userLocationObjectListener
+                btnCar.performClick()
+            }
+            2 -> {
+                Timber.d("Самостоятельно пешком")
+                btnFoot.performClick()
+            }
+
+        }
+
 
     }
 
@@ -436,6 +486,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         super.onStop()
         //mapView.onStop()
         MapKitFactory.getInstance().onStop()
+        //parentFragment.mkfInstatnce.onStop()
     }
 
 

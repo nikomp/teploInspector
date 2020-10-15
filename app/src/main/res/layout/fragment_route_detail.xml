@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white">
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/symbolNumber"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
@@ -16,14 +16,11 @@
         android:fontFamily="@font/roboto_bold"
         android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
         android:textSize="15sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
         tools:text="А-001" />
 
     <TextView
         android:id="@+id/address"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
@@ -31,81 +28,74 @@
         android:fontFamily="@font/roboto_medium"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         android:textSize="13sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/symbolNumber"
         tools:text="Обследование территории мукомольного завода" />
 
+        <LinearLayout
+            android:id="@+id/linearLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@color/routeButtonPanel"
+            android:orientation="horizontal">
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:background="@color/routeButtonPanel"
-        android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/address">
-
-        <!--View для выравнивания-->
-        <!--<View
+            <!--View для выравнивания-->
+            <!--<View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />-->
 
-        <Button
-            android:id="@+id/btnCar"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@color/routeButtonPanel"
-            android:drawableTop="@drawable/auto_grey"
-            app:backgroundTint="@color/routeButtonPanel" />
+            <Button
+                android:id="@+id/btnCar"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:background="@color/routeButtonPanel"
+                android:drawableTop="@drawable/auto_grey"
+                app:backgroundTint="@color/routeButtonPanel" />
 
 
-        <Button
-            android:id="@+id/btnBus"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:drawableTop="@drawable/btn_bus_selector"
-            app:backgroundTint="@color/routeButtonPanel" />
+            <Button
+                android:id="@+id/btnBus"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/btn_bus_selector"
+                app:backgroundTint="@color/routeButtonPanel" />
 
 
-        <Button
-            android:id="@+id/btnFoot"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:drawableTop="@drawable/btn_foot_selector"
-            app:backgroundTint="@color/routeButtonPanel" />
+            <Button
+                android:id="@+id/btnFoot"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/btn_foot_selector"
+                app:backgroundTint="@color/routeButtonPanel" />
 
-        <!--View для выравнивания-->
-        <!--<View
+            <!--View для выравнивания-->
+            <!--<View
                android:layout_width="0dp"
                android:layout_height="0dp"
                android:layout_weight="1" />-->
-    </LinearLayout>
+        </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/routers_recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:paddingBottom="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
+        android:layout_marginBottom="8dp"
+        android:layout_weight="1"
+        android:paddingBottom="8dp" />
+    </LinearLayout>
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>

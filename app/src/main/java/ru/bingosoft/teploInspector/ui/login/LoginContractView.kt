@@ -6,6 +6,7 @@ import java.util.*
 interface LoginContractView {
     fun showMessageLogin(resID: Int)
     fun showMessageLogin(msg: String)
+    fun showOrders()
     fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
     fun saveToken(token: String)
     fun showFailureTextView()
@@ -15,4 +16,5 @@ interface LoginContractView {
     fun startLocationService()
 
     fun errorReceived(throwable: Throwable)
+
 }

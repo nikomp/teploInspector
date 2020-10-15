@@ -27,10 +27,17 @@ class GeneralInformationAdapter(private val lists: List<String>, val order :Orde
     }
 
     override fun onBindViewHolder(holder: GiItemsViewHolder, position: Int) {
+        Timber.d("order=$order")
         holder.giName.text=lists[position]
         when (lists[position]) {
             "Номер договора"->holder.giValue.setText(order.giContractNumber)
-            "Дата договора"->holder.giValue.setText(SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(order.giContractDate))
+            "Дата договора"->
+            {
+                if (order.giContractDate!=null) {
+                    holder.giValue.setText(SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(order.giContractDate))
+                }
+
+            }
             "Юридический адрес"->holder.giValue.setText(order.giLegalAddress)
             "Телефон"->holder.giValue.setText(order.giPhone)
             "Электронная почта"->holder.giValue.setText(order.giEmail)

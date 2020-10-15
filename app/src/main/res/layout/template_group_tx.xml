@@ -20,8 +20,6 @@
             android:id="@+id/colorLine"
             android:layout_width="4dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginLeft="8dp"
             android:background="#297BE7"
             android:visibility="visible" />
 
@@ -65,8 +63,8 @@
                 android:id="@+id/titleGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_marginLeft="10dp">
+                android:layout_marginStart="2dp"
+                android:layout_marginLeft="2dp">
 
                 <TextView
                     android:id="@+id/question"

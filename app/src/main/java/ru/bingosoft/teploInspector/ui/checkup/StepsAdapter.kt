@@ -43,14 +43,15 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
         when (position) {
             0-> holder.countQuestion.text="${Const.GeneralInformation.list.size}/${Const.GeneralInformation.list.size}"
             1-> {
-                //holder.countQuestion.text="${Const.TechnicalСharacteristicList.list.size}/${Const.TechnicalСharacteristicList.list.size}"
-                //holder.countQuestion.text="0/0"
                 holder.countQuestion.text="${parentFragment.currentOrder.techParamsCount}/${parentFragment.currentOrder.techParamsCount}"
             }
-            else -> {
-                //holder.countQuestion.text="6/6"
+            2 -> {
+                Timber.d("questionCount=${parentFragment.currentOrder.questionCount}")
                 holder.countQuestion.text="${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
                 holder.countQuestion.tag="countQuestionChecklist"
+            }
+            else -> {
+                Timber.d("Неизвестная секция чеклиста")
             }
         }
 
@@ -116,6 +117,10 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
         holder.itemView.setOnClickListener {
             expandedPosition = if (isExpanded) -1 else position
             notifyItemChanged(position)
+            if ((!isExpanded) && (parentFragment.currentOrder.status=="Открыта"
+                || parentFragment.currentOrder.status=="В пути")) {
+                parentFragment.toaster.showToast(R.string.checklist_is_blocked)
+            }
         }
 
     }

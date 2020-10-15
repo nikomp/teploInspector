@@ -67,6 +67,10 @@ class UserLocationReceiver @Inject constructor(
         }
     }
 
+    fun isInitLocation() :Boolean {
+        return ::lastKnownLocation.isInitialized
+    }
+
     private fun saveLocation(lat: Double?, lon: Double?, provider: String, status: String) {
         Timber.d("saveLocation")
         val movingUser=TrackingUserLocation(lat=lat,lon=lon,dateLocation = Date(),provider = provider, status = status)

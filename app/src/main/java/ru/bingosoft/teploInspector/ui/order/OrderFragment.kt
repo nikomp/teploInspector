@@ -241,14 +241,17 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun showMessageLogin(resID: Int) {
         toaster.showToast(resID)
-
-        orderPresenter.attachView(this)
-        //orderPresenter.importData()
-        orderPresenter.loadOrders()
     }
 
     override fun showMessageLogin(msg: String) {
         toaster.showToast(msg)
+    }
+
+    override fun showOrders() {
+        Timber.d("showOrders")
+        orderPresenter.attachView(this)
+        //orderPresenter.importData()
+        orderPresenter.loadOrders()
     }
 
     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
@@ -474,6 +477,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun errorReceived(throwable: Throwable) {
+        Timber.d("errorReceived")
         when (throwable) {
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
@@ -492,10 +496,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     }
 
+
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
 
+
         currentOrder=(orders_recycler_view.adapter as OrderListAdapter).getOrder(position)
+        Timber.d("currentOrder.questionCount=${currentOrder.questionCount}")
         currentOrder.checked=!currentOrder.checked
         (activity as MainActivity).currentOrder=this.currentOrder
 

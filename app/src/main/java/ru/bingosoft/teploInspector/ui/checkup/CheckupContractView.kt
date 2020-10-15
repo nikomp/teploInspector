@@ -9,5 +9,5 @@ interface CheckupContractView {
     fun setAnsweredCount(count: Int)
     fun techParamsLoaded(techParams: List<TechParams>)
 
-    //fun checkupIsLoaded(checkup: Checkup)
+    fun errorReceived(throwable: Throwable)
 }

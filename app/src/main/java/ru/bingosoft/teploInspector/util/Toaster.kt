@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import ru.bingosoft.teploInspector.R
 
-class Toaster(val ctx: Context) {
+class Toaster(private val ctx: Context) {
     fun showToast(resId: Int, duration: Int = Toast.LENGTH_SHORT) {
         showToast(ctx.getString(resId), duration) // Используется перегрузка метода
     }

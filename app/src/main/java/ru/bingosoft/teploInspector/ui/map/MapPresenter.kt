@@ -19,11 +19,15 @@ class MapPresenter (val db: AppDatabase)  {
         disposable= db.ordersDao().getAll()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe {
+            .subscribe({
                 Timber.d("Данные получили")
                 Timber.d(it.toString())
                 view?.showMarkers(it)
-            }
+                disposable.dispose()
+            },{throwable ->
+                Timber.d("loadMarkers_Error")
+                throwable.printStackTrace()
+            })
 
     }
 

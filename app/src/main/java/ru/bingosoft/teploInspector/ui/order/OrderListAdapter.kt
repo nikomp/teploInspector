@@ -52,7 +52,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
-        Timber.d("XXX=$ordersFilterList")
+        Timber.d("Order_number=${ordersFilterList[position].number}")
         holder.orderNumber.text = "№ ${ordersFilterList[position].number}"
 
         if (ordersFilterList[position].typeOrder.isNullOrEmpty()){
@@ -67,6 +67,8 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
                 if (!(parentFragment.activity as MainActivity).isBackPressed &&
                     !(parentFragment.activity as MainActivity).isSearchView) {
+
+                    Timber.d("addHistoryState_after_Back")
 
                     Timber.d("addTextChangedListener=${s.toString().toLowerCase().capitalize()}")
                     ordersFilterList[position].status=s.toString().toLowerCase().capitalize()
@@ -143,6 +145,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         holder.typeTransportation.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                Timber.d("Route_afterTextChanged")
                 holder.btnRoute.isEnabled = s.toString() != parentFragment.requireContext().getString(R.string.strTypeTransportationClient)
                 if (holder.btnRoute.isEnabled) {
                     holder.btnRoute.setTextColor(Color.parseColor("#2D3239"))
@@ -150,6 +153,8 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     holder.btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
                 }
                 ordersFilterList[position].typeTransportation=s.toString()
+                parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
+
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -204,7 +209,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             fragmentManager.executePendingTransactions()
 
 
-            (parentFragment.requireContext() as FragmentsContractActivity).setOrder(orders[position])
+            (parentFragment.requireContext() as FragmentsContractActivity).setOrder(ordersFilterList[position]) //orders[position]
 
         }
 
@@ -227,14 +232,15 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         }*/
 
         // После того как обновлен последний элемент списка сбросим isBackPressed, isSearchView, если они установлены
-        if (position==itemCount-1) {
+        /*if (position==itemCount-1) {
+            Timber.d("itemCount=$itemCount")
             if ((parentFragment.activity as MainActivity).isBackPressed) {
                 (parentFragment.activity as MainActivity).isBackPressed=false
             }
             if ((parentFragment.activity as MainActivity).isSearchView) {
                 (parentFragment.activity as MainActivity).isSearchView=false
             }
-        }
+        }*/
 
     }
 
@@ -304,8 +310,9 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     //originalOrdersList.addAll(orders)
                     ordersFilterList=orders
                 } else {
+                    Timber.d("ordersFilterList=$ordersFilterList")
                     val resultList=
-                        ordersFilterList.filter { it.address!!.contains(charSearch,true)}
+                        ordersFilterList.filter { it.address!=null && it.address!!.contains(charSearch,true)}
                     Timber.d("resultList=${resultList.size}")
 
                     ordersFilterList=resultList
@@ -321,16 +328,17 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
             override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
                 Timber.d("publishResults")
-                ordersFilterList=results?.values as List<Orders>
-                Timber.d("ordersFilterList=$ordersFilterList")
-                //notifyDataSetChanged()
-                //refreshData(ordersFilterList)
+                if (results?.values!=null) {
+                    ordersFilterList= results.values as List<Orders>
 
-                if ((parentFragment.requireActivity() as MainActivity).isMapFragmentShow) {
-                    (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
-                } else {
-                    (parentFragment.requireContext() as FragmentsContractActivity).showSearchedOrders(ordersFilterList)
+
+                    if ((parentFragment.requireActivity() as MainActivity).isMapFragmentShow) {
+                        (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
+                    } else {
+                        (parentFragment.requireContext() as FragmentsContractActivity).showSearchedOrders(ordersFilterList)
+                    }
                 }
+
 
             }
 

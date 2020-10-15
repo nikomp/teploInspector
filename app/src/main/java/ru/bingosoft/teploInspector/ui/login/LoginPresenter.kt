@@ -160,59 +160,16 @@ class LoginPresenter @Inject constructor(
 
     fun syncDB() {
         Timber.d("syncDB")
-        val userId=sharedPrefSaver.getUserId()
         disposable = syncOrder()
-            .andThen(syncTechParams(userId))
-            .andThen(apiService.getCheckups())
             .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                checkups ->
-                Timber.d("Получили обследования")
-                Timber.d("checkups=$checkups")
-                if (checkups.isEmpty()) {
-                    throw ThrowHelper("Нет обследований")
-                } else {
-                    Timber.d("Обследования есть")
-                    //val data: Models.CheckupList = checkups
+            .subscribe()
+            //.andThen(apiService.getCheckups())
 
-                    Single.fromCallable {
-                        //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
-                        checkups.forEach {
-                            Timber.d("it=$it")
-                            db.checkupDao().insert(it)
-
-                            // Обновим число вопросов для заявки
-                            val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
-                            val controlList: List<Models.TemplateControl> =Gson().fromJson(it.text, listType)
-                            db.ordersDao().updateQuestionCount(it.idOrder,controlList.size)
-                        }
-
-                    }
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe ({
-                            Timber.d("Сохранили обследования в БД")
-                        }, {error ->
-                            Timber.d("error")
-                            error.printStackTrace()
-                        })
-
-                    view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
-                }
-            },{throwable ->
-                Timber.d("throwable syncDB")
-                throwable.printStackTrace()
-                if (throwable is ThrowHelper) {
-                    view?.showMessageLogin("${throwable.message}")
-                } else {
-                    view?.errorReceived(throwable)
-                }
-            })
     }
 
     private fun syncOrder() :Completable=apiService.getListOrder()
         .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
         .map{orders ->
             if (orders.isEmpty()) {
                 throw ThrowHelper("Нет заявок")
@@ -228,8 +185,6 @@ class LoginPresenter @Inject constructor(
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
-                    view?.showMessageLogin(R.string.order_refresh)
-
                 },{throwable ->
                     view?.errorReceived(throwable)
                     throwable.printStackTrace()
@@ -240,20 +195,28 @@ class LoginPresenter @Inject constructor(
             view?.errorReceived(throwable)
             throwable.printStackTrace()}
         .ignoreElement()
+        .andThen(syncTechParams(sharedPrefSaver.getUserId()))
 
 
     private fun syncTechParams(userId:Int) :Completable=apiService.getTechParams(user=userId)
         .subscribeOn(Schedulers.io())
-        //.observeOn(AndroidSchedulers.mainThread())
+        .observeOn(AndroidSchedulers.mainThread())
         .map{ response ->
             Timber.d("Получили тех. характеристики всех заявок")
             Timber.d(response.toString())
 
             Single.fromCallable{
                 db.techParamsDao().clearTechParams() // Перед вставкой очистим таблицу
-                response.forEach{
-                    Timber.d("techParamsDao=${it}")
-                    db.techParamsDao().insert(it)
+                response.forEach{ techParams ->
+                    Timber.d("techParamsDao=${techParams}")
+                    db.techParamsDao().insert(techParams)
+                    // Если ставить ограничение TechParams.value not NULL, то лучше инсертить данные так
+                    /*try {
+                        db.techParamsDao().insert(techParams)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }*/
+
 
                     //#Группировка_List
                     val groupTechParams=response.groupBy { it.idOrder }
@@ -265,7 +228,6 @@ class LoginPresenter @Inject constructor(
 
             }
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { _->
                     Timber.d("Сохранили тех характеристики в БД")
                 }
@@ -274,6 +236,62 @@ class LoginPresenter @Inject constructor(
         .doOnError { throwable ->
             view?.errorReceived(throwable)
             throwable.printStackTrace()
+        }
+        .ignoreElement()
+        .andThen(syncCheckups())
+
+
+    private fun syncCheckups() :Completable=apiService.getCheckups()
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .map{
+                checkups ->
+            Timber.d("Получили обследования")
+            Timber.d("checkups=$checkups")
+            if (checkups.isEmpty()) {
+                throw ThrowHelper("Нет обследований")
+            } else {
+                Timber.d("Обследования есть")
+                //val data: Models.CheckupList = checkups
+
+                Single.fromCallable {
+                    //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
+                    checkups.forEach {
+                        Timber.d("it=$it")
+                        db.checkupDao().insert(it)
+
+                        // Обновим число вопросов для заявки
+                        val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
+                        val controlList: List<Models.TemplateControl> =Gson().fromJson(it.text, listType)
+                        Timber.d("updateQuestionCount_${it.idOrder}_${controlList.size}")
+                        db.ordersDao().updateQuestionCount(it.idOrder,controlList.size)
+
+                    }
+
+                }
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe ({
+                        Timber.d("Сохранили обследования в БД")
+                        view?.showOrders()
+                    }, {error ->
+                        Timber.d("error")
+                        error.printStackTrace()
+                    })
+
+                view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
+                view?.showMessageLogin(R.string.order_refresh)
+
+            }
+        }
+        .doOnError { throwable ->
+            Timber.d("throwable syncCheckups")
+            throwable.printStackTrace()
+            if (throwable is ThrowHelper) {
+                view?.showMessageLogin("${throwable.message}")
+            } else {
+                view?.errorReceived(throwable)
+            }
         }
         .ignoreElement()
 

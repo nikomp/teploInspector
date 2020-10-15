@@ -38,6 +38,7 @@ import java.util.*
 @Suppress("unused")
 class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: List<Models.TemplateControl>
+    private var enabledControls: MutableList<View> = mutableListOf()
     private val dateAndTime: Calendar =Calendar.getInstance()
 
     private val photoHelper=parentFragment.photoHelper
@@ -172,7 +173,6 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         val materialSpinner=templateStep.findViewById<MaterialBetterSpinner>(R.id.android_material_design_spinner)
 
-        //doAssociateParent(templateStep, rootView.findViewById(R.id.llMain))
         doAssociateParent(templateStep, parent)
 
 
@@ -198,6 +198,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
         // Вешаем обработчик на spinner последним, иначе сбрасывается цвет шага
         materialSpinner.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+        enabledControls.add(materialSpinner)
 
     }
 
@@ -227,6 +228,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
         textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+
+        enabledControls.add(textInputLayout)
     }
 
     private fun createNumeric(it: Models.TemplateControl, parent: LinearLayout) {
@@ -258,6 +261,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                 templateStep
             )
         )
+
+        enabledControls.add(textInputLayout)
     }
 
     private fun createDate(it: Models.TemplateControl, parent: LinearLayout) {
@@ -285,6 +290,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
 
         textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+
+        enabledControls.add(textInputLayout)
     }
 
     private fun createTime(it: Models.TemplateControl, parent: LinearLayout) {
@@ -312,6 +319,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
 
         textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+
+        enabledControls.add(textInputLayout)
     }
 
     private fun createPhoto(it: Models.TemplateControl, parent: LinearLayout) {
@@ -419,6 +428,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             }
 
         })
+
+        enabledControls.add(btnPhoto)
     }
 
     private fun createNodes(llContainer: LinearLayout): List<LinearLayout> {
@@ -539,6 +550,23 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             create(rootView)
         }
 
+    }
+
+    fun checkEnabled() {
+        enabled= !(parentFragment.currentOrder.status==parentFragment.getString(R.string.status_IN_WAY)||
+                parentFragment.currentOrder.status==parentFragment.getString(R.string.status_OPEN))
+
+        enabledControls.forEach {
+            if (it is MaterialBetterSpinner) {
+                if (enabled) {
+                    it.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
+                    //it.setTextColor(android.R.attr.textColorPrimary)
+                } else {
+                    it.dropDownHeight = 0
+                }
+            }
+            it.isEnabled=enabled
+        }
     }
 
     /**
