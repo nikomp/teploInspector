@@ -71,10 +71,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     lateinit var checkup: Checkup
     lateinit var currentOrder: Orders
-    lateinit var techParams: List<TechParams>
-
-
-
+    var techParams: List<TechParams> = listOf()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -366,10 +363,6 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     override fun techParamsLoaded(techParams: List<TechParams>) {
         Timber.d("techParamsLoaded $techParams")
         this.techParams=techParams
-        /*val rv=rootView.findViewById<RecyclerView>(R.id.steps_recycler_view)
-        val vh=rv.findViewHolderForAdapterPosition(1)
-        val tp=vh?.itemView?.findViewById<TextView>(R.id.countQuestion)
-        tp?.text="${techParams.size}/${techParams.size}"*/
     }
 
 
@@ -519,7 +512,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 toaster.showToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("Ошибка! ${throwable.message}")
+                toaster.showToast("${throwable.message}")
             }
         }
 

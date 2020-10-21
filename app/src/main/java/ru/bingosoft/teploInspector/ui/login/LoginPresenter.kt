@@ -9,14 +9,17 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.ThrowHelper
+import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.lang.reflect.Type
+import java.net.UnknownHostException
 import java.util.*
 import javax.inject.Inject
 
@@ -24,8 +27,8 @@ import javax.inject.Inject
 class LoginPresenter @Inject constructor(
     private val apiService: ApiService,
     private val db: AppDatabase,
-    private val sharedPrefSaver: SharedPrefSaver
-
+    private val sharedPrefSaver: SharedPrefSaver,
+    val toaster: Toaster
 ) {
     var view: LoginContractView? = null
     private var stLogin: String = ""
@@ -163,8 +166,6 @@ class LoginPresenter @Inject constructor(
         disposable = syncOrder()
             .subscribeOn(Schedulers.io())
             .subscribe()
-            //.andThen(apiService.getCheckups())
-
     }
 
     private fun syncOrder() :Completable=apiService.getListOrder()
@@ -177,6 +178,15 @@ class LoginPresenter @Inject constructor(
                 Timber.d("ordersXXX=$orders")
                 Single.fromCallable{
                     //db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
+                    // Получим id всех присланных заявок
+                    var strIds=""
+                    orders.forEach{
+                        strIds += "${it.id},"
+                    }
+                    strIds=strIds.substring(0,strIds.length-1)
+                    Timber.d("strIds=$strIds")
+                    db.ordersDao().deleteOrders(strIds)
+
                     db.historyOrderStateDao().clearHistory() // Очистим таблицу с историей смены статуса заявок
                     orders.forEach{
                         db.ordersDao().insert(it)
@@ -186,13 +196,22 @@ class LoginPresenter @Inject constructor(
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
                 },{throwable ->
-                    view?.errorReceived(throwable)
+                    if (view!=null) {
+                        view?.errorReceived(throwable)
+                    } else {
+                        errorHandler(throwable)
+                    }
+
                     throwable.printStackTrace()
                 })
             }
         }
         .doOnError { throwable ->
-            view?.errorReceived(throwable)
+            if (view!=null) {
+                view?.errorReceived(throwable)
+            } else {
+                errorHandler(throwable)
+            }
             throwable.printStackTrace()}
         .ignoreElement()
         .andThen(syncTechParams(sharedPrefSaver.getUserId()))
@@ -228,9 +247,11 @@ class LoginPresenter @Inject constructor(
 
             }
                 .subscribeOn(Schedulers.io())
-                .subscribe { _->
-                    Timber.d("Сохранили тех характеристики в БД")
-                }
+                .subscribe ({ _->
+                        Timber.d("Сохранили тех характеристики в БД")
+                },{throwable ->
+                    throwable.printStackTrace()
+                })
 
         }
         .doOnError { throwable ->
@@ -294,5 +315,25 @@ class LoginPresenter @Inject constructor(
             }
         }
         .ignoreElement()
+
+    private fun errorHandler(throwable: Throwable) {
+        Timber.d("errorHandler")
+        when (throwable) {
+            is HttpException -> {
+                Timber.d("throwable.code()=${throwable.code()}")
+                when (throwable.code()) {
+                    401 -> toaster.showToast(R.string.unauthorized)
+                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                }
+            }
+            is UnknownHostException ->{
+                toaster.showToast(R.string.no_address_hostname)
+            }
+            else -> {
+                toaster.showToast("Ошибка! ${throwable.message}")
+            }
+        }
+
+    }
 
 }

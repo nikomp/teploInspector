@@ -87,6 +87,7 @@ class Models {
         @Expose @SerializedName("group_checklist") val group_checklist: String?=null,
         @Expose @SerializedName("replicated_on") val replicated_on: Int?=null,
         @Expose @SerializedName("node_itp") val node_itp: String?=null,
+        @Expose @SerializedName("archival_records") val archival_records: Int?=null,
 
 
         @Expose @SerializedName("answered") var answered: Boolean = false

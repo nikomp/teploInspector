@@ -48,16 +48,19 @@ class CheckupPresenter @Inject constructor(
         // Получим информацию о чеклисте, по orderId
         Single.fromCallable {
             db.checkupDao().getCheckupByOrder(orderId)
-            //Timber.d("checkupxxxx=$checkup")
-            //view?.checkupIsLoaded(checkup)
-
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { checkup ->
-                Timber.d("checkupxxxx=$checkup")
-                view?.dataIsLoaded(checkup)
-            }
+            .subscribe(
+                { checkup ->
+                    Timber.d("checkupxxxx=$checkup")
+                    view?.dataIsLoaded(checkup)
+                },{ throwable ->
+                    Timber.d("errorX")
+                    throwable.printStackTrace()
+                    view?.errorReceived(Throwable("Чеклист пуст"))
+                }
+            )
 
     }
 
@@ -136,22 +139,23 @@ class CheckupPresenter @Inject constructor(
         if (this::disposable.isInitialized) {
             disposable.dispose()
         }
-
     }
 
     fun getTechParams(idOrder: Long) {
         Timber.d("techParams=$idOrder")
         Single.fromCallable {
             db.techParamsDao().getTechParamsOrder(idOrder)
-            //Timber.d("checkupxxxx=$checkup")
-            //view?.checkupIsLoaded(checkup)
-
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { techParams ->
-                Timber.d("techParams=$techParams")
-                view?.techParamsLoaded(techParams)
+            .doOnError {throwable ->
+                Timber.d("FFF")
+                throwable.printStackTrace()
             }
+            .subscribe ({ techParams ->
+                view?.techParamsLoaded(techParams)
+            },{ throwable ->
+                throwable.printStackTrace()
+            })
     }
 }

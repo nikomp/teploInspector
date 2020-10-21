@@ -2,6 +2,7 @@ package ru.bingosoft.teploInspector.util
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -46,6 +47,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     private var enabled: Boolean=true
     private var llGroupNodes: LinearLayout?=null
     private var listllNode: List<LinearLayout> = listOf()
+    private var listllArchHour: List<LinearLayout> = listOf()
+    private var listllArchDaily: List<LinearLayout> = listOf()
     private var listllGroupOther: MutableList<LinearLayout> = mutableListOf()
 
     fun create(rootView: View) {
@@ -81,10 +84,10 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     }
 
     private fun createWithGrouping(it: Models.TemplateControl) {
-        if (it.replication_nodes==true || it.replicating_archival_records==true) {
+        if (it.replication_nodes==true) {
             // Создаем группу Узлы
             if (llGroupNodes==null) {
-                llGroupNodes=createGroupNodes()
+                llGroupNodes=createGroupNodes("Узлы")
             }
             // Создаем Узлы в группе
             if (listllNode.isEmpty()) {
@@ -126,40 +129,106 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             }
 
         } else {
-            // Тиражирования по узлам нет
-            if (it.group_checklist!=null) {
-                //..., но есть Группа
-                var llGroup=createGroup(it.group_checklist,rootView.findViewById(R.id.llMain))
-                // Проверим, возможно эта группа тиражируется по узлам (как ИТП(общий ввод))
-                Timber.d("_it=$it")
-                if (it.replicated_on!=null) {
-                    Timber.d("it.replicated_on=${it.replicated_on}")
-                    if (it.node_itp!=null) {
-                        Timber.d("it.node_itp=${it.node_itp}")
-                        llGroup=createGroup("Узел ${it.group_checklist} ${it.node_itp}",llGroup,it.node_itp)
+            if (it.replicating_archival_records==true) {
+                Timber.d("Тиражирование_Арх_Зап")
+                // Создаем группу Архивные записи
+                if (llGroupNodes==null) {
+                    llGroupNodes=createGroupNodes("Архивные записи")
+                }
+                // Создаем группы Часовые, Суточные по 5 штук
+                /*if (listllNode.isEmpty()) {
+                    listllArchHour=createArchGroup(llGroupNodes!!,"Часовые")
+                    listllArchDaily=createArchGroup(llGroupNodes!!,"Суточные")
+                }*/
+
+                if (it.group_checklist==null) {
+                    // Тиражируем по узлам
+                    /*if (it.archival_records!=null) {
+                        if (listllArchHour.isNotEmpty()) {
+                            val llCurrentNode=listllArchHour[it.archival_records-1]
+                            when (it.type) {
+                                "combobox" -> createCombobox(it,llCurrentNode)
+                                "textinput" -> createTextInput(it,llCurrentNode)
+                                "numeric" -> createNumeric(it,llCurrentNode)
+                                "date" -> createDate(it,llCurrentNode)
+                                "time" -> createTime(it,llCurrentNode)
+                                "photo" -> createPhoto(it,llCurrentNode)
+                            }
+                        }
+                    }*/
+                } else {
+                    Timber.d("it.group_checklist=${it.group_checklist}")
+                    if (listllArchHour.isEmpty() && it.group_checklist=="Часовые") {
+                        listllArchHour=createArchGroup(llGroupNodes!!,"Часовые")
+                    }
+                    if (listllArchDaily.isEmpty() && it.group_checklist=="Суточные") {
+                        listllArchDaily=createArchGroup(llGroupNodes!!,"Суточные")
+                    }
+                    // Есть еще и группа
+                    if (it.archival_records!=null) {
+                        if (listllArchHour.isNotEmpty()) {
+                            val llCurrentNode=listllArchHour[it.archival_records-1]
+                            //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
+                            when (it.type) {
+                                "combobox" -> createCombobox(it, llCurrentNode)
+                                "textinput" -> createTextInput(it, llCurrentNode)
+                                "numeric" -> createNumeric(it, llCurrentNode)
+                                "date" -> createDate(it, llCurrentNode)
+                                "time" -> createTime(it, llCurrentNode)
+                                "photo" -> createPhoto(it, llCurrentNode)
+                            }
+                        }
+                        if (listllArchDaily.isNotEmpty()) {
+                            val llCurrentNode=listllArchDaily[it.archival_records-1]
+                            //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
+                            when (it.type) {
+                                "combobox" -> createCombobox(it, llCurrentNode)
+                                "textinput" -> createTextInput(it, llCurrentNode)
+                                "numeric" -> createNumeric(it, llCurrentNode)
+                                "date" -> createDate(it, llCurrentNode)
+                                "time" -> createTime(it, llCurrentNode)
+                                "photo" -> createPhoto(it, llCurrentNode)
+                            }
+                        }
                     }
                 }
-
-                when (it.type) {
-                    "combobox" -> createCombobox(it, llGroup)
-                    "textinput" -> createTextInput(it, llGroup)
-                    "numeric" -> createNumeric(it, llGroup)
-                    "date" -> createDate(it, llGroup)
-                    "time" -> createTime(it, llGroup)
-                    "photo" -> createPhoto(it, llGroup)
-                }
-
             } else {
-                // Ничего нет, ни тиражирования, ни группы
-                when (it.type) {
-                    "combobox" -> createCombobox(it, rootView.findViewById(R.id.llMain))
-                    "textinput" -> createTextInput(it, rootView.findViewById(R.id.llMain))
-                    "numeric" -> createNumeric(it, rootView.findViewById(R.id.llMain))
-                    "date" -> createDate(it, rootView.findViewById(R.id.llMain))
-                    "time" -> createTime(it, rootView.findViewById(R.id.llMain))
-                    "photo" -> createPhoto(it, rootView.findViewById(R.id.llMain))
+                // Тиражирования по узлам и по архивным записям нет
+                if (it.group_checklist!=null) {
+                    //..., но есть Группа
+                    var llGroup=createGroup(it.group_checklist,rootView.findViewById(R.id.llMain))
+                    // Проверим, возможно эта группа тиражируется по узлам (как ИТП(общий ввод))
+                    Timber.d("_it=$it")
+                    if (it.replicated_on!=null) {
+                        Timber.d("it.replicated_on=${it.replicated_on}")
+                        if (it.node_itp!=null) {
+                            Timber.d("it.node_itp=${it.node_itp}")
+                            llGroup=createGroup("Узел ${it.group_checklist} ${it.node_itp}",llGroup,it.node_itp)
+                        }
+                    }
+
+                    when (it.type) {
+                        "combobox" -> createCombobox(it, llGroup)
+                        "textinput" -> createTextInput(it, llGroup)
+                        "numeric" -> createNumeric(it, llGroup)
+                        "date" -> createDate(it, llGroup)
+                        "time" -> createTime(it, llGroup)
+                        "photo" -> createPhoto(it, llGroup)
+                    }
+
+                } else {
+                    // Ничего нет, ни тиражирования, ни группы
+                    when (it.type) {
+                        "combobox" -> createCombobox(it, rootView.findViewById(R.id.llMain))
+                        "textinput" -> createTextInput(it, rootView.findViewById(R.id.llMain))
+                        "numeric" -> createNumeric(it, rootView.findViewById(R.id.llMain))
+                        "date" -> createDate(it, rootView.findViewById(R.id.llMain))
+                        "time" -> createTime(it, rootView.findViewById(R.id.llMain))
+                        "photo" -> createPhoto(it, rootView.findViewById(R.id.llMain))
+                    }
                 }
             }
+
 
         }
     }
@@ -170,6 +239,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         //templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        setQuestionColor(it,templateStep)
 
         val materialSpinner=templateStep.findViewById<MaterialBetterSpinner>(R.id.android_material_design_spinner)
 
@@ -211,6 +281,8 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        setQuestionColor(it,templateStep)
+
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint=it.hint
@@ -240,6 +312,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         templateStep.id = it.id
         templateStep.findViewById<TextView>(R.id.question).text = it.question
+        setQuestionColor(it,templateStep)
 
         val textInputLayout = templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint = it.hint
@@ -271,6 +344,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        setQuestionColor(it,templateStep)
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint=it.hint
@@ -300,6 +374,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        setQuestionColor(it,templateStep)
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint=it.hint
@@ -327,10 +402,10 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
             R.layout.template_photo2, rootView.parent as ViewGroup?, false) as LinearLayout
 
-        //attachListenerToFab(templateStep,it)
-
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        setQuestionColor(it,templateStep)
+
         templateStep.tag=it
 
         doAssociateParent(templateStep, parent)
@@ -470,7 +545,41 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
     }
 
-    private fun createGroupNodes() :LinearLayout {
+    private fun createArchGroup(llContainer: LinearLayout, name: String): List<LinearLayout> {
+        Timber.d("генерим группы $name")
+        val listNodesView= mutableListOf<LinearLayout>()
+        for (i in 1..5) {
+            val templateStep=LayoutInflater.from(rootView.context).inflate(
+                R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
+
+            Timber.d("$name $i")
+            templateStep.findViewById<TextView>(R.id.question).text="$name $i"
+
+            val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
+            val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
+            val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
+
+            clTitle.setOnClickListener {
+                if (llNode.visibility==View.VISIBLE) {
+                    llNode.visibility=View.GONE
+                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                } else {
+                    llNode.visibility=View.VISIBLE
+                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                }
+            }
+
+            listNodesView.add(llNode)
+
+            doAssociateParent(templateStep, llContainer)
+        }
+
+
+        return listNodesView
+
+    }
+
+    private fun createGroupNodes(name: String) :LinearLayout {
         Timber.d("генерим группу для Узлов")
 
         val templateStep=LayoutInflater.from(rootView.context).inflate(
@@ -479,7 +588,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         //attachListenerToFab(templateStep,it)
 
         //templateStep.id=it.id
-        templateStep.findViewById<TextView>(R.id.question).text="Узлы"
+        templateStep.findViewById<TextView>(R.id.question).text=name//"Узлы"
 
         val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
         val llGroup=templateStep.findViewById<LinearLayout>(R.id.container)
@@ -538,6 +647,19 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         }
 
 
+    }
+
+    private fun setQuestionColor(it: Models.TemplateControl, templateStep: LinearLayout) {
+        var questionColor=Color.BLACK
+        if (it.question.indexOf("подающий")!=-1) {
+            Timber.d("Color.RED")
+            questionColor=Color.RED
+        }
+        if (it.question.indexOf("обратный")!=-1) {
+            Timber.d("Color.BLUE")
+            questionColor=Color.BLUE
+        }
+        templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
     }
 
     fun refresh() {

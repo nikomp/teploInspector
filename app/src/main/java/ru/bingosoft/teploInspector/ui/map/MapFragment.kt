@@ -363,23 +363,40 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         Timber.d("importOrdersOnMap=$order")
         val view=layoutInflater.inflate(R.layout.template_marker,null)
         val tvMarker=view.findViewById<TextView>(R.id.tvMarker)
-        tvMarker.text=order.number
-        when (order.groupOrder) {
-            this.getString(R.string.orderType1).toLowerCase() -> {
-                Timber.d("R.string.orderType1")
-                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector1))
+
+        // Проверим возможно маркеры накладываются друг на друга
+        val ordersAddress=orders.filter { it.address==order.address }
+        if (ordersAddress.size>1) {
+            var stOrdersName=""
+            ordersAddress.forEach{
+                stOrdersName += "${it.number},\n"
             }
-            this.getString(R.string.orderType2).toLowerCase() -> {
-                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector2))
-            }
-            this.getString(R.string.orderType3).toLowerCase() -> {
-                Timber.d("R.string.orderType3")
-                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector3))
-            }
-            this.getString(R.string.orderType4).toLowerCase() -> {
-                tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector4))
+            stOrdersName=stOrdersName.substring(0,stOrdersName.length-2)
+            tvMarker.text=stOrdersName
+            //tvMarker.setBackgroundColor(Color.WHITE)
+            tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector5))
+        } else {
+            tvMarker.text=order.number
+
+            when (order.groupOrder) {
+                this.getString(R.string.orderType1).toLowerCase() -> {
+                    Timber.d("R.string.orderType1")
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector1))
+                }
+                this.getString(R.string.orderType2).toLowerCase() -> {
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector2))
+                }
+                this.getString(R.string.orderType3).toLowerCase() -> {
+                    Timber.d("R.string.orderType3")
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector3))
+                }
+                this.getString(R.string.orderType4).toLowerCase() -> {
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector4))
+                }
             }
         }
+
+
 
         val customMarker=Models.CustomMarker(order=order,markerView = tvMarker)
 

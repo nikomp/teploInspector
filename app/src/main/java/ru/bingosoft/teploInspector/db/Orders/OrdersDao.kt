@@ -21,6 +21,9 @@ interface OrdersDao {
     @Query("DELETE FROM orders")
     fun clearOrders()
 
+    @Query("DELETE FROM orders where id not in (:ids)")
+    fun deleteOrders(ids:String)
+
     @Query("UPDATE orders SET questionCount=:count WHERE id = :idOrder")
     fun updateQuestionCount(idOrder: Long?, count: Int)
 

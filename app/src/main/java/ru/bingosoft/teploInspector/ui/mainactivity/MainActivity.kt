@@ -339,24 +339,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 }
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
-                    /*val orderFragment= OrderFragment()
-                    supportFragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, orderFragment, "order_fragment_tag")
-                        //.addToBackStack(null)
-                        .commit()
 
-                    supportFragmentManager.executePendingTransactions()
-
-
-                    val of=supportFragmentManager.findFragmentByTag("order_fragment_tag") as? OrderFragment
-                    of?.doAuthorization()*/
-
-                    val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-                    Timber.d("navHostFragment=$navHostFragment")
-                    val of=navHostFragment.childFragmentManager.fragments.get(0) as? OrderFragment
+                    val navFragment=supportFragmentManager.fragments.filter { it is NavHostFragment }[0] as NavHostFragment
+                    val of = navFragment.childFragmentManager.fragments[0] as? OrderFragment
                     of?.doAuthorization()
-
-
 
                 }
                 else -> {

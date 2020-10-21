@@ -4,6 +4,20 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <!--<TextView
+        android:id="@+id/tvMarkerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:text="A-001"
+        android:textColor="@android:color/black" />
+
+    <ImageView
+        android:id="@+id/ivMarker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:srcCompat="@drawable/ic_marker_selector" />-->
+
     <TextView
         android:id="@+id/tvMarker"
         android:layout_width="wrap_content"
