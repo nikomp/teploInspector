@@ -81,10 +81,12 @@
                     android:singleLine="true"
                     android:text="@string/status_OPEN"
                     android:textSize="11sp"
+                    android:tooltipText="@string/tooltip_change_state"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/fio"
                     app:met_floatingLabel="none"
                     app:met_hideUnderline="true" />
+
 
             </LinearLayout>
 
@@ -255,7 +257,10 @@
                 tools:ignore="VectorDrawableCompat" />-->
 
             </androidx.constraintlayout.widget.ConstraintLayout>
+
+
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
+
 </LinearLayout>

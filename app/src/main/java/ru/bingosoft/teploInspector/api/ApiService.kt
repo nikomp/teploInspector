@@ -70,4 +70,10 @@ interface ApiService {
         @Body json: RequestBody
     ): Single<Unit>
 
+    @POST("registryservice/plugins/execute/SaveFCMTokenForUserCommand")
+    @Headers("Content-Type: application/json")
+    fun saveGCMToken(
+        @Body json: RequestBody
+    ): Single<Unit>
+
 }

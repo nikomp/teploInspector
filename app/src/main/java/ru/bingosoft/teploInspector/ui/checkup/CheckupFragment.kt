@@ -2,6 +2,7 @@ package ru.bingosoft.teploInspector.ui.checkup
 
 import android.Manifest
 import android.content.Context
+import android.content.Context.LAYOUT_INFLATER_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -17,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
@@ -28,9 +30,7 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
-import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
-import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
@@ -69,6 +69,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     lateinit var rootView: View
 
+    var pw: PopupWindow? =null
+
     lateinit var checkup: Checkup
     lateinit var currentOrder: Orders
     var techParams: List<TechParams> = listOf()
@@ -97,7 +99,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         checkupSteps.add("Технические характеристики объекта")
 
         val typeOrderTag = arguments?.getString("typeOrder")
-        if (tag!=null) {
+        if (typeOrderTag!=null) {
             checkupSteps.add("$typeOrderTag")
         }
 
@@ -105,6 +107,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         checkupPresenter.attachView(this)
         //orderPresenter.attachView(this)
         //this.techParams=(rootView.context as MainActivity).techParams
+        setCheckup((this.requireActivity() as MainActivity).currentOrder)
+        setTechParams((this.requireActivity() as MainActivity).currentOrder.id)
+        if ((this.requireActivity() as MainActivity).photoStep!=null &&
+            (this.requireActivity() as MainActivity).photoDir!="" ) {
+            setPhotoResult((this.requireActivity() as MainActivity).photoStep?.id,
+                (this.requireActivity() as MainActivity).photoDir)
+        }
+
 
         val ivExpand=rootView.findViewById<ImageView>(R.id.ivExpand)
         ivExpand.visibility=View.VISIBLE
@@ -133,7 +143,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         return view
     }
 
-    fun setTechParams(idOrder: Long) {
+    private fun setTechParams(idOrder: Long) {
         checkupPresenter.getTechParams(idOrder)
     }
 
@@ -144,6 +154,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }*/
 
     private fun fillOrderData() {
+        Timber.d("fillOrderData")
         val order=(rootView.context as MainActivity).currentOrder
 
         rootView.findViewById<TextView>(R.id.number).text="№ ${order.number}"
@@ -168,26 +179,27 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                Timber.d("s.toString()=${s.toString()}")
-                order.status=s.toString()
-                //uiCreator?.refresh()
+
                 uiCreator?.checkEnabled()
 
 
-                changeColorMBSState(mbsOrderState, order.status)
-
-                try {
-                    orderPresenter.addHistoryState(order)
-                } catch (e: Throwable) {
-                    Timber.d("ERROR=$e")
-                    //orderPresenter.view?.errorReceived(e)
-                    errorReceived(e)
+                if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
+                    order.status=s.toString().toLowerCase().capitalize()
+                    changeColorMBSState(mbsOrderState, order.status)
+                    try {
+                        orderPresenter.addHistoryState(order)
+                    } catch (e: Throwable) {
+                        Timber.d("ERROR=$e")
+                        //orderPresenter.view?.errorReceived(e)
+                        errorReceived(e)
+                    }
                 }
-
 
                 mbsOrderState.removeTextChangedListener(this)
                 mbsOrderState.setText(s.toString().toUpperCase())
                 mbsOrderState.addTextChangedListener(this)
+
+                pw?.dismiss()
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -251,28 +263,13 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         btnRoute.setOnClickListener {
             Timber.d("btnRoute.setOnClickListener")
 
-            //Включаем фрагмент со списком Маршрутов для конкретной заявки
-            /*parentFragment.showRouteDialog(order)
-            hideBottomSheet()*/
-
-            Timber.d("btnRoute.setOnClickListener")
+            (activity as MainActivity).currentOrder=this.currentOrder
 
             //Включаем фрагмент со списком Маршрутов для конкретной заявки
             val bundle = Bundle()
             bundle.putBoolean("isOrderFragment",true)
-            val fragmentMap= MapFragment()
-            fragmentMap.arguments=bundle
-            val fragmentManager=(rootView.context as MainActivity).supportFragmentManager
 
-            fragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, fragmentMap, "map_fragment_from_orders_tag")
-                .addToBackStack(null)
-                .commit()
-
-            fragmentManager.executePendingTransactions()
-
-
-            (rootView.context as FragmentsContractActivity).setOrder(order)
+            Navigation.findNavController(rootView).navigate(R.id.nav_slideshow,bundle)
 
         }
 
@@ -293,7 +290,12 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 } else {
                     btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
                 }
-                order.typeTransportation=s.toString()
+
+
+                if (s.toString().toUpperCase()!=order.typeTransportation?.toUpperCase()) {
+                    order.typeTransportation=s.toString()
+                    orderPresenter.changeTypeTransortation(order)
+                }
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -305,6 +307,40 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             }
 
         })
+
+        //Скрываем пункты меню
+        setVisibleMenuItems(false)
+
+        // Вызываем всплавающую подсказку
+        checkStateOrder(order)
+
+    }
+
+    private fun checkStateOrder(order: Orders) {
+        Timber.d("order.status=${order.status}")
+        if (order.status=="Открыта" || order.status=="В пути") {
+            Timber.d("popupWindow")
+
+            val inflater = rootView.context.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+            Timber.d("inflater=$inflater")
+
+            val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
+
+            val viewPopupWindow = inflater.inflate(R.layout.popup_orders_state,null)
+            pw=PopupWindow(viewPopupWindow, LinearLayout.LayoutParams.WRAP_CONTENT,LinearLayout.LayoutParams.WRAP_CONTENT, false)
+            pw?.showAsDropDown(mbsOrderState,0,-20)
+        }
+    }
+
+    private fun setVisibleMenuItems(visible: Boolean) {
+        val searchItem=(this.activity as MainActivity).menu.findItem(R.id.action_search)
+        if (searchItem!=null) {
+            searchItem.isVisible=visible
+        }
+        val filterItem=(this.activity as MainActivity).menu.findItem(R.id.menu_buttons)
+        if (filterItem!=null) {
+            filterItem.isVisible=visible
+        }
     }
 
 
@@ -413,10 +449,22 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         }
     }
 
-    /*override fun onPause() {
+    override fun onPause() {
         Timber.d("CheckupFragment_onPause")
         super.onPause()
-    }*/
+        pw?.dismiss()
+        setVisibleMenuItems(true) // Возвращаем видимость меню
+    }
+
+    override fun onDetach() {
+        Timber.d("CheckupFragment_onDetach")
+        super.onDetach()
+    }
+
+    override fun onDestroyView() {
+        Timber.d("CheckupFragment_onDestroyView")
+        super.onDestroyView()
+    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -445,7 +493,12 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     }
 
-    fun setPhotoResult(controlId: Int?, photoDir: String) {
+    override fun onStop() {
+        Timber.d("CheckupFragment_onStop")
+        super.onStop()
+    }
+
+    private fun setPhotoResult(controlId: Int?, photoDir: String) {
         Timber.d("setPhotoResult from fragment $controlId")
         if (controlId!=null) {
             val linearLayout=rootView.findViewById<LinearLayout>(controlId)

@@ -74,36 +74,14 @@ class LoginPresenter @Inject constructor(
                             v.alertRepeatSync()
                         }
 
+                        saveTokenGCM()
+
                     }, { throwable ->
                         throwable.printStackTrace()
                         view?.showFailureTextView()
                     }
                 )
 
-            /*disposable=apiService.getAuthorization(jsonBody)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({
-                    Timber.d("Авторизовались")
-                    this.stLogin=stLogin
-                    this.stPassword=stPassword
-                    view?.saveLoginPasswordToSharedPreference(stLogin,stPassword)
-
-                    val v=view
-                    if (v!=null) {
-                        Timber.d("startService_LoginPresenter")
-                        v.startLocationService()
-                        v.alertRepeatSync()
-                    }
-
-                    getInfoCurrentUser()
-                    saveTokenGCM()
-
-
-                },  {
-                    Timber.d("Ошибка сети!!")
-                    view?.showFailureTextView()
-                })*/
         }
 
     }
@@ -125,18 +103,6 @@ class LoginPresenter @Inject constructor(
 
     }*/
 
-    /*private fun saveTokenGCM() {
-        Timber.d("saveTokenGCM")
-        disposable=apiService.saveGCMToken(action="saveGCMToken",token = sharedPrefSaver.getTokenGCM())
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-                Timber.d(it.msg)
-
-            },{
-                it.printStackTrace()
-            })
-    }*/
 
     /**
      * Метод для генерации ГУИДа, нужен для первичного формирования fingerprint
@@ -157,15 +123,16 @@ class LoginPresenter @Inject constructor(
         if (this::disposable.isInitialized) {
             disposable.dispose()
         }
-
-        sharedPrefSaver.clearAuthData() // Очистим информацию об авторизации
     }
 
     fun syncDB() {
         Timber.d("syncDB")
         disposable = syncOrder()
             .subscribeOn(Schedulers.io())
-            .subscribe()
+            .subscribe({},{
+                it.printStackTrace()
+            })
+
     }
 
     private fun syncOrder() :Completable=apiService.getListOrder()
@@ -179,13 +146,12 @@ class LoginPresenter @Inject constructor(
                 Single.fromCallable{
                     //db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
                     // Получим id всех присланных заявок
-                    var strIds=""
+                    val idsList= mutableListOf<String>()
                     orders.forEach{
-                        strIds += "${it.id},"
+                        idsList.add(it.id.toString())
                     }
-                    strIds=strIds.substring(0,strIds.length-1)
-                    Timber.d("strIds=$strIds")
-                    db.ordersDao().deleteOrders(strIds)
+                    Timber.d("idsList=$idsList")
+                    db.ordersDao().deleteOrders(idsList)
 
                     db.historyOrderStateDao().clearHistory() // Очистим таблицу с историей смены статуса заявок
                     orders.forEach{
@@ -269,7 +235,7 @@ class LoginPresenter @Inject constructor(
                 checkups ->
             Timber.d("Получили обследования")
             Timber.d("checkups=$checkups")
-            if (checkups.isEmpty()) {
+            if (checkups.isNullOrEmpty()) {
                 throw ThrowHelper("Нет обследований")
             } else {
                 Timber.d("Обследования есть")
@@ -278,7 +244,7 @@ class LoginPresenter @Inject constructor(
                 Single.fromCallable {
                     //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
                     checkups.forEach {
-                        Timber.d("it=$it")
+                        Timber.d("VVV_it=$it")
                         db.checkupDao().insert(it)
 
                         // Обновим число вопросов для заявки
@@ -300,18 +266,19 @@ class LoginPresenter @Inject constructor(
                         error.printStackTrace()
                     })
 
-                view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
-                view?.showMessageLogin(R.string.order_refresh)
-
+                if (view!=null) {
+                    view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
+                    view?.showMessageLogin(R.string.order_refresh)
+                }
             }
         }
         .doOnError { throwable ->
             Timber.d("throwable syncCheckups")
             throwable.printStackTrace()
-            if (throwable is ThrowHelper) {
-                view?.showMessageLogin("${throwable.message}")
-            } else {
+            if (view!=null) {
                 view?.errorReceived(throwable)
+            } else {
+                errorHandler(throwable)
             }
         }
         .ignoreElement()
@@ -334,6 +301,39 @@ class LoginPresenter @Inject constructor(
             }
         }
 
+    }
+
+    private fun saveTokenGCM() {
+        Timber.d("saveTokenGCM")
+
+        val fcmToken=Models.FCMToken(
+            token =sharedPrefSaver.getTokenGCM()
+        )
+
+        Timber.d("Данные4=${Gson().toJson(fcmToken)}")
+
+        val jsonBody = Gson().toJson(fcmToken)
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        disposable=apiService.saveGCMToken(jsonBody)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({response ->
+                Timber.d(response.toString())
+            },{ throwable ->
+                Timber.d("ошибка!!!")
+                throwable.printStackTrace()
+                view?.errorReceived(throwable)
+            })
+
+        /*disposable=apiService.saveGCMToken(action="saveGCMToken",token = sharedPrefSaver.getTokenGCM())
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({
+                Timber.d(it.msg)
+            },{
+                it.printStackTrace()
+            })*/
     }
 
 }

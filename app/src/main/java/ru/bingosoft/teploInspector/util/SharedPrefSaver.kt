@@ -176,10 +176,10 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun getTokenGCM() :String {
-        if (sharedPreference.contains(FIREBASE_MESSAGE)) {
-            return sharedPreference.getString(FIREBASE_MESSAGE, "") ?: ""
+        return if (sharedPreference.contains(FIREBASE_MESSAGE)) {
+            sharedPreference.getString(FIREBASE_MESSAGE, "") ?: ""
         } else {
-            return ""
+            ""
         }
     }
 

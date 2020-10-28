@@ -6,6 +6,8 @@ interface MainActivityContractView {
     fun dataSyncOK()
     fun updDataOK()
     fun filesSend(countFiles: Int, indexCurrentFile: Int)
+    fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
+    fun saveToken(token: String)
 
     fun errorReceived(throwable: Throwable)
 }

@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.app.SearchManager
 import android.content.Context
 import android.content.DialogInterface
@@ -15,6 +16,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +29,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.FragmentNavigator
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
@@ -37,18 +40,18 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.textfield.TextInputEditText
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
+import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
@@ -59,15 +62,21 @@ import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import timber.log.Timber
 import java.net.UnknownHostException
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
 
 class MainActivity : AppCompatActivity(), FragmentsContractActivity,
-    NavigationView.OnNavigationItemSelectedListener, MainActivityContractView, View.OnClickListener {
+    NavigationView.OnNavigationItemSelectedListener, MainActivityContractView, View.OnClickListener
+     {
 
     @Inject
     lateinit var mainPresenter: MainActivityPresenter
+    @Inject
+    lateinit var loginPresenter: LoginPresenter
+
     @Inject
     lateinit var toaster: Toaster
     @Inject
@@ -79,10 +88,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var userLocationReceiver: UserLocationReceiver
 
     private lateinit var appBarConfiguration: AppBarConfiguration
-    private lateinit var navController: NavController
+    lateinit var navController: NavController
 
-    var mapPoint: Point=Point(0.0,0.0)
-    var controlMapId: Int=0
+    private var mapPoint: Point=Point(0.0,0.0)
+    private var controlMapId: Int=0
     var photoDir: String=""
     var lastKnownFilenamePhoto=""
     var photoStep: Models.TemplateControl?=null
@@ -90,6 +99,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var techParams: List<TechParams>
     private lateinit var locationManager: LocationManager
     lateinit var dialogView: View
+    lateinit var dialogDateFilterView: View
     lateinit var filterView: ConstraintLayout
 
     var isMapFragmentShow=false
@@ -98,6 +108,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var isSearchView=false
 
     var filteredOrders: List<Orders> = listOf()
+
+    //var doubleBackToExitPressedOnce: Boolean=false
+    private var doubleBackToExitCounter=0
+
+
+    lateinit var menu: Menu
+    lateinit var tietFilterDate: TextInputEditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -162,6 +179,22 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setNavigationItemSelectedListener(this)
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            Timber.d("DestinationChangedListener_${destination}")
+            when (destination.id) {
+                R.id.nav_home -> {
+                    Timber.d("DestinationChangedListener_OrderFragment")
+                }
+                R.id.nav_checkup -> {
+                    Timber.d("DestinationChangedListener_CheckupFragment")
+                }
+                R.id.nav_slideshow -> {
+                    Timber.d("DestinationChangedListener_MapFragment")
+                }
+                else -> {
+                }
+            }
+        }
         //navView.setupWithNavController(navController) // Переключалка фрагментов по-умолчанию
 
         val header=navView.getHeaderView(0)
@@ -176,6 +209,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
     }
+
+    fun isInitCurrentOrder() :Boolean {
+        return ::currentOrder.isInitialized
+    }
+
 
     private fun buildAlertMessageNoGps() {
         val builder= AlertDialog.Builder(this)
@@ -253,6 +291,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        this.menu=menu
         menuInflater.inflate(R.menu.main, menu)
 
         val item = menu.findItem(R.id.menu_buttons)
@@ -262,6 +301,57 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val btnFilter=filterView.findViewById<Button>(R.id.btnFilter)
         btnFilter.setOnClickListener(this)
 
+        val dateFilterItem=menu.findItem(R.id.date_filter)
+        dateFilterItem?.setOnMenuItemClickListener {
+            Timber.d("dateFilterItem")
+
+            Timber.d("Открываем окно с фильтром по дате")
+
+            lateinit var dialogFilterDateOrder: AlertDialog
+            val layoutInflater = LayoutInflater.from(this)
+            dialogDateFilterView =
+                layoutInflater.inflate(R.layout.alert_filter_date_order, null, false)
+
+            val builder = AlertDialog.Builder(this)
+
+            val rbAll=dialogDateFilterView.findViewById<RadioButton>(R.id.rbAll)
+            rbAll.setOnClickListener(this)
+            val rbToday=dialogDateFilterView.findViewById<RadioButton>(R.id.rbToday)
+            rbToday.setOnClickListener(this)
+            val rbTomorrow=dialogDateFilterView.findViewById<RadioButton>(R.id.rbTomorrow)
+            rbTomorrow.setOnClickListener(this)
+            val rbDate=dialogDateFilterView.findViewById<RadioButton>(R.id.rbDate)
+            rbDate.setOnClickListener(this)
+            /*tietFilterDate =dialogDateFilterView.findViewById(R.id.tietFilterDate)
+            tietFilterDate.setOnClickListener(this)*/
+
+            builder.setView(dialogDateFilterView)
+            builder.setCancelable(true)
+            dialogFilterDateOrder=builder.create()
+            dialogFilterDateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+            //Меняем позицию диалога
+            dialogFilterDateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+
+            dialogFilterDateOrder.setOnCancelListener(dialogDateFilterCancelListener)
+
+            dialogFilterDateOrder.show()
+            // Установим ширину диалогового окна
+            val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
+            dialogFilterDateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+
+            // Отступы диалога от границ экрана
+            val wlp=dialogFilterDateOrder.window?.attributes
+            wlp?.y=50
+            wlp?.x=50
+            dialogFilterDateOrder.window?.attributes=wlp
+
+            true
+        }
+
+        /*val btnDateFilter=filterView.findViewById<Button>(R.id.)
+        btnFilter.setOnClickListener(this)*/
+
         val searchItem=menu.findItem(R.id.action_search)
         if (searchItem!=null) {
             val searchView=searchItem.actionView as SearchView
@@ -270,47 +360,53 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_src_text) as EditText
             searchPlate.hint = getString(R.string.search_by_address)
 
+            searchPlate.setOnEditorActionListener { _, actionId, _ ->
+                Timber.d("actionId=$actionId")
+                false
+            }
 
-            searchView.setOnCloseListener (object: SearchView.OnCloseListener{
-                override fun onClose(): Boolean {
-                    isSearchView=false
-                    if (isMapFragmentShow) {
-                        Timber.d("Включена карта")
-                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-                        //(rcv.adapter as OrderListAdapter).filter.filter("")
-                        //Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
 
-                        /*val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)*/
-                    }
-
-                    return false
-                }
-
-            })
+            searchView.setOnCloseListener {
+                isSearchView=false
+                false
+            }
 
 
             searchView.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
                 override fun onQueryTextSubmit(query: String?): Boolean {
+                    Timber.d("onQueryTextSubmit")
                     return false
                 }
 
                 override fun onQueryTextChange(newText: String?): Boolean {
                     Timber.d(newText)
-                    Timber.d("isMapFragmentShow=$isMapFragmentShow")
+
                     isSearchView=true
+                    //#SearchView_close
+                    if (newText=="") {
+                        Timber.d("Закроем")
+                        searchView.isIconified=true
+                    }
+
+                    Timber.d("_isSearchView=true")
+
+
                     if (!isMapFragmentShow) {
                         val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
                     } else {
                         Timber.d("Включена карта11 $newText")
-                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
-                        Timber.d("Отфильтровано=${(rcv.adapter as OrderListAdapter).ordersFilterList.size}")
 
-                        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-                        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+                        val filteredList=orders.filter { it.address!=null && it.address!!.contains(newText!!,true) }
+
+                        Timber.d("Отфильтровано=${filteredList.size}")
+                        val currentNavHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                        val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
+                        val mf= currentNavHost?.childFragmentManager?.fragments?.filterNotNull()?.find { it.javaClass.name==currentFragmentClassName } as MapFragment
+                        mf.showMarkers(filteredList)
+
                     }
+
                     return true
                 }
 
@@ -340,9 +436,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
 
-                    val navFragment=supportFragmentManager.fragments.filter { it is NavHostFragment }[0] as NavHostFragment
-                    val of = navFragment.childFragmentManager.fragments[0] as? OrderFragment
+                    val navHostFragment: NavHostFragment? =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+                    val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
                     of?.doAuthorization()
+                    if (of==null) {
+                        doAuthorization()
+                    }
 
                 }
                 else -> {
@@ -352,9 +452,29 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
+    private fun doAuthorization() {
+        Timber.d("doAuthorization")
+        // Получим логин и пароль из настроек
+        val sharedPref = this.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
+
+            val login = this.sharedPref.getLogin()
+            val password = this.sharedPref.getPassword()
+
+            mainPresenter.attachView(this)
+            mainPresenter.authorization(login, password) // Проверим есть ли авторизация
+        } else {
+            Timber.d("логин/пароль=ОТСУТСТВУЮТ")
+            // Запустим активити с настройками
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivityForResult(intent, AUTH)
+        }
+    }
+
 
 
     override fun onDestroy() {
+        Timber.d("MainAct_destroy")
         super.onDestroy()
         stopService(Intent(this,UserLocationService::class.java))
         mainPresenter.onDestroy()
@@ -366,6 +486,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
         userLocationReceiver.onDestroy()
+        sharedPref.clearAuthData() // Очистим информацию об авторизации
 
     }
 
@@ -373,80 +494,97 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onBackPressed() {
         super.onBackPressed()
         isBackPressed=true
+        doubleBackToExitCounter += 1
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
+        Timber.d("fragments.size=${supportFragmentManager.fragments.size}")
+
+        val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
+        Timber.d("currentFragmentClassName=$currentFragmentClassName")
+        if (supportFragmentManager.fragments.size>1) {
+            if (currentFragmentClassName==getString(R.string.order_fragment_className)) {
+                Timber.d("navController_navigate_nav_home")
+                navController.navigate(R.id.nav_home)
+            }
+        }
+
 
         if (supportFragmentManager.backStackEntryCount==0) {
             Timber.d("onBackPressed_Заявки")
+            // Сбросим текущую заявку
+            currentOrder= Orders(guid = "")
             supportActionBar?.setTitle(R.string.menu_orders)
             setMode(false) // Включены Заявки, а не карта
             // Выделим кнопку Список
-            findViewById<Button>(R.id.btnList).isEnabled=false
-            findViewById<Button>(R.id.btnMap).isEnabled=true
+            findViewById<Button>(R.id.btnList)?.isEnabled=false
+            findViewById<Button>(R.id.btnMap)?.isEnabled=true
 
-            val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-            if (!filteredOrders.isEmpty()) {
-                (rv.adapter as OrderListAdapter).ordersFilterList=this.filteredOrders
+            Timber.d("navController_navigate_nav_home2")
+            navController.navigate(R.id.nav_home)
+            if (isBackPressed) {
+                isBackPressed=false
+            }
+            if (isSearchView) {
+                isSearchView=false
             }
 
-            //#Recyclerview_binding_finish
-            rv.addOnLayoutChangeListener(object: View.OnLayoutChangeListener{
-                override fun onLayoutChange(
-                    v: View?,
-                    left: Int,
-                    top: Int,
-                    right: Int,
-                    bottom: Int,
-                    oldLeft: Int,
-                    oldTop: Int,
-                    oldRight: Int,
-                    oldBottom: Int
-                ) {
-                    rv.removeOnLayoutChangeListener(this)
-                    Timber.d("onLayoutChange")
-                    if (isBackPressed) {
-                        isBackPressed=false
-                    }
-                    if (isSearchView) {
-                        isSearchView=false
-                    }
+            // Выходим из приложения при повторном клике на кнопку Назад
+            if (doubleBackToExitCounter==2) {
+                toaster.showToast(R.string.double_back)
+                Handler().postDelayed({ doubleBackToExitCounter = 0 }, 4000)
+            }
+            if (doubleBackToExitCounter==3) {
+                finish()
+            }
+
+
+            /*val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+            if (rv!=null) {
+                Timber.d("rv!=null")
+                if (filteredOrders.isNotEmpty()) {
+                    (rv.adapter as OrderListAdapter).ordersFilterList=this.filteredOrders
                 }
 
-            })
-            rv.adapter?.notifyDataSetChanged()
+                //#Recyclerview_binding_finish
+                rv.addOnLayoutChangeListener(object: View.OnLayoutChangeListener{
+                    override fun onLayoutChange(
+                        v: View?,
+                        left: Int,
+                        top: Int,
+                        right: Int,
+                        bottom: Int,
+                        oldLeft: Int,
+                        oldTop: Int,
+                        oldRight: Int,
+                        oldBottom: Int
+                    ) {
+                        rv.removeOnLayoutChangeListener(this)
+                        Timber.d("onLayoutChange")
+                        if (isBackPressed) {
+                            isBackPressed=false
+                        }
+                        if (isSearchView) {
+                            isSearchView=false
+                        }
+                    }
 
-        }
+                })
+                rv.adapter?.notifyDataSetChanged()
+            } else {
+                Timber.d("navController_navigate_nav_home2")
+                navController.navigate(R.id.nav_home)
+                if (isBackPressed) {
+                    isBackPressed=false
+                }
+                if (isSearchView) {
+                    isSearchView=false
+                }
+            }*/
 
-
-        val fragment1=supportFragmentManager.findFragmentByTag("order_fragment_tag")
-        if (fragment1!=null && fragment1.isVisible) {
-            Timber.d("VVVCCC")
-            setMode(false) // Включены Заявки, а не карта
-        }
-
-        val fragment=supportFragmentManager.findFragmentByTag("checkup_fragment_tag")
-        if (fragment!=null) {
-            Timber.d("onBackPressed_checkup_fragment_tag")
-            val checkupId= fragment.arguments?.getLong("checkupId")
-            Timber.d("checkupId=$checkupId")
-            if (checkupId!=null) {
-                (fragment as CheckupFragment).checkupPresenter.loadCheckup(checkupId)
-            }
         }
 
     }
 
-    override fun setCheckup(checkup: Checkup) {
-        Timber.d("setCheckup from Activity")
-        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        cf?.dataIsLoaded(checkup)
-    }
-
-    override fun setChecupListOrder(order: Orders) {
-        /*Timber.d("setChecupListOrder from Activity")
-        val clf=this.supportFragmentManager.findFragmentByTag("checkup_list_fragment_tag") as? CheckupListFragment
-        clf?.showCheckupListOrder(order)*/
-    }
 
     override fun setCoordinates(point: Point, controlId: Int) {
         Timber.d("setCoordinates from Activity")
@@ -454,48 +592,37 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         this.controlMapId=controlId
     }
 
-    override fun setOrder(order: Orders) {
-        Timber.d("setOrderForRouteDetail from Activity")
-        val mf=this.supportFragmentManager.findFragmentByTag("map_fragment_from_orders_tag") as? MapFragment
-        mf?.showRouteDialog(order)
-    }
 
     override fun setMode(isMap: Boolean) {
         Timber.d("setMode=$isMap")
         isMapFragmentShow=isMap
     }
 
-    override fun setChecupOrder(order: Orders) {
-        Timber.d("setChecupOrder from Activity")
-        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        cf?.setCheckup(order)
-    }
 
-    override fun setChecupTechParams(order: Orders) {
-        Timber.d("setChecupTechParams from Activity")
-        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        cf?.setTechParams(order.id)
-    }
 
     override fun showMarkers(orders: List<Orders>) {
-        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+        /*val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
         val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
-    }
+        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)*/
+        Timber.d("MainAct_showMarkers")
 
-    override fun showSearchedOrders(orders: List<Orders>) {
-        Timber.d("showSearchedOrders=$orders")
-        val of=supportFragmentManager.findFragmentByTag("order_fragment_tag") as? OrderFragment
-        if (of==null) {
+
+
+        // Фильтруем заявки
+        val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+        if (childFragment is OrderFragment) {
             val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-            rcv.adapter?.notifyDataSetChanged()
-        } else {
-            of.showOrders(orders)
+            if (rcv!=null) {
+                rcv.adapter?.notifyDataSetChanged()
+            }
         }
-
-
+        if (childFragment is MapFragment){
+            Timber.d("Включена карта")
+            val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+            childFragment.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+        }
     }
-
 
     private fun setPhotoResult() {
         var photoLocation:Location?=Location(LocationManager.GPS_PROVIDER)
@@ -512,9 +639,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         OtherUtil().saveExifLocation(lastKnownFilenamePhoto,photoLocation)
 
 
-        Timber.d("setPhotoResult from Activity")
-        val cf=this.supportFragmentManager.findFragmentByTag("checkup_fragment_tag") as? CheckupFragment
-        cf?.setPhotoResult(photoStep?.id, photoDir)
+        Timber.d("setPhotoResult_from_Activity")
         photoStep?.answered = true
         photoStep?.resvalue=photoDir
         photoStep?.datetime= Date().time
@@ -530,10 +655,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         return when (item.itemId) {
             R.id.nav_home -> {
                 navController.navigate(R.id.nav_home)
+                setMode(false) //Включены заявки
                 true
             }
             R.id.nav_slideshow -> {
                 navController.navigate(R.id.nav_slideshow)
+                setMode() //Включена карта
                 true
             }
             else -> {
@@ -570,7 +697,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
+     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
+         sharedPref.saveLogin(stLogin)
+         sharedPref.savePassword(stPassword)
+     }
+
+     override fun saveToken(token: String) {
+         sharedPref.saveToken(token)
+     }
+
+
     override fun errorReceived(throwable: Throwable) {
+        Timber.d("MainACT_errorReceived_$throwable")
         when (throwable) {
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
@@ -655,6 +793,62 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterOrder.window?.attributes=wlp
 
             }
+            R.id.rbAll -> {
+                Timber.d("Фильтр_по_дате_Все")
+                filteredOrders= listOf()
+                filterOrderByDate("all")
+            }
+            R.id.rbToday -> {
+                Timber.d("Фильтр_по_дате_Сегодня")
+
+                // Текущее время
+                val currentDate = Date()
+                val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val dateText: String = dateFormat.format(currentDate)
+                Timber.d("dateText=$dateText")
+                filterOrderByDate(dateText)
+
+            }
+            R.id.rbTomorrow -> {
+                Timber.d("Фильтр_по_дате_Завтра")
+                val calendar=Calendar.getInstance()
+                calendar.add(Calendar.DAY_OF_YEAR,1)
+                val tomorrowDate=calendar.time
+
+                val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val dateText: String = dateFormat.format(tomorrowDate)
+                Timber.d("dateText=$dateText")
+                filterOrderByDate(dateText)
+            }
+            R.id.rbDate -> {
+                Timber.d("Фильтр_по_дате_Дата")
+                val date =Calendar.getInstance()
+                val dateListener =
+                    DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
+                        date.set(Calendar.YEAR, year)
+                        date.set(Calendar.MONTH, month)
+                        date.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                        /*tietFilterDate.setText(
+                            SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(date.time)
+                        )*/
+
+                        val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val dateText: String = dateFormat.format(date.time)
+                        Timber.d("dateText=$dateText")
+                        filterOrderByDate(dateText)
+                    }
+
+                DatePickerDialog(this,
+                    dateListener,
+                    date.get(Calendar.YEAR),
+                    date.get(Calendar.MONTH),
+                    date.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+            /*R.id.tietFilterDate -> {
+                Timber.d("Фильтр_по_дате_Дата")
+
+            }*/
             /*R.id.btnSearch -> {
                 Timber.d("Открываем окно с поиском")
             }*/
@@ -664,10 +858,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private fun setCountFiltersGroup() {
         Timber.d("setCountFiltersGroup")
 
-        dialogView.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
-        dialogView.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
-        dialogView.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
-        dialogView.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
+        if (::orders.isInitialized) {
+            dialogView.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
+            dialogView.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
+            dialogView.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
+            dialogView.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
+        }
+
     }
 
     private val dialogCancelListener=object: DialogInterface.OnCancelListener{
@@ -703,28 +900,20 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
             filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
             if (filterCount==4) {
-                Timber.d("filterCount==4")
                 filteredOrders= listOf()
-                Timber.d("filteredOrders=$filteredOrders")
             }
 
             // Фильтруем заявки
             val navHostFragment=(dialogView.context as MainActivity).supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-            Timber.d("navHostFragment=$navHostFragment")
-            if (navHostFragment is NavHostFragment) {
-                val of=navHostFragment.childFragmentManager.fragments.get(0) as? OrderFragment
-                Timber.d("ofZZ=$of")
-                of?.filteredOrderByGroup(filterGroupList)
+            val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+            if (childFragment is OrderFragment) {
+                childFragment.filteredOrderByGroup(filterGroupList)
             }
-            if (navHostFragment is OrderFragment) {
-                navHostFragment.filteredOrderByGroup(filterGroupList)
-            }
-            if (navHostFragment is MapFragment){
+            if (childFragment is MapFragment){
                 Timber.d("Включена карта")
                 val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
 
-                val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-                mf?.showMarkers(filteredOrderByGroup)
+                childFragment.showMarkers(filteredOrderByGroup)
             }
 
 
@@ -732,23 +921,33 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
-    fun doAuthorization() {
-        Timber.d("doAuthorization")
-        // Получим логин и пароль из настроек
-        val sharedPref = getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
-        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
+     private val dialogDateFilterCancelListener=object: DialogInterface.OnCancelListener{
+         override fun onCancel(dialog: DialogInterface?) {
+             Timber.d("dialogDateFilterCancelListener")
+         }
 
-            /*val login = this.sharedPref.getLogin()
-            val password = this.sharedPref.getPassword()
+     }
 
-            loginPresenter.attachView(this)
-            loginPresenter.authorization(login, password) // Проверим есть ли авторизация*/
-        } else {
-            Timber.d("логин/пароль=ОТСУТСТВУЮТ")
-            // Запустим активити с настройками
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivityForResult(intent, Const.RequestCodes.AUTH)
-        }
-    }
+     private fun filterOrderByDate(dateText: String) {
+         // Фильтруем заявки
+         val navHostFragment=(dialogDateFilterView.context as MainActivity).supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+         val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+         if (childFragment is OrderFragment) {
+             childFragment.filteredOrderByDate(dateText)
+         }
+         if (childFragment is MapFragment){
+             Timber.d("Включена карта")
+             var filteredOrderByGroup= listOf<Orders>()
+             if (dateText=="all") {
+                 filteredOrderByGroup=orders.filter { it.dateVisit !=null }
+             } else {
+                 filteredOrderByGroup=orders.filter { it.dateVisit ==dateText }
+             }
+
+
+             childFragment.showMarkers(filteredOrderByGroup)
+         }
+     }
+
 
 }

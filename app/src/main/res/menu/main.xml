@@ -11,13 +11,17 @@
         app:showAsAction="always"/>
 
     <item
+        android:id="@+id/date_filter"
+        android:icon="@drawable/ic_filter_date"
+        android:orderInCategory="1"
+        android:title="@string/filter"
+        app:showAsAction="always"/>
+
+    <item
         android:id="@+id/menu_buttons"
         android:icon="@drawable/ic_filter"
         android:orderInCategory="1"
         android:title="@string/filter"
         app:showAsAction="always"/>
-
-
-
 
 </menu>

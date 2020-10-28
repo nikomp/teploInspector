@@ -12,8 +12,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat.startActivity
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import kotlinx.android.synthetic.main.item_cardview_order.view.*
@@ -21,7 +21,6 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
-import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.util.Const
 import timber.log.Timber
 import java.text.SimpleDateFormat
@@ -69,11 +68,14 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     !(parentFragment.activity as MainActivity).isSearchView) {
 
                     Timber.d("addHistoryState_after_Back")
+                    Timber.d("${s.toString().toUpperCase()}_${ordersFilterList[position].status?.toUpperCase()}")
 
-                    Timber.d("addTextChangedListener=${s.toString().toLowerCase().capitalize()}")
-                    ordersFilterList[position].status=s.toString().toLowerCase().capitalize()
-                    changeColorMBSState(holder.orderState, ordersFilterList[position].status)
-                    parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+                    if (s.toString().toUpperCase()!=ordersFilterList[position].status?.toUpperCase()) {
+                        ordersFilterList[position].status=s.toString().toLowerCase().capitalize()
+                        changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+                        parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+                    }
+
 
                     holder.orderState.removeTextChangedListener(this)
                     holder.orderState.setText(s.toString().toUpperCase())
@@ -91,17 +93,48 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         }
 
-        Timber.d("ordersFilterList[position].status=${ordersFilterList[position].status}")
+        val typeTransportationTextWatcher=object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                holder.btnRoute.isEnabled = s.toString() != parentFragment.requireContext().getString(R.string.strTypeTransportationClient)
+                if (holder.btnRoute.isEnabled) {
+                    holder.btnRoute.setTextColor(Color.parseColor("#2D3239"))
+                } else {
+                    holder.btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
+                }
+
+                if (s.toString().toUpperCase()!=ordersFilterList[position].typeTransportation?.toUpperCase()) {
+                    ordersFilterList[position].typeTransportation=s.toString()
+                    parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
+                }
+
+
+                holder.typeTransportation.removeTextChangedListener(this)
+                holder.typeTransportation.setText(s.toString())
+                holder.typeTransportation.addTextChangedListener(this)
+
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                //TODO("Not yet implemented")
+            }
+
+        }
+
         if (!(parentFragment.activity as MainActivity).isBackPressed &&
             !(parentFragment.activity as MainActivity).isSearchView) {
-            Timber.d("removeTextChangedListener")
+            Timber.d("removeTextChangedListener_${(parentFragment.activity as MainActivity).isBackPressed}_${(parentFragment.activity as MainActivity).isSearchView}")
             holder.orderState.removeTextChangedListener(orderStateListener)
+            holder.typeTransportation.removeTextChangedListener(typeTransportationTextWatcher)
         }
 
         holder.orderState.setText(ordersFilterList[position].status?.toUpperCase())
         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
 
-        val adapterStatus: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             parentFragment.requireContext(),
             R.layout.template_multiline_spinner_item_state_order,
             R.id.text1,
@@ -110,14 +143,14 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         holder.orderState.setAdapter(adapterStatus)
 
-
-
         holder.orderState.addTextChangedListener(orderStateListener)
 
         if (ordersFilterList[position].dateVisit!=null && ordersFilterList[position].timeVisit!=null) {
             val strDateTimeVisit="${ordersFilterList[position].dateVisit} ${ordersFilterList[position].timeVisit}"
             val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
-            holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            if (date!=null) {
+                holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            }
         } else {
             holder.orderDate.text=parentFragment.getString(R.string.not_date_visit)
         }
@@ -131,41 +164,25 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.typeTransportation.text=orders[position].typeTransportation
         }*/
 
+
+        Timber.d("position=${ordersFilterList[position].typeTransportation}")
         if (!ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
+            Timber.d("position=$position")
+            Timber.d("position=${ordersFilterList[position]}")
+            //holder.typeTransportation.removeTextChangedListener(typeTransportationTextWatcher)
+            Timber.d("position=${ordersFilterList}")
             holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
         }
 
 
-        val adapter: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapter: ArrayAdapter<String> = ArrayAdapter(
             parentFragment.requireContext(),
             R.layout.template_multiline_spinner_item, //android.R.layout.simple_dropdown_item_1line,
             Const.TypeTransportation.list
         )
         holder.typeTransportation.setAdapter(adapter)
 
-        holder.typeTransportation.addTextChangedListener(object: TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                Timber.d("Route_afterTextChanged")
-                holder.btnRoute.isEnabled = s.toString() != parentFragment.requireContext().getString(R.string.strTypeTransportationClient)
-                if (holder.btnRoute.isEnabled) {
-                    holder.btnRoute.setTextColor(Color.parseColor("#2D3239"))
-                } else {
-                    holder.btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
-                }
-                ordersFilterList[position].typeTransportation=s.toString()
-                parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
-
-            }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
-
-        })
+        holder.typeTransportation.addTextChangedListener(typeTransportationTextWatcher)
 
 
         if (ordersFilterList[position].phone.isNullOrEmpty()) {
@@ -194,53 +211,17 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         holder.btnRoute.setOnClickListener { _ ->
             Timber.d("btnRoute.setOnClickListener")
 
+            (parentFragment.requireActivity() as MainActivity).currentOrder=ordersFilterList[position]
+
             //Включаем фрагмент со списком Маршрутов для конкретной заявки
             val bundle = Bundle()
             bundle.putBoolean("isOrderFragment",true)
-            val fragmentMap= MapFragment()
-            fragmentMap.arguments=bundle
-            val fragmentManager=(parentFragment.requireContext() as MainActivity).supportFragmentManager
 
-            fragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, fragmentMap, "map_fragment_from_orders_tag")
-                .addToBackStack(null)
-                .commit()
-
-            fragmentManager.executePendingTransactions()
-
-
-            (parentFragment.requireContext() as FragmentsContractActivity).setOrder(ordersFilterList[position]) //orders[position]
+            Navigation.findNavController(parentFragment.root).navigate(R.id.nav_slideshow,bundle)
 
         }
 
-
-
         holder.listener=itemListener
-
-        /*if (ordersFilterList[position].checked) {
-            holder.cardView.setCardBackgroundColor(
-                ContextCompat.getColor(
-                    parentFragment.requireContext(),
-                    R.color.colorCardSelect
-                ))
-        } else {
-            holder.cardView.setCardBackgroundColor(
-                ContextCompat.getColor(
-                    parentFragment.requireContext(),
-                    R.color.colorCardItem
-                ))
-        }*/
-
-        // После того как обновлен последний элемент списка сбросим isBackPressed, isSearchView, если они установлены
-        /*if (position==itemCount-1) {
-            Timber.d("itemCount=$itemCount")
-            if ((parentFragment.activity as MainActivity).isBackPressed) {
-                (parentFragment.activity as MainActivity).isBackPressed=false
-            }
-            if ((parentFragment.activity as MainActivity).isSearchView) {
-                (parentFragment.activity as MainActivity).isSearchView=false
-            }
-        }*/
 
     }
 
@@ -290,7 +271,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         var btnRoute: Button=itemView.btnRoute
         lateinit var listener: OrdersRVClickListeners
 
-        var cardView: CardView = itemView.cv
+        //var cardView: CardView = itemView.cv
 
         init {
             view.setOnClickListener(this)
@@ -306,16 +287,13 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 val charSearch = constraint.toString()
                 Timber.d("charSearch=$charSearch")
 
-                if (charSearch.isEmpty()) {
-                    //originalOrdersList.addAll(orders)
-                    ordersFilterList=orders
+                ordersFilterList = if (charSearch.isEmpty()) {
+                    (parentFragment.requireActivity() as MainActivity).orders
                 } else {
-                    Timber.d("ordersFilterList=$ordersFilterList")
                     val resultList=
                         ordersFilterList.filter { it.address!=null && it.address!!.contains(charSearch,true)}
-                    Timber.d("resultList=${resultList.size}")
 
-                    ordersFilterList=resultList
+                    resultList
                 }
 
 
@@ -329,21 +307,27 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
                 Timber.d("publishResults")
                 if (results?.values!=null) {
-                    ordersFilterList= results.values as List<Orders>
 
-
-                    if ((parentFragment.requireActivity() as MainActivity).isMapFragmentShow) {
-                        (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
-                    } else {
-                        (parentFragment.requireContext() as FragmentsContractActivity).showSearchedOrders(ordersFilterList)
+                    val resultOrders= results.values
+                    val result = mutableListOf<Orders>()
+                    if (resultOrders is List<*>) {
+                        for (i in 0 until resultOrders.size) {
+                            val item = resultOrders[i]
+                            if (item is Orders) {
+                                result.add(item)
+                            }
+                        }
                     }
+                    ordersFilterList=result
+
+                    //ordersFilterList= results.values as List<Orders>
+
+                    Timber.d("isMapFragmentShow=${(parentFragment.requireActivity() as MainActivity).isMapFragmentShow}")
+                    (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
+
                 }
-
-
             }
-
         }
     }
-
 
 }

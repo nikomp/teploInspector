@@ -7,11 +7,6 @@ import com.google.gson.annotations.SerializedName
 import ru.bingosoft.teploInspector.db.Orders.Orders
 
 class Models {
-    class SimpleMsg (
-        @SerializedName("success") var success: Boolean = true,
-        @SerializedName("newToken") var newToken: Boolean = true,
-        @SerializedName("msg") var msg: String = ""
-    )
 
     class LP(
         @SerializedName("login") var login: String = "",
@@ -124,6 +119,10 @@ class Models {
         @SerializedName("event_type") var event_type: Int=0,
         @SerializedName("lat") var lat: Double?=0.0,
         @SerializedName("lon") var lon: Double?=0.0
+    )
+
+    class FCMToken(
+        @SerializedName("fcmToken") var token: String=""
     )
 
 }

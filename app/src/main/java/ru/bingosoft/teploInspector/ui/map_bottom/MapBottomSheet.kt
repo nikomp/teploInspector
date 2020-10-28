@@ -94,10 +94,12 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
 
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                order.status=s.toString()
-                changeColorMBSState(mbsOrderState, order.status)
-                //mbsPresenter.addHistoryState(order)
-                orderPresenter.addHistoryState(order)
+
+                if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
+                    order.status=s.toString().toLowerCase().capitalize()
+                    changeColorMBSState(mbsOrderState, order.status)
+                    orderPresenter.addHistoryState(order)
+                }
 
                 mbsOrderState.removeTextChangedListener(this)
                 mbsOrderState.setText(s.toString().toUpperCase())
@@ -187,7 +189,11 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
                 } else {
                     btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
                 }
-                order.typeTransportation=s.toString()
+
+                if (s.toString().toUpperCase()!=order.typeTransportation?.toUpperCase()) {
+                    order.typeTransportation=s.toString()
+                    orderPresenter.changeTypeTransortation(order)
+                }
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {

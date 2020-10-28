@@ -75,6 +75,42 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             )
     }
 
+    fun authorization(stLogin: String?, stPassword: String?){
+        Timber.d("authorization1 $stLogin _ $stPassword")
+        if (stLogin!=null && stPassword!=null) {
+
+            Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
+
+
+            val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
+                .toRequestBody("application/json".toMediaType())
+
+            disposable = apiService.getAuthentication(jsonBody)
+                .subscribeOn(Schedulers.io())
+                .flatMap { uuid ->
+                    Timber.d("uuid=$uuid")
+                    Timber.d("jsonBody2=${Gson().toJson(uuid)}")
+                    val jsonBody2 = Gson().toJson(uuid)
+                        .toRequestBody("application/json".toMediaType())
+                    apiService.getAuthorization(jsonBody2)
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { token ->
+                        Timber.d(token.token)
+                        view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
+                        view?.saveToken(token.token)
+                        view?.showMainActivityMsg(R.string.auth_ok)
+
+                    }, { throwable ->
+                        throwable.printStackTrace()
+                    }
+                )
+
+        }
+
+    }
+
     private fun isCheckupWithResult(msg: String) {
         Single.fromCallable{
             db.checkupDao().existCheckupWithResult()
@@ -233,7 +269,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         if (throwable is ThrowHelper) {
                             isCheckupWithResult("${throwable.message}")
                         } else {
-                            view?.showMainActivityMsg(R.string.msgDataSendError)
+                            //view?.showMainActivityMsg(R.string.msgDataSendError)
+                            view?.errorReceived(throwable)
                         }
                     }
                 )

@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_login.*
 import ru.bingosoft.teploInspector.R
+import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import javax.inject.Inject
@@ -26,6 +27,9 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     @Inject
     lateinit var toaster: Toaster
 
+    @Inject
+    lateinit var sharedPref: SharedPrefSaver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
@@ -33,6 +37,13 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
         val toolbar=logintoolbar
         setSupportActionBar(toolbar)
+
+        if (sharedPref.getLogin().isNotEmpty()) {
+            edLogin.setText(sharedPref.getLogin())
+        }
+        if (sharedPref.getPassword().isNotEmpty()) {
+            edPassword.setText(sharedPref.getPassword())
+        }
 
 
     }
@@ -43,6 +54,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                 R.id.btnGo -> {
                     if (isNetworkConnected()) {
                         Timber.d("LoginActivity onClick")
+
                         stUrl = edUrl.text.toString()
                         stLogin = edLogin.text.toString()
                         stPassword = edPassword.text.toString()
@@ -53,13 +65,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                         intent.putExtra("password", stPassword)
                         intent.putExtra("url", stUrl)
                         setResult(Activity.RESULT_OK, intent)
-
-                        /*val intent = Intent(this, MainActivity::class.java)
-                        intent.putExtra("login", stLogin)
-                        intent.putExtra("password", stPassword)
-                        intent.putExtra("url", stUrl)
-                        //intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivityForResult(intent, Const.RequestCodes.AUTH)*/
 
                         this.finish()
                     } else {

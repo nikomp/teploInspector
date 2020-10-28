@@ -120,6 +120,7 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
             if ((!isExpanded) && (parentFragment.currentOrder.status=="Открыта"
                 || parentFragment.currentOrder.status=="В пути")) {
                 parentFragment.toaster.showToast(R.string.checklist_is_blocked)
+
             }
         }
 

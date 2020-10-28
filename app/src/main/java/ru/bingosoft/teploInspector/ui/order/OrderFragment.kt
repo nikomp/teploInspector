@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -26,18 +27,15 @@ import kotlinx.android.synthetic.main.alert_syncdb.view.*
 import kotlinx.android.synthetic.main.fragment_order.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
-import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.util.*
 import timber.log.Timber
 import java.net.UnknownHostException
@@ -69,7 +67,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     lateinit var userLocationNative: UserLocationNative
 
     private lateinit var currentOrder: Orders
-    private lateinit var root: View
+    lateinit var root: View
     lateinit var orders: List<Orders>
     //var filteredOrdersOrderFragment: List<Orders> = listOf()
 
@@ -91,28 +89,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val btnMap=root.findViewById<Button>(R.id.btnMap)
         btnMap.setOnClickListener(this)
 
-        // Авторизуемся всегда иначе данные не будут уходить на сервер
-        /*doAuthorization()
-        Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
-        orderPresenter.attachView(this)
-        orderPresenter.loadOrders()
 
-        val pb=root.findViewById<ProgressBar>(R.id.progressBar)
-        pb.visibility= View.INVISIBLE*/
-
-
-        // Если логин/пароль есть не авторизуемся
-        /*if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
-            doAuthorization()
-        } else {
-            Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
-            orderPresenter.attachView(this)
-            orderPresenter.loadOrders()
-
-            val pb=root.findViewById<ProgressBar>(R.id.progressBar)
-            pb.visibility= View.INVISIBLE
-        }*/
-
+        Timber.d("root=$root")
         return root
     }
 
@@ -378,6 +356,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         // указываем слушатель свайпов пользователя
         swipeRefreshLayout.setOnRefreshListener {
+            loginPresenter.attachView(this)
             loginPresenter.syncDB()
             swipeRefreshLayout.isRefreshing = false
         }
@@ -385,11 +364,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
         val adapter=
-        /*if (filteredOrdersOrderFragment.isEmpty()) {
-            OrderListAdapter(orders,this, this, userLocationNative.userLocation)
-        } else {
-            OrderListAdapter(filteredOrdersOrderFragment,this, this, userLocationNative.userLocation)
-        }*/
+
         if ((activity as MainActivity).filteredOrders.isEmpty()) {
             OrderListAdapter(orders,this, this, userLocationNative.userLocation)
         } else {
@@ -402,7 +377,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     //#Android_Studio #длинный_лог
     // Функция для вывода длинных строк в лог. Использовать вместо Timber.d
-    fun longInfo(str: String) {
+    private fun longInfo(str: String) {
         if (str.length > 3000) {
             Timber.d( str.substring(0, 3000))
             longInfo(str.substring(3000))
@@ -428,52 +403,26 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         adapter.ordersFilterList=filteredOrderByGroup
     }
 
-    override fun openCheckup(checkup: Checkup) {
-        Timber.d("openCheckup")
-        Timber.d("idCheckup=${checkup.idOrder}")
-        //Загружаем чеклист
-        val bundle = Bundle()
-        bundle.putBoolean("loadCheckupById", true)
-        bundle.putLong("checkupId",checkup.idOrder)
-
-        val fragmentCheckup= CheckupFragment()
-        fragmentCheckup.arguments=bundle
-        val fragmentManager=this.requireActivity().supportFragmentManager
-
-        fragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
-            .addToBackStack(null)
-            .commit()
-
-        fragmentManager.executePendingTransactions()
+    fun filteredOrderByDate(strDate: String) {
+        Timber.d("filteredOrderByDate")
+        val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        var filteredOrderByDate= listOf<Orders>()
+        if (strDate=="all") {
+            filteredOrderByDate=orders.filter { it.dateVisit !=null }
+        } else {
+            filteredOrderByDate=orders.filter { it.dateVisit ==strDate }
+        }
 
 
-        (this.requireActivity() as FragmentsContractActivity).setCheckup(checkup)
+        val adapter = OrderListAdapter(filteredOrderByDate,this, this, userLocationNative.userLocation)
+        rcv.adapter = adapter
+
+        adapter.ordersFilterList=filteredOrderByDate
     }
 
     override fun techParamsLoaded(techParams: List<TechParams>) {
         Timber.d("techParamsLoaded $techParams")
         (activity as MainActivity).techParams=techParams
-
-        //Включаем фрагмент с чеклистом для конкретной заявки
-        /*val bundle = Bundle()
-        bundle.putBoolean("checkUpForOrder", true)
-        bundle.putLong("idOrder",currentOrder.id)
-        bundle.putString("typeOrder",currentOrder.typeOrder)
-
-        val fragmentCheckupList= CheckupFragment()
-        fragmentCheckupList.arguments=bundle
-        val fragmentManager=this.requireActivity().supportFragmentManager
-
-        fragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragmentCheckupList, "checkup_fragment_tag")
-            .addToBackStack(null)
-            .commit()
-
-        fragmentManager.executePendingTransactions()
-
-        (this.requireActivity() as FragmentsContractActivity).setChecupOrder(currentOrder)*/
-
     }
 
     override fun errorReceived(throwable: Throwable) {
@@ -511,22 +460,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         bundle.putLong("idOrder",currentOrder.id)
         bundle.putString("typeOrder",currentOrder.typeOrder)
 
-        val fragmentCheckupList= CheckupFragment()
-        fragmentCheckupList.arguments=bundle
-        val fragmentManager=this.requireActivity().supportFragmentManager
-
-        fragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragmentCheckupList, "checkup_fragment_tag")
-            .addToBackStack(null)
-            .commit()
-
-        fragmentManager.executePendingTransactions()
-
-        (this.requireActivity() as FragmentsContractActivity).setChecupOrder(currentOrder)
-        (this.requireActivity() as FragmentsContractActivity).setChecupTechParams(currentOrder)
-
-        //orderPresenter.getTechParams(currentOrder.id)
-
+        Navigation.findNavController(root).navigate(R.id.nav_checkup,bundle)
 
     }
 
@@ -543,25 +477,14 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     (v.parent as View).findViewById<Button>(R.id.btnList).isEnabled=true
 
                     val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-                    val fragmentMap= MapFragment((rcv.adapter as OrderListAdapter).ordersFilterList)
 
-                    val fragmentManager=this.requireActivity().supportFragmentManager
-
-                    fragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, fragmentMap, "fragment_map")
-                        .addToBackStack(null)
-                        .commit()
-
-                    fragmentManager.executePendingTransactions()
-
-                    (fragmentMap.requireActivity() as FragmentsContractActivity).setMode()
+                    (this.requireActivity() as MainActivity).filteredOrders=(rcv.adapter as OrderListAdapter).ordersFilterList
+                    (this.requireActivity() as MainActivity).navController.navigate(R.id.nav_slideshow)
+                    (this.requireActivity() as FragmentsContractActivity).setMode()
 
                 }
-
-
             }
         }
     }
-
 
 }

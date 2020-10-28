@@ -82,7 +82,6 @@ class CheckupPresenter @Inject constructor(
 
         disposable=Single.fromCallable{
             Timber.d("uiCreator.checkup11=${uiCreator.checkup}")
-            //db.checkupDao().insert(uiCreator.checkup)
             db.checkupDao().update(uiCreator.checkup)
         }
         .subscribeOn(Schedulers.io())
@@ -92,6 +91,7 @@ class CheckupPresenter @Inject constructor(
             updateAnsweredCount(uiCreator)
         },{error ->
             error.printStackTrace()
+            view?.errorReceived(error)
         })
     }
 
@@ -109,9 +109,11 @@ class CheckupPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{_ ->
+            .subscribe({_ ->
                 view?.setAnsweredCount(filterControls.size)
-            }
+            },{throwable ->
+                view?.errorReceived(throwable)
+            })
 
 
     }

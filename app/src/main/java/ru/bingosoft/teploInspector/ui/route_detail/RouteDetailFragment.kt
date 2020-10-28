@@ -104,6 +104,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
             when (v.id) {
                 R.id.btnCar -> {
+                    Timber.d("CLICK_CAR")
                     v.isEnabled=false
                     v.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.colorCardItem))
 
@@ -231,22 +232,22 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
     private val drivingRouteListener=object: DrivingSession.DrivingRouteListener {
         override fun onDrivingRoutesError(error: Error) {
-            var errorMessage = getString(R.string.unknown_error_message)
+            var yandexMapError = getString(R.string.unknown_error_message)
             if (error is RemoteError) {
-                errorMessage = getString(R.string.remote_error_message)
+                yandexMapError = getString(R.string.remote_error_message)
             } else if (error is NetworkError) {
-                errorMessage = getString(R.string.network_error_message)
+                yandexMapError = getString(R.string.network_error_message)
             }
 
-            toaster.showToast(errorMessage)
+            toaster.showToast(yandexMapError)
         }
 
         override fun onDrivingRoutes(routes: MutableList<DrivingRoute>) {
             if (routes.isNotEmpty()) {
                 routes.forEach {
                     Timber.d("saveRoute")
-                    val polylineMapObject=parentFragment.mapView.map.mapObjects.addPolyline(it.geometry)
-                    parentFragment.lastCarRouter.add(polylineMapObject) // Сохраним маршрут, чтоб потом можно было его удалить
+                    //parentFragment.lastCarRouter.add(parentFragment.mapView.map.mapObjects.addPolyline(it.geometry)) // Сохраним маршрут, чтоб потом можно было его удалить
+                    parentFragment.lastCarRouterPolyline.add(it)
                 }
             }
         }
@@ -440,8 +441,6 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             }
             1 -> {
                 Timber.d("Самостоятельно на личном транспорте")
-                //Фактически маршркут будет показан после инициализации локации пользователя
-                // см. MapFragmnet userLocationObjectListener
                 btnCar.performClick()
             }
             2 -> {

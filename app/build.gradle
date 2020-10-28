@@ -168,4 +168,7 @@ dependencies {
     // Для Exif данных в jpeg файлах
     implementation 'androidx.exifinterface:exifinterface:1.0.0'
 
+    // Для tooltip подсказок
+    implementation 'com.nhaarman.supertooltips:library:3.0.+'
+
 }

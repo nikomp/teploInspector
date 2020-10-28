@@ -22,6 +22,7 @@ import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.Directions
 import com.yandex.mapkit.directions.DirectionsFactory
+import com.yandex.mapkit.directions.driving.DrivingRoute
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.location.*
@@ -40,11 +41,9 @@ import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map_bottom.MapBottomSheet
-import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.route_detail.RouteDetailFragment
 import ru.bingosoft.teploInspector.util.Const.Location.DESIRED_ACCURACY
 import ru.bingosoft.teploInspector.util.Const.Location.MINIMAL_DISTANCE
@@ -58,13 +57,14 @@ import timber.log.Timber
 import javax.inject.Inject
 
 
-class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContractView, IOnBackPressed, View.OnClickListener {
+class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickListener {
 
-    val fragment=this
+    private val fragment=this
+    var orders: List<Orders> = listOf()
     lateinit var mapView: MapView
     lateinit var map: Map
     lateinit var userLocationLayer: UserLocationLayer
-    lateinit var locationManager:LocationManager
+    private lateinit var locationManager:LocationManager
 
     @Inject
     lateinit var mapPresenter: MapPresenter
@@ -76,41 +76,40 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
     private var checkupId: Long?=0
     private var controlId: Int=0
 
-    lateinit var directions: Directions
-    lateinit var transports: Transport
-    lateinit var mkfInstatnce: MapKit
+    private lateinit var directions: Directions
+    private lateinit var transports: Transport
+    private lateinit var mkInstances: MapKit
     var lastCarRouter=mutableListOf<PolylineMapObject>()
+    var lastCarRouterPolyline=mutableListOf<DrivingRoute>()
     var prevMapObjectMarker: MapObject?=null
 
-    private val mapLoadedListener=object:MapLoadedListener{
-        override fun onMapLoaded(p0: MapLoadStatistics) {
-            mapPresenter.attachView(fragment)
 
-            val tag = arguments?.getBoolean("addCoordinates")
-            checkupId= arguments?.getLong("checkupId")
-            val control= arguments?.getInt("controlId")
-            if (control!=null) {
-                controlId=control
-            }
-            Timber.d("checkupId=$checkupId")
+    private val mapLoadedListener= MapLoadedListener {
+        mapPresenter.attachView(fragment)
 
-            if (tag==null || tag==false) {
-                if (orders.isEmpty()) {
-                    Timber.d("Грузим все маркеры Заявок")
-                    mapPresenter.loadMarkers() // Грузим все маркеры Заявок
-                } else {
-                    showMarkers(orders)
-                }
+        val tag = arguments?.getBoolean("addCoordinates")
+        checkupId= arguments?.getLong("checkupId")
+        val control= arguments?.getInt("controlId")
+        if (control!=null) {
+            controlId=control
+        }
+        Timber.d("checkupId=$checkupId")
 
+        if (tag==null || tag==false) {
+            if (orders.isEmpty()) {
+                Timber.d("Грузим все маркеры Заявок")
+                mapPresenter.loadMarkers() // Грузим все маркеры Заявок
             } else {
-                addCoordinatesTag=true
+                showMarkers(orders)
             }
 
-            enableLocationComponent() // Включим разрешения на работу с картой
+        } else {
+            addCoordinatesTag=true
         }
     }
 
     fun showRouteDialog(order: Orders) {
+        Timber.d("showRouteDialog")
         val routeDetailFragment = RouteDetailFragment(order, this)
         routeDetailFragment.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET_ROUTE_DETAIL")
     }
@@ -126,29 +125,10 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
                 val view=layoutInflater.inflate(R.layout.template_marker,null)
                 map.mapObjects.addPlacemark(point,ViewProvider(view))
 
-                val bundle = Bundle()
-                bundle.putBoolean("loadCheckupById", true)
-                val idCheckup=checkupId
-                if (idCheckup!=null) {
-                    bundle.putLong("checkupId",idCheckup)
-                }
-
-                val fragmentCheckup= CheckupFragment()
-                fragmentCheckup.arguments=bundle
-
-                val fragmentManager=fragment.requireActivity().supportFragmentManager
-                fragmentManager.beginTransaction()
-                    .replace(R.id.nav_host_fragment, fragmentCheckup, "checkup_fragment_tag")
-                    .addToBackStack(null)
-                    .commit()
-
-                fragmentManager.executePendingTransactions()
-
-                (fragment.requireActivity() as FragmentsContractActivity).setCoordinates(point,controlId)
             }
 
             if (lastCarRouter.isNotEmpty()) {
-                removeRouter(lastCarRouter)
+                removeRouter()
             }
 
             if (prevMapObjectMarker!=null) {
@@ -161,12 +141,18 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         }
     }
 
-    fun removeRouter(list: MutableList<PolylineMapObject>) {
+    fun removeRouter() {
         Timber.d("removeRouter")
-        list.forEach{
-            map.mapObjects.remove(it)
+        lastCarRouter.forEach{
+            try {
+                map.mapObjects.remove(it)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
         }
-        list.clear()
+        lastCarRouter.clear()
+        lastCarRouterPolyline.clear()
     }
 
     private val userLocationObjectListener=object:UserLocationObjectListener{
@@ -213,12 +199,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
 
             userLocationView.accuracyCircle.fillColor = Color.BLUE
 
-            if (lastCarRouter.isNotEmpty()) {
-                Timber.d("показываем маршрут ${lastCarRouter.size}")
-                lastCarRouter.forEach {
-                    map.mapObjects.addPolyline(it.geometry)
-                }
-            }
+
         }
     }
 
@@ -248,39 +229,36 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         }
     }
 
-    val mapObjectTapListener=object:MapObjectTapListener{
-        override fun onMapObjectTap(mapObject: MapObject, p1: Point): Boolean {
-            Timber.d("onMapObjectTap")
+    private val mapObjectTapListener= MapObjectTapListener { mapObject, _ ->
+        Timber.d("onMapObjectTap")
 
-            val order=(mapObject.userData as Models.CustomMarker).order
-            val tvMarker=(mapObject.userData as Models.CustomMarker).markerView
-            if (prevMapObjectMarker!=null) {
-                // выключим предыдущий маркер
-                val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
-                prevTvMarker.isEnabled=!prevTvMarker.isEnabled
-                (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
-            }
+        val order=(mapObject.userData as Models.CustomMarker).order
+        val tvMarker=(mapObject.userData as Models.CustomMarker).markerView
+        if (prevMapObjectMarker!=null) {
+            // выключим предыдущий маркер
+            val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
+            prevTvMarker.isEnabled=!prevTvMarker.isEnabled
+            (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
+        }
 
-            tvMarker.isEnabled=!tvMarker.isEnabled
-            (mapObject as PlacemarkMapObject).setView(ViewProvider(tvMarker))
-            prevMapObjectMarker=mapObject
+        tvMarker.isEnabled=!tvMarker.isEnabled
+        (mapObject as PlacemarkMapObject).setView(ViewProvider(tvMarker))
+        prevMapObjectMarker=mapObject
 
+        if (locationListener.lastLocation!=null) {
+            val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+            mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
+
+        } else {
+            Timber.d("locationListener.lastLocation==null")
+            locationManager.requestSingleUpdate(locationListener)
             if (locationListener.lastLocation!=null) {
                 val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
                 mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
-
-            } else {
-                Timber.d("locationListener.lastLocation==null")
-                locationManager.requestSingleUpdate(locationListener)
-                if (locationListener.lastLocation!=null) {
-                    val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
-                    mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
-                }
             }
-
-            return true
         }
 
+        true
     }
 
     override fun onCreateView(
@@ -289,6 +267,16 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         savedInstanceState: Bundle?
     ): View? {
         AndroidSupportInjection.inject(this)
+
+        orders=(this.requireActivity() as MainActivity).filteredOrders
+
+        if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
+            if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
+                showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
+            }
+
+        }
+
 
         locationManager=MapKitFactory.getInstance().createLocationManager()
         //locationManager=mkfInstatnce.createLocationManager()
@@ -325,7 +313,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         DirectionsFactory.initialize(this.context)
         TransportFactory.initialize(this.context)
 
-        mkfInstatnce=MapKitFactory.getInstance()
+        mkInstances=MapKitFactory.getInstance()
 
         directions=DirectionsFactory.getInstance()
         transports=TransportFactory.getInstance()
@@ -336,6 +324,7 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
     override fun onStart() {
         super.onStart()
         mapView.onStart()
+        enableLocationComponent() // Включим разрешения на работу с картой
         MapKitFactory.getInstance().onStart()
         //mkfInstatnce.onStart()
     }
@@ -355,6 +344,21 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
         map.mapObjects.clear()
         orders.forEach{
             importOrdersOnMap(it)
+        }
+
+
+        if (lastCarRouterPolyline.isNotEmpty()) {
+            Timber.d("показываем маршрут $lastCarRouterPolyline")
+            lastCarRouterPolyline.forEach {
+                //Timber.d("показываем маршрут ${it.geometry}")
+                try {
+                    val polylineMapObject=map.mapObjects.addPolyline(it.geometry)
+                    lastCarRouter.add(polylineMapObject)
+                } catch (e:Exception) {
+                    e.printStackTrace()
+                }
+
+            }
         }
     }
 
@@ -425,7 +429,8 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
 
     private fun initUserLocationLayer() {
         Timber.d("initUserLocationLayer")
-        userLocationLayer=MapKitFactory.getInstance().createUserLocationLayer(mapView.mapWindow)
+        //MapKitFactory.getInstance()
+        userLocationLayer=mkInstances.createUserLocationLayer(mapView.mapWindow)
         userLocationLayer.isVisible=true
         userLocationLayer.isHeadingEnabled=true
         userLocationLayer.setObjectListener(userLocationObjectListener)
@@ -488,20 +493,11 @@ class MapFragment(var orders: List<Orders> = listOf()) : Fragment(), MapContract
                     v.isEnabled=false
                     (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
 
-                    val fragmentOrder= OrderFragment()
-                    //fragmentOrder.filteredOrdersOrderFragment=this.orders
+                    this.requireActivity().onBackPressed()
 
-                    val fragmentManager=this.requireActivity().supportFragmentManager
 
-                    fragmentManager.beginTransaction()
-                        .replace(R.id.nav_host_fragment, fragmentOrder, "order_fragment_tag")
-                        .addToBackStack(null)
-                        .commit()
-
-                    fragmentManager.executePendingTransactions()
-
-                    (fragmentOrder.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
-                    (fragmentOrder.requireActivity() as MainActivity).filteredOrders=this.orders
+                    (this.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
+                    (this.requireActivity() as MainActivity).filteredOrders=this.orders
 
                 }
 

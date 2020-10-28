@@ -80,9 +80,9 @@
     <string name="driveway">Проезд</string>
     <string name="btnDeleteAllPhoto">Удалить все</string>
 
-    <string name="network_error_message">Ошибка сети</string>
-    <string name="remote_error_message">Ошибка удаленного сервера</string>
-    <string name="unknown_error_message">Неизвестная ошибка</string>
+    <string name="network_error_message">Яндекс.Карты: Ошибка сети</string>
+    <string name="remote_error_message">Яндекс.Карты: Ошибка удаленного сервера</string>
+    <string name="unknown_error_message">Яндекс.Карты: Неизвестная ошибка</string>
 
     <string name="routeName">Маршрут %1$s</string>
     <string name="transfersCount">Пересадок %1$s</string>
@@ -135,5 +135,18 @@
 
     <string name="checklist_is_blocked">Чек-лист заблокирован. Смените статус заявки на \"В работе\"</string>
     <string name="points_less_than_2">Недостаточно точек для построения маршрута. Проверьте GPS</string>
+
+    <string name="tooltip_change_state">Смените статус на \"В работе\"</string>
+
+    <string name="order_fragment_className">ru.bingosoft.teploInspector.ui.order.OrderFragment</string>
+    <string name="map_fragment_className">ru.bingosoft.teploInspector.ui.map.MapFragment</string>
+
+    <string name="double_back">Нажмите еще раз для выхода</string>
+
+    <string name="filter_date_all">Все</string>
+    <string name="filter_date_today">Сегодня</string>
+    <string name="filter_date_tomorrow">Завтра</string>
+    <string name="filter_date_date">Конкретное число</string>
+
 
 </resources>
