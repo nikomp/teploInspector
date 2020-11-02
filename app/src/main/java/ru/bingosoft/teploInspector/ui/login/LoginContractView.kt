@@ -15,6 +15,9 @@ interface LoginContractView {
     fun saveInfoUserToSharedPreference(user: Models.User)
     fun startLocationService()
 
+    fun startNotificationService(token: String)
+    fun checkMessageId()
+
     fun errorReceived(throwable: Throwable)
 
 }

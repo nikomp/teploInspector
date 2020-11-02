@@ -56,13 +56,8 @@ class UserLocationReceiver @Inject constructor(
         }
         Timber.d("UserLocationReceiver=$lat _ $lon")
         if (lat != null && lon!=null) {
-            sendLocation(lat,lon)
             if (provider != null && status != null) {
                     saveLocation(lat,lon,provider,status)
-            }
-        } else {
-            if (provider != null && status != null) {
-                saveLocation(lat,lon,provider,status)
             }
         }
     }
@@ -84,18 +79,6 @@ class UserLocationReceiver @Inject constructor(
                 Timber.d("Сохранили локацию пользователя в БД")
             }
 
-    }
-
-    private fun sendLocation(lat: Double, lon: Double) {
-        /*disposable=apiService.saveUserLocation(action="saveUserLocation",lat = lat, lon=lon)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({response ->
-                Timber.d(response.toString())
-            },{
-                Timber.d("ошибка!!!")
-                Timber.d(it.printStackTrace().toString())
-            })*/
     }
 
     private fun sendMessageToAdmin(codeMsg: Int) {
@@ -141,15 +124,17 @@ class UserLocationReceiver @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
+                disposable.dispose()
             },{
                 Timber.d("ошибка!!!")
                 Timber.d(it.printStackTrace().toString())
+                disposable.dispose()
             })
 
     }
 
     private fun sendUserRoute() {
-        Timber.d("sendUserRoute_from_ULR")
+        Timber.d("sendUserRoute_from_UserLocationReceiver")
         disposable=db.trackingUserDao()
             //.getAll()
             .getTrackingForCurrentDay()

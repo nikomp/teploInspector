@@ -125,4 +125,69 @@ class Models {
         @SerializedName("fcmToken") var token: String=""
     )
 
+    class Notification(
+        @SerializedName("id") val id: Int=0,
+        @SerializedName("notification_id") val notification_id: Int=0,
+        @SerializedName("author_id") val author_id: Int=0,
+        @SerializedName("recipient_id") val recipient_id: Int=0,
+        @SerializedName("guid") val guid: String="",
+        @SerializedName("event_guid") val event_guid: String="",
+        @SerializedName("record_id") val record_id: Int=0,
+        @SerializedName("title") val title: String="",
+        @SerializedName("content") val content: String="",
+        @SerializedName("shows_popup_message") val shows_popup_message: Boolean=false,
+        @SerializedName("email") val email: String?=null,
+        @SerializedName("create_date") val create_date: String="",
+        @SerializedName("submit_date") val submit_date: String="",
+        @SerializedName("read_date") val read_date: String=""
+        //@SerializedName("author") val author: List<Author>?=null,
+        //@SerializedName("notification") val notification: List<NoticationData>?=null
+
+    ) {
+        override fun toString(): String {
+            return "Notification(id=$id, notification_id=$notification_id, author_id=$author_id, recipient_id=$recipient_id, guid='$guid', event_guid='$event_guid', record_id=$record_id, title='$title', content='$content', shows_popup_message=$shows_popup_message, email=$email, create_date='$create_date', submit_date='$submit_date', read_date='$read_date')"
+        }
+    }
+
+    class Author(
+        @SerializedName("id") val id: Int=0,
+        @SerializedName("name") val name: String="",
+        @SerializedName("email") val email: String="",
+        @SerializedName("login") val login: String="",
+        @SerializedName("midname") val midname: String="",
+        @SerializedName("surname") val surname: String="",
+        @SerializedName("avatar_id") val avatar_id: String?=null
+    )
+
+    class NoticationData(
+        @SerializedName("id") val id: Int=0,
+        @SerializedName("guid") val guid: String="",
+        @SerializedName("icon") val icon: String="",
+        @SerializedName("name") val name: String="",
+        @SerializedName("group_id") val group_id: Int?=null,
+        @SerializedName("author_id") val author_id: Int=0,
+        @SerializedName("object_id") val object_id: Int?=null,
+        @SerializedName("row_order") val row_order: Int=0,
+        @SerializedName("email_type") val email_type: String?=null,
+        @SerializedName("author_type") val author_type: String="",
+        @SerializedName("email_value") val email_value: String?=null,
+        @SerializedName("condition_type") val condition_type: Int?=null,
+        @SerializedName("email_field_id") val email_field_id: Int?=null,
+        @SerializedName("period_type_id") val period_type_id: Int?=null,
+        @SerializedName("recipient_type") val recipient_type: String?=null,
+        @SerializedName("author_field_id") val author_field_id: Int?=null,
+        @SerializedName("author_state_id") val author_state_id: Int?=null,
+        @SerializedName("interaction_type") val interaction_type: String?="",
+        @SerializedName("title_formula_id") val title_formula_id: Int=0,
+        @SerializedName("content_formula_id") val content_formula_id: Int=0,
+        @SerializedName("shows_popup_message") val shows_popup_message: Boolean=false,
+        @SerializedName("condition_match_type") val condition_match_type: String="",
+        @SerializedName("recipient_match_type") val recipient_match_type: String?=null
+
+    )
+
+    class MessageId(
+        @SerializedName("message_id") val id: Int=0
+    )
+
 }

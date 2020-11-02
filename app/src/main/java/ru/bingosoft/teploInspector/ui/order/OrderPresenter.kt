@@ -63,12 +63,13 @@ class OrderPresenter @Inject constructor(
         val jsonBody2 = Gson().toJson(history)
             .toRequestBody("application/json".toMediaType())
 
-        apiService.sendStatusOrder(jsonBody2)
+        disposable=apiService.sendStatusOrder(jsonBody2)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
                 Timber.d("response=$response")
                 Timber.d("Отправили статус")
+                disposable.dispose()
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
@@ -79,6 +80,7 @@ class OrderPresenter @Inject constructor(
 
                 }*/
                 errorHandler(throwable)
+                disposable.dispose()
 
             })
 

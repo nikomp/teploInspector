@@ -76,4 +76,10 @@ interface ApiService {
         @Body json: RequestBody
     ): Single<Unit>
 
+    @PUT("notificationservice/messages/read?")
+    @Headers("Content-Type: application/json")
+    fun markMessageAsRead(
+        @Body json: RequestBody
+    ): Single<Boolean>
+
 }

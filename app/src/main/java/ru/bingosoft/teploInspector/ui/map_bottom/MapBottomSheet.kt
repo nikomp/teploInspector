@@ -94,6 +94,14 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
 
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                if (order.answeredCount==0 && s.toString()=="Выполнена") {
+                    parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
+                    mbsOrderState.removeTextChangedListener(this)
+                    mbsOrderState.setText(order.status?.toUpperCase())
+                    mbsOrderState.addTextChangedListener(this)
+                    return
+                }
 
                 if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
                     order.status=s.toString().toLowerCase().capitalize()

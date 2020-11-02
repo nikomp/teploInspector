@@ -116,4 +116,9 @@ class Const {
         const val DIALOG_TIME=2
     }
 
+    object webSocket{
+        const val NORMAL_CLOSURE_STATUS = 1000
+        const val NOTIFICATION_CHANNEL_ID = "TeploInspector"
+    }
+
 }

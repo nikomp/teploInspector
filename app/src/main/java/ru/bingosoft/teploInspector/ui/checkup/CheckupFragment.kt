@@ -180,8 +180,16 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
 
-                uiCreator?.checkEnabled()
+                // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                if (order.answeredCount==0 && s.toString()=="Выполнена") {
+                    toaster.showToast(R.string.checklist_not_changed_status)
+                    mbsOrderState.removeTextChangedListener(this)
+                    mbsOrderState.setText(order.status?.toUpperCase())
+                    mbsOrderState.addTextChangedListener(this)
+                    return
+                }
 
+                uiCreator?.checkEnabled()
 
                 if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
                     order.status=s.toString().toLowerCase().capitalize()
@@ -189,8 +197,6 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     try {
                         orderPresenter.addHistoryState(order)
                     } catch (e: Throwable) {
-                        Timber.d("ERROR=$e")
-                        //orderPresenter.view?.errorReceived(e)
                         errorReceived(e)
                     }
                 }
@@ -199,7 +205,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 mbsOrderState.setText(s.toString().toUpperCase())
                 mbsOrderState.addTextChangedListener(this)
 
-                pw?.dismiss()
+
+                if (s.toString()!="Открыта" && s.toString()!="В пути") {
+                    pw?.dismiss()
+                } else {
+                    checkStateOrder(order)
+                }
+
+
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -317,18 +330,21 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     private fun checkStateOrder(order: Orders) {
+        Timber.d("checkStateOrder")
         Timber.d("order.status=${order.status}")
         if (order.status=="Открыта" || order.status=="В пути") {
-            Timber.d("popupWindow")
-
             val inflater = rootView.context.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-            Timber.d("inflater=$inflater")
 
             val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
 
-            val viewPopupWindow = inflater.inflate(R.layout.popup_orders_state,null)
-            pw=PopupWindow(viewPopupWindow, LinearLayout.LayoutParams.WRAP_CONTENT,LinearLayout.LayoutParams.WRAP_CONTENT, false)
-            pw?.showAsDropDown(mbsOrderState,0,-20)
+            Timber.d("pw=$pw")
+            if (pw==null) {
+                val viewPopupWindow = inflater.inflate(R.layout.popup_orders_state,null)
+                pw=PopupWindow(viewPopupWindow, LinearLayout.LayoutParams.WRAP_CONTENT,LinearLayout.LayoutParams.WRAP_CONTENT, false)
+                pw?.showAsDropDown(mbsOrderState,0,-20)
+            } else {
+                pw?.showAsDropDown(mbsOrderState,0,-20)
+            }
         }
     }
 
@@ -340,6 +356,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val filterItem=(this.activity as MainActivity).menu.findItem(R.id.menu_buttons)
         if (filterItem!=null) {
             filterItem.isVisible=visible
+        }
+        val filterDate=(this.activity as MainActivity).menu.findItem(R.id.date_filter)
+        if (filterDate!=null) {
+            filterDate.isVisible=visible
+        }
+        val filterState=(this.activity as MainActivity).menu.findItem(R.id.status_filter)
+        if (filterState!=null) {
+            filterState.isVisible=visible
         }
     }
 
@@ -409,17 +433,18 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     Timber.d("mbSaveCheckup")
                     if (uiCreator!=null) {
                         Timber.d("checkupPresenter.saveCheckup")
-                        checkupPresenter.saveCheckup(uiCreator!!)
+
+                        val changedCheckupCount = uiCreator!!.controlList.filter { it.answered }.size
+                        if (changedCheckupCount!=0) {
+                            checkupPresenter.saveCheckup(uiCreator!!)
+                        } else {
+                            toaster.showToast(R.string.checklist_not_changed)
+                        }
+
                     } else {
                         toaster.showToast(R.string.checklist_not_loaded)
                     }
-
-                    //checkupPresenter.saveCheckup(controlList,this.checkup)
                 }
-                /*R.id.mbSendCheckup -> {
-                    Timber.d("Отправляем данные на сервер")
-                    (this.requireActivity() as MainActivity).mainPresenter.sendData()
-                }*/
             }
         }
     }

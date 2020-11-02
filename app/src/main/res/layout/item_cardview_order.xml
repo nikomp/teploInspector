@@ -81,6 +81,7 @@
                     android:singleLine="true"
                     android:text="@string/status_OPEN"
                     android:textSize="11sp"
+                    android:textStyle="bold"
                     android:tooltipText="@string/tooltip_change_state"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/fio"

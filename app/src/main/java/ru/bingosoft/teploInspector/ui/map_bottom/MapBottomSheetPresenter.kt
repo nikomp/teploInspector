@@ -23,16 +23,4 @@ class MapBottomSheetPresenter @Inject constructor(
 
     }
 
-
-    /*fun loadData(symbolNumber: String) {
-        Timber.d("loadData $symbolNumber")
-        disposable=db.ordersDao().getByNumber(symbolNumber)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe {
-                Timber.d("Данные получили из БД")
-                Timber.d(it.toString())
-                view?.showOrder(it)
-            }
-    }*/
 }

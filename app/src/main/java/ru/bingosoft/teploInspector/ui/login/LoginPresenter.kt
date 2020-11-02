@@ -67,6 +67,8 @@ class LoginPresenter @Inject constructor(
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
+                        view?.startNotificationService(token.token)
+                        view?.checkMessageId()
 
                         val v = view
                         if (v != null) {
@@ -75,10 +77,12 @@ class LoginPresenter @Inject constructor(
                         }
 
                         saveTokenGCM()
+                        disposable.dispose()
 
                     }, { throwable ->
                         throwable.printStackTrace()
                         view?.showFailureTextView()
+                        disposable.dispose()
                     }
                 )
 
@@ -320,20 +324,14 @@ class LoginPresenter @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
+                disposable.dispose()
             },{ throwable ->
                 Timber.d("ошибка!!!")
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
+                disposable.dispose()
             })
 
-        /*disposable=apiService.saveGCMToken(action="saveGCMToken",token = sharedPrefSaver.getTokenGCM())
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-                Timber.d(it.msg)
-            },{
-                it.printStackTrace()
-            })*/
     }
 
 }

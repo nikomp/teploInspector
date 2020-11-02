@@ -145,7 +145,7 @@ class UserLocationService: Service() {
             val currentTime=Date().time
             val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as UserLocationService).startTimeService, Date().time)
             Timber.d("diffTimeMinute=$diffTimeMinute")
-            if (diffTimeMinute>=15) {
+            if (diffTimeMinute>=3) {
                 intent.putExtra("sendRouteToServer",true)
                 ctx.startTimeService=currentTime
             }

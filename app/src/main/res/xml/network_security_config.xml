@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">demo.bingosoft-office.ru</domain>
-    </domain-config>
-
-    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">teplomi.bingosoft-office.ru</domain>
     </domain-config>
 
-    <!--Разрешенные домены для карты-->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">api.mapbox.com</domain>
+        <domain includeSubdomains="true">mi.teploenergo-nn.ru</domain>
     </domain-config>
 
+    <!--Разрешенные домены для карты-->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">yandex.ru/maps/</domain>
     </domain-config>

@@ -37,21 +37,27 @@ android {
     buildTypes {
         debug {resValue 'string', 'login', accent_login
             resValue 'string', 'password', accent_password
-            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
+            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
+            resValue 'string', 'url_socket', '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
+            //resValue 'string', 'url', '"http://mi.teploenergo-nn.ru:20080/"' // Рабочий сервер сервер
+            //resValue 'string', 'url_socket', '"ws://mi.teploenergo-nn.ru:20080/notificationservice/socket"'
 
-
-            //buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
+            //buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
+            buildConfigField "String", "url_socket", '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
         }
         release {
             resValue 'string', 'login', ""
             resValue 'string', 'password', ""
-            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
+            //resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
+            resValue 'string', 'url', '"http://mi.teploenergo-nn.ru:20080/"'
+            resValue 'string', 'url_socket', '"ws://mi.teploenergo-nn.ru:20080/notificationservice/socket"'
 
-            //buildConfigField "String", "urlServer", '"http://demo.bingosoft-office.ru/redevelopment/"'
-            buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+            //buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+            buildConfigField "String", "urlServer", '"http://mi.teploenergo-nn.ru:20080/"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
+            buildConfigField "String", "url_socket", '"ws://mi.teploenergo-nn.ru:20080/notificationservice/socket"'
 
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

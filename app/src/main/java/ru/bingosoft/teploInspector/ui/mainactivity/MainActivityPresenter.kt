@@ -13,7 +13,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
-import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
@@ -40,40 +39,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         this.view=view
     }
 
-    fun sendUserRoute() {
-        Timber.d("sendUserRoute")
-        disposable=db.trackingUserDao()
-            .getAll()
-            .subscribeOn(Schedulers.io())
-            .map{trackingUserLocation ->
-
-                val route=Models.FileRoute()
-                val jsonStr=Gson().toJson(trackingUserLocation)
-                route.fileRoute=jsonStr
-
-                //return@map jsonStr.toRequestBody("application/json; charset=utf-8".toMediaType())
-                return@map Gson().toJson(route)
-                    .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-            }
-            .flatMap { jsonBodies ->
-                Timber.d("jsonBodies=${jsonBodies}")
-
-                apiService.sendTrackingUserLocation(jsonBodies).toFlowable()
-            }
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { response ->
-                    Timber.d(response.toString())
-                    view?.showMainActivityMsg(R.string.msgRouteUserSendOk)
-
-                }, { throwable ->
-                    view?.errorReceived(throwable)
-                    throwable.printStackTrace()
-
-                }
-            )
-    }
 
     fun authorization(stLogin: String?, stPassword: String?){
         Timber.d("authorization1 $stLogin _ $stPassword")
@@ -100,15 +65,39 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         Timber.d(token.token)
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
+                        view?.startNotificationService(token.token)
                         view?.showMainActivityMsg(R.string.auth_ok)
+                        view?.checkMessageId()
+                        disposable.dispose()
 
                     }, { throwable ->
                         throwable.printStackTrace()
+                        disposable.dispose()
                     }
                 )
 
         }
 
+    }
+
+    fun markMessageAsRead(msgId: Int) {
+        Timber.d("markMessageAsRead")
+        val jsonBody = Gson().toJson(Models.MessageId(id=msgId))
+            .toRequestBody("application/json".toMediaType())
+
+        disposable = apiService.markMessageAsRead(jsonBody)
+            .subscribeOn(Schedulers.io())
+            .subscribe(
+                {
+
+                    view?.setEmptyMessageId()
+                    disposable.dispose()
+
+                }, { throwable ->
+                    throwable.printStackTrace()
+                    disposable.dispose()
+                }
+            )
     }
 
     private fun isCheckupWithResult(msg: String) {
@@ -127,78 +116,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             }
     }
 
-    fun sendData2() {
-        Timber.d("sendData")
-        disposable =
-            db.checkupDao()
-                .getResultAll2()
-                .subscribeOn(Schedulers.io())
-                .takeWhile { listResult ->
-                    Timber.d("listResult=$listResult")
-                    if (listResult.isEmpty()) {
-                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
-                    } else {
-                        listResult.isNotEmpty()
-                    }
-                }
-                .flatMap { results ->
-                    // Конвертируем строку controls в JsonArray
-                    Timber.d("Данные=${Gson().toJson(results)}")
-                    val resultX= mutableListOf<Models.Result2>()
-
-
-                    checkupsWasSync= mutableListOf()
-                    results.forEach {
-                        Timber.d("controls=${it.controls}")
-                        checkupsWasSync.add(it.id_order) // Сохраняю данные, которые должны быть переданы
-
-                        val result=Models.Result2()
-                        result.id_order=it.id_order
-
-                        Timber.d("it.history_order_state=${it.history_order_state}")
-                        if (it.history_order_state!=null) {
-                            result.history_order_state=Gson().fromJson(it.history_order_state, JsonArray::class.java)
-                        }
-                        result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
-
-                        resultX.add(result)
-                    }
-
-                    val reverseData=Models.ReverseData()
-                    reverseData.data=resultX
-
-                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
-                    longInfo("Данные222=${Gson().toJson(reverseData)}")
-
-                    val jsonBody = Gson().toJson(reverseData)
-                        .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-
-                    Timber.d("Данные3=${jsonBody}")
-
-                    apiService.doReverseSync(jsonBody)?.toFlowable()
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    {response: List<Models.DataFile> ->
-                        if (response.isNotEmpty()) {
-                            Timber.d("response=${response[0].id}")
-                            sendFile(response)
-                        } else {
-                            view?.dataSyncOK()
-                            view?.showMainActivityMsg(R.string.msgDataSendOk)
-                        }
-                    }, { throwable ->
-                        throwable.printStackTrace()
-                        if (throwable is ThrowHelper) {
-                            isCheckupWithResult("${throwable.message}")
-                        } else {
-                            view?.errorReceived(throwable)
-                            view?.showMainActivityMsg(R.string.msgDataSendError)
-                        }
-                    }
-                )
-    }
 
     fun sendData3(idOrder:Long) {
         Timber.d("sendData3")
@@ -263,6 +180,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         } else {
                             view?.dataSyncOK()
                             view?.showMainActivityMsg(R.string.msgDataSendOk)
+                            disposable.dispose()
                         }
                     }, { throwable ->
                         throwable.printStackTrace()
@@ -272,18 +190,9 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                             //view?.showMainActivityMsg(R.string.msgDataSendError)
                             view?.errorReceived(throwable)
                         }
+                        disposable.dispose()
                     }
                 )
-    }
-
-    private fun getHistory(order: Orders) {
-        val hos=db.historyOrderStateDao()
-
-        Single.fromCallable {
-            db.historyOrderStateDao().getHistoryStateByIdOrder(order.id)
-        }
-            .subscribeOn(Schedulers.io())
-            .subscribe ()
     }
 
     private fun sendFile(dataFileArray: List<Models.DataFile>) {
@@ -294,8 +203,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             val filesBody2= mutableListOf<MultipartBody.Part>()
             if (directory.exists()) {
                 val files = directory.listFiles()
-
-                Timber.d("files=${files.size}")
 
                 files?.forEach {
                     val part = MultipartBody.Part.createFormData(
@@ -324,7 +231,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
                             .subscribe(
-                                {_ ->
+                                {
                                     view?.filesSend(dataFileArray.size,index+1)
                                 },
                                 {throwable ->
@@ -393,10 +300,12 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
+                disposable.dispose()
             },{ throwable ->
                 Timber.d("ошибка!!!")
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
+                disposable.dispose()
             })
     }
 
@@ -407,7 +316,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             disposable.dispose()
         }
         Single.fromCallable {
-            Timber.d("${checkupsWasSync}")
+            Timber.d("$checkupsWasSync")
 
             checkupsWasSync.forEach {
                 db.checkupDao().updateSync(it)

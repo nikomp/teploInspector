@@ -40,7 +40,6 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
-import com.google.android.material.textfield.TextInputEditText
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
 import retrofit2.HttpException
@@ -60,6 +59,7 @@ import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
+import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
 import java.net.UnknownHostException
 import java.text.DateFormat
@@ -98,8 +98,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var currentOrder: Orders
     lateinit var techParams: List<TechParams>
     private lateinit var locationManager: LocationManager
-    lateinit var dialogView: View
-    lateinit var dialogDateFilterView: View
+
+    private lateinit var dialogFilterGroupOrder: AlertDialog
+    lateinit var dialogFilterStateOrder: AlertDialog
+    private lateinit var dialogFilterDateOrder: AlertDialog
     lateinit var filterView: ConstraintLayout
 
     var isMapFragmentShow=false
@@ -109,12 +111,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     var filteredOrders: List<Orders> = listOf()
 
-    //var doubleBackToExitPressedOnce: Boolean=false
     private var doubleBackToExitCounter=0
 
 
     lateinit var menu: Menu
-    lateinit var tietFilterDate: TextInputEditText
+
+    var messageId: Int=0
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -129,6 +132,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         // Запросим разрешение на геолокацию, нужны для сервиса
         requestPermission()
+
+        checkIntent() // Возможно Activity открыта из уведомления
 
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) /*&&
@@ -210,8 +215,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
-    fun isInitCurrentOrder() :Boolean {
-        return ::currentOrder.isInitialized
+
+    private fun checkIntent() {
+        Timber.d("checkIntent")
+        val intent=getIntent()
+        messageId=intent.getIntExtra("messageId",0)
+        Timber.d("$messageId")
+        if (messageId!=0) {
+            mainPresenter.markMessageAsRead(messageId)
+        }
+    }
+
+    fun isInitCurrentOrder() :Boolean {        return ::currentOrder.isInitialized
     }
 
 
@@ -304,47 +319,96 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val dateFilterItem=menu.findItem(R.id.date_filter)
         dateFilterItem?.setOnMenuItemClickListener {
             Timber.d("dateFilterItem")
-
             Timber.d("Открываем окно с фильтром по дате")
 
-            lateinit var dialogFilterDateOrder: AlertDialog
-            val layoutInflater = LayoutInflater.from(this)
-            dialogDateFilterView =
-                layoutInflater.inflate(R.layout.alert_filter_date_order, null, false)
+            if (!::dialogFilterDateOrder.isInitialized) {
+                val layoutInflater = LayoutInflater.from(this)
+                val dialogDateFilterView =
+                    layoutInflater.inflate(R.layout.alert_filter_date_order, null, false)
 
-            val builder = AlertDialog.Builder(this)
+                val builder = AlertDialog.Builder(this)
 
-            val rbAll=dialogDateFilterView.findViewById<RadioButton>(R.id.rbAll)
-            rbAll.setOnClickListener(this)
-            val rbToday=dialogDateFilterView.findViewById<RadioButton>(R.id.rbToday)
-            rbToday.setOnClickListener(this)
-            val rbTomorrow=dialogDateFilterView.findViewById<RadioButton>(R.id.rbTomorrow)
-            rbTomorrow.setOnClickListener(this)
-            val rbDate=dialogDateFilterView.findViewById<RadioButton>(R.id.rbDate)
-            rbDate.setOnClickListener(this)
-            /*tietFilterDate =dialogDateFilterView.findViewById(R.id.tietFilterDate)
-            tietFilterDate.setOnClickListener(this)*/
+                val rbAll=dialogDateFilterView.findViewById<RadioButton>(R.id.rbAll)
+                rbAll.setOnClickListener(this)
+                val rbToday=dialogDateFilterView.findViewById<RadioButton>(R.id.rbToday)
+                rbToday.setOnClickListener(this)
+                val rbTomorrow=dialogDateFilterView.findViewById<RadioButton>(R.id.rbTomorrow)
+                rbTomorrow.setOnClickListener(this)
+                val rbDate=dialogDateFilterView.findViewById<RadioButton>(R.id.rbDate)
+                rbDate.setOnClickListener(this)
 
-            builder.setView(dialogDateFilterView)
-            builder.setCancelable(true)
-            dialogFilterDateOrder=builder.create()
-            dialogFilterDateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                builder.setView(dialogDateFilterView)
+                builder.setCancelable(true)
+                dialogFilterDateOrder=builder.create()
+                dialogFilterDateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-            //Меняем позицию диалога
-            dialogFilterDateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+                //Меняем позицию диалога
+                dialogFilterDateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
 
-            dialogFilterDateOrder.setOnCancelListener(dialogDateFilterCancelListener)
+                dialogFilterDateOrder.setOnCancelListener(dialogDateFilterCancelListener)
 
-            dialogFilterDateOrder.show()
-            // Установим ширину диалогового окна
-            val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
-            dialogFilterDateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+                dialogFilterDateOrder.show()
+                // Установим ширину диалогового окна
+                val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
+                dialogFilterDateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
 
-            // Отступы диалога от границ экрана
-            val wlp=dialogFilterDateOrder.window?.attributes
-            wlp?.y=50
-            wlp?.x=50
-            dialogFilterDateOrder.window?.attributes=wlp
+                // Отступы диалога от границ экрана
+                val wlp=dialogFilterDateOrder.window?.attributes
+                wlp?.y=50
+                wlp?.x=50
+                dialogFilterDateOrder.window?.attributes=wlp
+            } else {
+                dialogFilterDateOrder.show()
+            }
+
+
+
+
+            true
+        }
+
+        val statusFilterItem=menu.findItem(R.id.status_filter)
+        statusFilterItem?.setOnMenuItemClickListener {
+            Timber.d("statusFilterItem")
+            Timber.d("Открываем окно с фильтром по статусу")
+
+            if (!::dialogFilterStateOrder.isInitialized) {
+                val layoutInflater = LayoutInflater.from(this)
+                val dialogStateFilterView =
+                    layoutInflater.inflate(R.layout.alert_filter_status_order, null, false)
+
+                val builder = AlertDialog.Builder(this)
+
+                val rbStateAll=dialogStateFilterView.findViewById<RadioButton>(R.id.rbStateAll)
+                rbStateAll.setOnClickListener(this)
+                val rbWithoutDone=dialogStateFilterView.findViewById<RadioButton>(R.id.rbWithoutDone)
+                rbWithoutDone.setOnClickListener(this)
+
+
+                builder.setView(dialogStateFilterView)
+                builder.setCancelable(true)
+                dialogFilterStateOrder=builder.create()
+                dialogFilterStateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+                //Меняем позицию диалога
+                dialogFilterStateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+
+                dialogFilterStateOrder.setOnCancelListener(dialogStateFilterCancelListener)
+
+                dialogFilterStateOrder.show()
+                // Установим ширину диалогового окна
+                val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
+                dialogFilterStateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+
+                // Отступы диалога от границ экрана
+                val wlp=dialogFilterStateOrder.window?.attributes
+                wlp?.y=50
+                wlp?.x=50
+                dialogFilterStateOrder.window?.attributes=wlp
+            } else {
+                dialogFilterStateOrder.show()
+            }
+
 
             true
         }
@@ -684,11 +748,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         mainPresenter.updData()
     }
 
-    override fun updDataOK() {
+    /*override fun updDataOK() {
         Timber.d("updDataOK")
         //Передаем маршрут пользователя
         mainPresenter.sendUserRoute()
-    }
+    }*/
 
     override fun filesSend(countFiles: Int, indexCurrentFile: Int) {
         if (countFiles==indexCurrentFile) {
@@ -706,8 +770,26 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          sharedPref.saveToken(token)
      }
 
+     override fun startNotificationService(token: String) {
+         // Старутем сервис отслеживания уведомлений
+         Timber.d("tokenToWS=$token")
+         startService(Intent(this,NotificationService::class.java).putExtra("Token",token))
+     }
 
-    override fun errorReceived(throwable: Throwable) {
+     override fun checkMessageId() {
+         if (messageId!=0) {
+             // Отправим запрос на сервер, что уведомление прочитано
+             mainPresenter.markMessageAsRead(messageId)
+         }
+     }
+
+     override fun setEmptyMessageId() {
+         Timber.d("setEmptyMessageId")
+         messageId=0
+     }
+
+
+     override fun errorReceived(throwable: Throwable) {
         Timber.d("MainACT_errorReceived_$throwable")
         when (throwable) {
             is HttpException -> {
@@ -759,38 +841,41 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.btnFilter -> {
-                Timber.d("Открываем окно с фильтром")
+                Timber.d("Открываем окно с фильтром по Группе")
+                Timber.d("dialogFilterGroupOrder")
 
-                Timber.d("dialogFilterOrder")
-                lateinit var dialogFilterOrder: AlertDialog
-                val layoutInflater = LayoutInflater.from(this)
-                dialogView =
-                    layoutInflater.inflate(R.layout.alert_filter_order, null, false)
+                if (!::dialogFilterGroupOrder.isInitialized) {
+                    val layoutInflater = LayoutInflater.from(this)
+                    val dialogView =
+                        layoutInflater.inflate(R.layout.alert_filter_order, null, false)
 
-                val builder = AlertDialog.Builder(this)
+                    val builder = AlertDialog.Builder(this)
 
-                setCountFiltersGroup()
+                    builder.setView(dialogView)
+                    builder.setCancelable(true)
+                    dialogFilterGroupOrder=builder.create()
+                    dialogFilterGroupOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-                builder.setView(dialogView)
-                builder.setCancelable(true)
-                dialogFilterOrder=builder.create()
-                dialogFilterOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                    //Меняем позицию диалога
+                    dialogFilterGroupOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
 
-                //Меняем позицию диалога
-                dialogFilterOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+                    dialogFilterGroupOrder.setOnCancelListener(dialogCancelListener)
 
-                dialogFilterOrder.setOnCancelListener(dialogCancelListener)
+                    dialogFilterGroupOrder.show()
+                    // Установим ширину диалогового окна
+                    val width=resources.getDimension(R.dimen.dialog_filter_width).toInt()
+                    dialogFilterGroupOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
 
-                dialogFilterOrder.show()
-                // Установим ширину диалогового окна
-                val width=resources.getDimension(R.dimen.dialog_filter_width).toInt()
-                dialogFilterOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    // Отступы диалога от границ экрана
+                    val wlp=dialogFilterGroupOrder.window?.attributes
+                    wlp?.y=50
+                    wlp?.x=50
+                    dialogFilterGroupOrder.window?.attributes=wlp
 
-                // Отступы диалога от границ экрана
-                val wlp=dialogFilterOrder.window?.attributes
-                wlp?.y=50
-                wlp?.x=50
-                dialogFilterOrder.window?.attributes=wlp
+                    setCountFiltersGroup()
+                } else {
+                    dialogFilterGroupOrder.show()
+                }
 
             }
             R.id.rbAll -> {
@@ -845,6 +930,16 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     date.get(Calendar.DAY_OF_MONTH)
                 ).show()
             }
+            R.id.rbStateAll -> {
+                Timber.d("Фильтр_по_Статусу_Все")
+                filteredOrders= listOf()
+                filterOrderByState("all")
+            }
+            R.id.rbWithoutDone -> {
+                Timber.d("Фильтр_по_Статусу_Кроме_Выполненных_и_Отмененных")
+                filterOrderByState("all_without_Done_and_Cancel")
+            }
+
             /*R.id.tietFilterDate -> {
                 Timber.d("Фильтр_по_дате_Дата")
 
@@ -859,10 +954,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("setCountFiltersGroup")
 
         if (::orders.isInitialized) {
-            dialogView.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
-            dialogView.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
-            dialogView.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
-            dialogView.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
         }
 
     }
@@ -871,32 +966,29 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         override fun onCancel(dialog: DialogInterface?) {
             Timber.d("setOnCancelListener")
             // Считаем сколько фильтров поставили
-            val cb1=dialogView.findViewById<CheckBox>(R.id.cbType1)
-            val cb2=dialogView.findViewById<CheckBox>(R.id.cbType2)
-            val cb3=dialogView.findViewById<CheckBox>(R.id.cbType3)
-            val cb4=dialogView.findViewById<CheckBox>(R.id.cbType4)
+            val cb1=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType1)
+            val cb2=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType2)
+            val cb3=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType3)
+            val cb4=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType4)
 
             val filterGroupList= mutableListOf<String>()
             var filterCount=0
             if (cb1.isChecked) {
                 filterCount+=1
-                filterGroupList.add(dialogView.context.getString(R.string.orderType1).toLowerCase())
+                filterGroupList.add(getString(R.string.orderType1).toLowerCase())
             }
             if (cb2.isChecked) {
                 filterCount+=1
-                filterGroupList.add(dialogView.context.getString(R.string.orderType2).toLowerCase())
+                filterGroupList.add(getString(R.string.orderType2).toLowerCase())
             }
             if (cb3.isChecked) {
                 filterCount+=1
-                filterGroupList.add(dialogView.context.getString(R.string.orderType3).toLowerCase())
+                filterGroupList.add(getString(R.string.orderType3).toLowerCase())
             }
             if (cb4.isChecked) {
                 filterCount+=1
-                filterGroupList.add(dialogView.context.getString(R.string.orderType4).toLowerCase())
+                filterGroupList.add(getString(R.string.orderType4).toLowerCase())
             }
-
-            Timber.d("filterCount=$filterCount")
-            Timber.d("filterGroupList=$filterGroupList")
 
             filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
             if (filterCount==4) {
@@ -904,7 +996,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
 
             // Фильтруем заявки
-            val navHostFragment=(dialogView.context as MainActivity).supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+            val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
             val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
             if (childFragment is OrderFragment) {
                 childFragment.filteredOrderByGroup(filterGroupList)
@@ -915,7 +1007,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                 childFragment.showMarkers(filteredOrderByGroup)
             }
-
 
         }
 
@@ -928,25 +1019,56 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
      }
 
+     private val dialogStateFilterCancelListener=object: DialogInterface.OnCancelListener{
+         override fun onCancel(dialog: DialogInterface?) {
+             Timber.d("dialogStateFilterCancelListener")
+         }
+
+     }
+
      private fun filterOrderByDate(dateText: String) {
          // Фильтруем заявки
-         val navHostFragment=(dialogDateFilterView.context as MainActivity).supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
          val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
          if (childFragment is OrderFragment) {
              childFragment.filteredOrderByDate(dateText)
          }
          if (childFragment is MapFragment){
              Timber.d("Включена карта")
-             var filteredOrderByGroup= listOf<Orders>()
-             if (dateText=="all") {
-                 filteredOrderByGroup=orders.filter { it.dateVisit !=null }
+             val filteredOrderByDate: List<Orders> = if (dateText=="all") {
+                 orders.filter { it.dateVisit !=null }
              } else {
-                 filteredOrderByGroup=orders.filter { it.dateVisit ==dateText }
+                 orders.filter { it.dateVisit ==dateText }
              }
 
 
-             childFragment.showMarkers(filteredOrderByGroup)
+             childFragment.showMarkers(filteredOrderByDate)
          }
+     }
+
+     fun filterOrderByState(filter: String) {
+         Timber.d("filterOrderByState")
+         // Фильтруем заявки
+         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+         val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+         if (childFragment is OrderFragment) {
+             childFragment.filteredOrderByState(filter)
+         }
+         if (childFragment is MapFragment){
+             Timber.d("Включена карта")
+             val filteredOrderByState: List<Orders> = if (filter=="all") {
+                 orders.filter { it.status !=null }
+             } else {
+                 orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
+             }
+
+
+             childFragment.showMarkers(filteredOrderByState)
+         }
+     }
+
+     fun isDialogFilterStateOrderInit(): Boolean {
+         return ::dialogFilterStateOrder.isInitialized
      }
 
 

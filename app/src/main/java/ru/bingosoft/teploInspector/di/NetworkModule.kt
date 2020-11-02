@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit
 
 @Module
 class NetworkModule {
+
+
     @Provides
     fun providesApiService(sharedPrefSaver: SharedPrefSaver) : ApiService {
 
@@ -36,7 +38,18 @@ class NetworkModule {
 
                     Timber.d("newRequest=$newRequest")
 
-                    return chain.proceed(newRequest)
+                    val response=chain.proceed(newRequest)
+                    if (response.code == 200) {
+
+                        val newToken=response.header("X-Auth-Token","")
+                        if (!newToken.isNullOrEmpty()){
+                            Timber.d("Обновили_токен")
+                            sharedPrefSaver.saveToken(newToken)
+                        }
+
+                    }
+
+                    return response
                 }
             })
             .connectTimeout(90, TimeUnit.SECONDS) // Увеличим таймаут ретрофита

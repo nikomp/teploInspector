@@ -67,12 +67,19 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 if (!(parentFragment.activity as MainActivity).isBackPressed &&
                     !(parentFragment.activity as MainActivity).isSearchView) {
 
-                    Timber.d("addHistoryState_after_Back")
-                    Timber.d("${s.toString().toUpperCase()}_${ordersFilterList[position].status?.toUpperCase()}")
+                    // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                    if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
+                        parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
+                        holder.orderState.removeTextChangedListener(this)
+                        holder.orderState.setText(ordersFilterList[position].status?.toUpperCase())
+                        holder.orderState.addTextChangedListener(this)
+                        return
+                    }
 
                     if (s.toString().toUpperCase()!=ordersFilterList[position].status?.toUpperCase()) {
                         ordersFilterList[position].status=s.toString().toLowerCase().capitalize()
                         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+                        Timber.d("addHistoryState_after_Back")
                         parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
                     }
 
@@ -80,6 +87,12 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     holder.orderState.removeTextChangedListener(this)
                     holder.orderState.setText(s.toString().toUpperCase())
                     holder.orderState.addTextChangedListener(this)
+
+                    //Фильтруем по статусу
+                    if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
+                        Timber.d("filtering_State")
+                        parentFragment.filteredOrderByState("all_without_Done_and_Cancel")
+                    }
                 }
             }
 

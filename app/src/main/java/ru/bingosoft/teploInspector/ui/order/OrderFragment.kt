@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Button
 import android.widget.ProgressBar
+import android.widget.RadioButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -37,6 +38,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
 import java.net.UnknownHostException
 import java.util.*
@@ -340,6 +342,17 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         activity?.startService(Intent(activity, UserLocationService::class.java))
     }
 
+    override fun startNotificationService(token: String) {
+        // Старутем сервис отслеживания уведомлений
+        Timber.d("tokenToWS_OrdeFragment=$token")
+        activity?.startService(Intent(activity, NotificationService::class.java).putExtra("Token",token))
+    }
+
+    override fun checkMessageId() {
+        Timber.d("OrderFragment_checkMessageId")
+        (activity as MainActivity).checkMessageId()
+    }
+
     override fun showOrders(orders: List<Orders>) {
         longInfo("showOrdersVV=${orders}")
 
@@ -348,7 +361,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         this.orders=orders
         (activity as MainActivity).orders=orders
-        //Timber.d("filteredOrders=$filteredOrdersOrderFragment")
+
         Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
 
         // инициализируем контейнер SwipeRefreshLayout
@@ -371,8 +384,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
         }
 
-
         ordersRecyclerView.adapter = adapter
+
+        //По-умолчанию показываем все кроме выполненных и отмененных
+        (activity as MainActivity).filterOrderByState("all_without_Done_and_Cancel")
     }
 
     //#Android_Studio #длинный_лог
@@ -389,13 +404,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     fun filteredOrderByGroup(filterGroupList: List<String>) {
-        Timber.d("filteredOrderByGroup")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-
-        Timber.d("orders=${orders}")
         val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
-
-        Timber.d("test=$filteredOrderByGroup")
 
         val adapter = OrderListAdapter(filteredOrderByGroup,this, this, userLocationNative.userLocation)
         rcv.adapter = adapter
@@ -418,6 +428,27 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         rcv.adapter = adapter
 
         adapter.ordersFilterList=filteredOrderByDate
+    }
+
+    fun filteredOrderByState(filter: String) {
+        Timber.d("filteredOrderByState")
+        val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        var filteredOrderByState= listOf<Orders>()
+        if (filter=="all") {
+            filteredOrderByState=orders.filter { it.status !=null }
+        } else {
+            filteredOrderByState=orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
+            if ((root.context as MainActivity).isDialogFilterStateOrderInit()) {
+                val rbWithoutDone=(root.context as MainActivity).dialogFilterStateOrder.findViewById<RadioButton>(R.id.rbWithoutDone)
+                rbWithoutDone.isChecked=true
+            }
+        }
+
+
+        val adapter = OrderListAdapter(filteredOrderByState,this, this, userLocationNative.userLocation)
+        rcv.adapter = adapter
+
+        adapter.ordersFilterList=filteredOrderByState
     }
 
     override fun techParamsLoaded(techParams: List<TechParams>) {
