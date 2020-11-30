@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.CheckBox
 import androidx.appcompat.app.AppCompatActivity
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_login.*
@@ -38,14 +39,16 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         val toolbar=logintoolbar
         setSupportActionBar(toolbar)
 
+        val cbEnter=findViewById<CheckBox>(R.id.cbEnter)
+
         if (sharedPref.getLogin().isNotEmpty()) {
+            Timber.d("LOGIN_exist")
             edLogin.setText(sharedPref.getLogin())
         }
         if (sharedPref.getPassword().isNotEmpty()) {
             edPassword.setText(sharedPref.getPassword())
         }
-
-
+        cbEnter.isChecked = sharedPref.getEnterType().isNotEmpty() && sharedPref.getEnterType()=="directory_service"
     }
 
     override fun onClick(v: View?) {
@@ -53,23 +56,33 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             when (v.id) {
                 R.id.btnGo -> {
                     if (isNetworkConnected()) {
-                        Timber.d("LoginActivity onClick")
+                        Timber.d("LoginActivity_onClick")
 
                         stUrl = edUrl.text.toString()
                         stLogin = edLogin.text.toString()
                         stPassword = edPassword.text.toString()
+
+                        var stEnterType="default"
+                        if (cbEnter.isChecked) {
+                            stEnterType="directory_service"
+                        }
+                        sharedPref.saveEnterType(stEnterType)
 
                         // Авторизация
                         val intent = Intent()
                         intent.putExtra("login", stLogin)
                         intent.putExtra("password", stPassword)
                         intent.putExtra("url", stUrl)
+                        intent.putExtra("enter_type", stEnterType)
                         setResult(Activity.RESULT_OK, intent)
 
                         this.finish()
                     } else {
                         toaster.showToast(R.string.not_internet)
                     }
+                }
+                R.id.cbEnter -> {
+                    Timber.d("LoginActivity_onClick_cbEnter")
                 }
             }
         }

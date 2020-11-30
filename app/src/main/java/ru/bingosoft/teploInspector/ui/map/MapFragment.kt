@@ -54,6 +54,7 @@ import ru.bingosoft.teploInspector.util.Const.Location.ZOOM_LEVEL
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PERMISSION
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
+import java.util.*
 import javax.inject.Inject
 
 
@@ -63,7 +64,8 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     var orders: List<Orders> = listOf()
     lateinit var mapView: MapView
     lateinit var map: Map
-    lateinit var userLocationLayer: UserLocationLayer
+    //lateinit var userLocationLayer: UserLocationLayer
+    var userLocationLayer: UserLocationLayer?=null
     private lateinit var locationManager:LocationManager
 
     @Inject
@@ -72,7 +74,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     @Inject
     lateinit var toaster: Toaster
 
-    private var addCoordinatesTag: Boolean=false
     private var checkupId: Long?=0
     private var controlId: Int=0
 
@@ -80,32 +81,36 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     private lateinit var transports: Transport
     private lateinit var mkInstances: MapKit
     var lastCarRouter=mutableListOf<PolylineMapObject>()
+    var lastStopTransferMarkers=mutableListOf<PlacemarkMapObject>()
     var lastCarRouterPolyline=mutableListOf<DrivingRoute>()
     var prevMapObjectMarker: MapObject?=null
 
 
     private val mapLoadedListener= MapLoadedListener {
+
         mapPresenter.attachView(fragment)
 
-        val tag = arguments?.getBoolean("addCoordinates")
         checkupId= arguments?.getLong("checkupId")
         val control= arguments?.getInt("controlId")
         if (control!=null) {
             controlId=control
         }
-        Timber.d("checkupId=$checkupId")
+        Timber.d("mapLoadedListener_orders=$orders")
 
-        if (tag==null || tag==false) {
-            if (orders.isEmpty()) {
-                Timber.d("Грузим все маркеры Заявок")
-                mapPresenter.loadMarkers() // Грузим все маркеры Заявок
-            } else {
-                showMarkers(orders)
-            }
-
+        if (orders.isEmpty()) {
+            Timber.d("Грузим_все_маркеры_Заявок")
+            mapPresenter.loadMarkers() // Грузим все маркеры Заявок
         } else {
-            addCoordinatesTag=true
+            Timber.d("Показываем_маркеры_после_загрузки_карты")
+            showMarkers(orders)
         }
+
+        if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
+            if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
+                showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
+            }
+        }
+
     }
 
     fun showRouteDialog(order: Orders) {
@@ -121,12 +126,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         override fun onMapTap(p0: Map, point: Point) {
             Timber.d("onMapTap")
-            if (addCoordinatesTag) {
-                val view=layoutInflater.inflate(R.layout.template_marker,null)
-                map.mapObjects.addPlacemark(point,ViewProvider(view))
-
-            }
-
+            // Чистим карту от старых маршрутов
             if (lastCarRouter.isNotEmpty()) {
                 removeRouter()
             }
@@ -152,7 +152,26 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         }
         lastCarRouter.clear()
-        lastCarRouterPolyline.clear()
+        /*lastCarRouterPolyline.forEach {
+            try {
+                map.mapObjects.remove(it)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }*/
+        //lastCarRouterPolyline.clear()
+        if (!lastStopTransferMarkers.isNullOrEmpty()){
+            lastStopTransferMarkers.forEach{
+                try {
+                    map.mapObjects.remove(it)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+            }
+            lastStopTransferMarkers.clear()
+        }
+
     }
 
     private val userLocationObjectListener=object:UserLocationObjectListener{
@@ -166,7 +185,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         override fun onObjectAdded(userLocationView: UserLocationView) {
             Timber.d("onObjectAdded")
-            userLocationLayer.setAnchor(
+            userLocationLayer?.setAnchor(
                 PointF((mapView.width * 0.5).toFloat(), ((mapView.height * 0.5)).toFloat()) ,
                 PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat()))
 
@@ -246,14 +265,14 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         prevMapObjectMarker=mapObject
 
         if (locationListener.lastLocation!=null) {
-            val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+            val mapBottomSheet = MapBottomSheet(order, fragment)
             mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
 
         } else {
             Timber.d("locationListener.lastLocation==null")
             locationManager.requestSingleUpdate(locationListener)
             if (locationListener.lastLocation!=null) {
-                val mapBottomSheet = MapBottomSheet(order, locationListener.lastLocation!!.position,fragment)
+                val mapBottomSheet = MapBottomSheet(order, fragment)
                 mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
             }
         }
@@ -267,19 +286,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         savedInstanceState: Bundle?
     ): View? {
         AndroidSupportInjection.inject(this)
-
-        orders=(this.requireActivity() as MainActivity).filteredOrders
-
-        if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
-            if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
-                showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
-            }
-
-        }
-
+        Timber.d("MapFragment_onCreateView")
 
         locationManager=MapKitFactory.getInstance().createLocationManager()
-        //locationManager=mkfInstatnce.createLocationManager()
 
         val root = inflater.inflate(R.layout.fragment_map, container, false)
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
@@ -305,7 +314,12 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Timber.d("MapFragment_onCreate")
+        orders = if ((this.requireActivity() as MainActivity).filteredOrders.isEmpty()) {
+            (this.requireActivity() as MainActivity).orders
+        } else {
+            (this.requireActivity() as MainActivity).filteredOrders
+        }
+
 
         MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
         MapKitFactory.setLocale("ru_RU")
@@ -347,7 +361,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         }
 
 
-        if (lastCarRouterPolyline.isNotEmpty()) {
+        /*if (lastCarRouterPolyline.isNotEmpty()) {
             Timber.d("показываем маршрут $lastCarRouterPolyline")
             lastCarRouterPolyline.forEach {
                 //Timber.d("показываем маршрут ${it.geometry}")
@@ -359,13 +373,14 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                 }
 
             }
-        }
+        }*/
     }
 
 
     private fun importOrdersOnMap(order: Orders) {
         Timber.d("importOrdersOnMap=$order")
-        val view=layoutInflater.inflate(R.layout.template_marker,null)
+        //val view=layoutInflater.inflate(R.layout.template_marker,null)
+        val view=View.inflate(fragment.requireContext(),R.layout.template_marker,null)
         val tvMarker=view.findViewById<TextView>(R.id.tvMarker)
 
         // Проверим возможно маркеры накладываются друг на друга
@@ -378,29 +393,27 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
             stOrdersName=stOrdersName.substring(0,stOrdersName.length-2)
             tvMarker.text=stOrdersName
             //tvMarker.setBackgroundColor(Color.WHITE)
-            tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector5))
+            tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null, ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector5))
         } else {
             tvMarker.text=order.number
 
             when (order.groupOrder) {
-                this.getString(R.string.orderType1).toLowerCase() -> {
+                this.getString(R.string.orderType1).toLowerCase(Locale.ROOT) -> {
                     Timber.d("R.string.orderType1")
-                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector1))
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector1))
                 }
-                this.getString(R.string.orderType2).toLowerCase() -> {
-                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector2))
+                this.getString(R.string.orderType2).toLowerCase(Locale.ROOT) -> {
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector2))
                 }
-                this.getString(R.string.orderType3).toLowerCase() -> {
+                this.getString(R.string.orderType3).toLowerCase(Locale.ROOT) -> {
                     Timber.d("R.string.orderType3")
-                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector3))
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector3))
                 }
-                this.getString(R.string.orderType4).toLowerCase() -> {
-                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,tvMarker.context.getDrawable(R.drawable.ic_marker_selector4))
+                this.getString(R.string.orderType4).toLowerCase(Locale.ROOT) -> {
+                    tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null,ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector4))
                 }
             }
         }
-
-
 
         val customMarker=Models.CustomMarker(order=order,markerView = tvMarker)
 
@@ -414,7 +427,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     private fun enableLocationComponent() {
         Timber.d("enableLocationComponent")
         // Проверим разрешения
-        if (ContextCompat.checkSelfPermission(this.context!!,(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this.requireContext(),(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION
             ),
@@ -429,12 +442,12 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
     private fun initUserLocationLayer() {
         Timber.d("initUserLocationLayer")
-        //MapKitFactory.getInstance()
-        userLocationLayer=mkInstances.createUserLocationLayer(mapView.mapWindow)
-        userLocationLayer.isVisible=true
-        userLocationLayer.isHeadingEnabled=true
-        userLocationLayer.setObjectListener(userLocationObjectListener)
-
+        if (userLocationLayer==null) {
+            userLocationLayer=mkInstances.createUserLocationLayer(mapView.mapWindow)
+            userLocationLayer!!.isVisible=true
+            userLocationLayer!!.isHeadingEnabled=true
+            userLocationLayer!!.setObjectListener(userLocationObjectListener)
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -468,8 +481,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     }
 
 
+    @Suppress("SameParameterValue")
     private fun getBitmapFromVectorDrawable(drawableId: Int): Bitmap? {
-        var drawable = ContextCompat.getDrawable(this.context!!, drawableId) ?: return null
+        var drawable = ContextCompat.getDrawable(this.requireContext(), drawableId) ?: return null
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             drawable = DrawableCompat.wrap(drawable).mutate()

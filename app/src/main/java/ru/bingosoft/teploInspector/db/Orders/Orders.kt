@@ -96,7 +96,11 @@ data class Orders (
     var questionCount: Int=0,
     var techParamsCount: Int=0,
     var answeredCount: Int=0
-)
+) {
+    override fun toString(): String {
+        return "Orders(id=$id, guid='$guid', number=$number, status=$status, address=$address, contactFio=$contactFio, phone=$phone, dateCreate=$dateCreate, dateVisit=$dateVisit, timeVisit=$timeVisit, purposeObject=$purposeObject, groupOrder=$groupOrder, countNode=$countNode, typeOrder=$typeOrder, typeTransportation=$typeTransportation, lat=$lat, lon=$lon, giContractNumber=$giContractNumber, giContractDate=$giContractDate, giLegalAddress=$giLegalAddress, giPhone=$giPhone, giEmail=$giEmail, giPostAddress=$giPostAddress, giContractor=$giContractor, gi_responsible_tx=$gi_responsible_tx, giDirector=$giDirector, giResponsiblePhoneCity=$giResponsiblePhoneCity, giResponsiblePhoneMob=$giResponsiblePhoneMob, giDirectorPhoneCity=$giDirectorPhoneCity, giDirectorPhoneMob=$giDirectorPhoneMob, gi_belong_or=$gi_belong_or, gi_belong_uen=$gi_belong_uen, giManagingOrganizationUen=$giManagingOrganizationUen, giContractingOrganization=$giContractingOrganization, giTrackOwnership=$giTrackOwnership, giNodeOwnership=$giNodeOwnership, giRtc=$giRtc, giMasterRtc=$giMasterRtc, checked=$checked, questionCount=$questionCount, techParamsCount=$techParamsCount, answeredCount=$answeredCount)"
+    }
+}
 
 
 

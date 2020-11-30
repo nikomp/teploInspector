@@ -10,4 +10,7 @@ interface CheckupContractView {
     fun techParamsLoaded(techParams: List<TechParams>)
 
     fun errorReceived(throwable: Throwable)
+
+    fun sendGiOrder()
+    fun doSaveCheckup()
 }

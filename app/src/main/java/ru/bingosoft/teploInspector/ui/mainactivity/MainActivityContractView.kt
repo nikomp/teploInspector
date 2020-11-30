@@ -3,7 +3,8 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 interface MainActivityContractView {
     fun showMainActivityMsg(resID: Int)
     fun showMainActivityMsg(msg: String)
-    fun dataSyncOK()
+    fun dataSyncOK(idOrder: Long?)
+    fun dataNotSync(idOrder: Long, throwable: Throwable)
     //fun updDataOK()
     fun filesSend(countFiles: Int, indexCurrentFile: Int)
     fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
@@ -13,6 +14,12 @@ interface MainActivityContractView {
     fun checkMessageId()
     fun setEmptyMessageId()
 
+    fun setIdsOrdersNotSync(list: List<Long>)
+
 
     fun errorReceived(throwable: Throwable)
+
+    fun refreshRecyclerView()
+
+    fun registerReceiver()
 }

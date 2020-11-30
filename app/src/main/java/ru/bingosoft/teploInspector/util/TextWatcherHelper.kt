@@ -6,21 +6,16 @@ import android.view.View
 import ru.bingosoft.teploInspector.models.Models
 import java.util.*
 
-class TextWatcherHelper(private val control: Models.TemplateControl, private val uiCreator: UICreator, val v: View): TextWatcher {
+class TextWatcherHelper(private val control: Models.TemplateControl, val view: View): TextWatcher {
     override fun afterTextChanged(s: Editable?) {
         control.answered = s.toString().isNotEmpty()
-        control.resvalue=s.toString()
+        if (control.type=="numeric") {
+            control.resvalue=s?.toString()?.replace(',', '.')
+        } else {
+            control.resvalue=s.toString()
+        }
+
         control.datetime= Date().time
-        //uiCreator.changeChecked(v,control)
-
-        /*val parent=control.parent
-        if (parent!=null) {
-            Timber.d("parent=${parent.id}")
-            val parentView=uiCreator.parentFragment.rootView.findViewById<View>(parent.id)
-            parent.checked=false
-            uiCreator.changeChecked(parentView, parent)
-        }*/
-
     }
 
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {

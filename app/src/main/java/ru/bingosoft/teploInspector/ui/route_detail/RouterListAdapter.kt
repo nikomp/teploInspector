@@ -39,7 +39,7 @@ class RouterListAdapter(private val routes: MutableList<Route>, private val item
     override fun onBindViewHolder(holder: RouterViewHolder, position: Int) {
         holder.routerName.text = ctx.getString(R.string.routeName,(position+1).toString())
         holder.time.text = routes[position].metadata.weight.time.text
-        if (isPedestrianRouter==true) {
+        if (isPedestrianRouter) {
             Timber.d("isPedestrianRouter==true")
             holder.transfersCount.text =""
         } else {
@@ -84,12 +84,10 @@ class RouterListAdapter(private val routes: MutableList<Route>, private val item
         var transfersCount: TextView = itemView.transfersCount
         var walkingDistance: TextView = itemView.walkingDistance
         var sectionsRoute: RecyclerView=itemView.section_route_recycler_view
-        //var flexboxLayout: FlexboxLayout=itemView.flexboxlayout
 
         lateinit var listener: RouterRVClickListeners
 
         init {
-
             view.setOnClickListener(this)
         }
 

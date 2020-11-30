@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/ic_stop_transfer"
+    android:gravity="center_horizontal|center_vertical"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvStopMarker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@drawable/ic_directions_bus_24dp"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="Т18"
+        android:textColor="@android:color/white"
+        android:textSize="14sp" />
+</LinearLayout>

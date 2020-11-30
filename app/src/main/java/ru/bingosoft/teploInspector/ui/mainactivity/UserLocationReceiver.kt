@@ -18,7 +18,9 @@ import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.User.TrackingUserLocation
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
+import ru.bingosoft.teploInspector.util.Const.MessageCode.ENABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.net.UnknownHostException
@@ -34,14 +36,19 @@ class UserLocationReceiver @Inject constructor(
     @Inject
     lateinit var toaster: Toaster
 
+    lateinit var ctx: Context
+
     override fun onReceive(context: Context?, intent: Intent?) {
         Timber.d("onReceive")
+        if (context != null) {
+            ctx=context
+        }
         val lat=intent?.getDoubleExtra("lat",0.0)
         val lon=intent?.getDoubleExtra("lon",0.0)
         val provider=intent?.getStringExtra("provider")
         val sendRouteToServer=intent?.getBooleanExtra("sendRouteToServer",false)
         if (sendRouteToServer!=null && sendRouteToServer==true) {
-            Timber.d("Отправляем маршрут на серверXX")
+            Timber.d("send_Route")
             sendUserRoute()
         }
         lastKnownLocation=Location(provider)
@@ -51,8 +58,14 @@ class UserLocationReceiver @Inject constructor(
         }
 
         val status=intent?.getStringExtra("status")
+        Timber.d("statusGPS=$status")
         if (status==PROVIDER_DISABLED) {
+            Timber.d("PROVIDER_DISABLED")
             sendMessageToAdmin(DISABLE_LOCATION)
+        }
+        if (status== PROVIDER_ENABLED) {
+            Timber.d("ENABLE_LOCATION")
+            sendMessageToAdmin(ENABLE_LOCATION)
         }
         Timber.d("UserLocationReceiver=$lat _ $lon")
         if (lat != null && lon!=null) {
@@ -70,19 +83,23 @@ class UserLocationReceiver @Inject constructor(
         Timber.d("saveLocation")
         val movingUser=TrackingUserLocation(lat=lat,lon=lon,dateLocation = Date(),provider = provider, status = status)
 
-        Single.fromCallable{
+        disposable=Single.fromCallable{
             db.trackingUserDao().insert(movingUser)
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{_->
+            .subscribe({
                 Timber.d("Сохранили локацию пользователя в БД")
-            }
+                disposable.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposable.dispose()
+            })
 
     }
 
     private fun sendMessageToAdmin(codeMsg: Int) {
-        Timber.d("sendMessageToAdmin codeMsg=$codeMsg")
+        Timber.d("sendMessageToAdmin_codeMsg=$codeMsg")
 
         val textMessage: String
         val eventType: Int
@@ -98,6 +115,10 @@ class UserLocationReceiver @Inject constructor(
             3-> {
                 textMessage="Пользователь выключил GPS"
                 eventType=1 // Геолокация отключена
+            }
+            4-> {
+                textMessage="Пользователь включил GPS"
+                eventType=3 // Геолокация включена
             }
             else -> {
                 textMessage=""
@@ -122,21 +143,24 @@ class UserLocationReceiver @Inject constructor(
         disposable=apiService.sendMessageToAdmin(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({response ->
-                Timber.d(response.toString())
-                disposable.dispose()
-            },{
-                Timber.d("ошибка!!!")
-                Timber.d(it.printStackTrace().toString())
-                disposable.dispose()
-            })
+            .subscribe(
+                {
+                    Timber.d("Сообщение_отправлено")
+                    disposable.dispose()
+                },
+                {
+                    Timber.d("ошибка!!!")
+                    Timber.d(it.printStackTrace().toString())
+                    ctx.sendBroadcast(Intent("unauthorized"))
+                    disposable.dispose()
+                }
+            )
 
     }
 
     private fun sendUserRoute() {
         Timber.d("sendUserRoute_from_UserLocationReceiver")
         disposable=db.trackingUserDao()
-            //.getAll()
             .getTrackingForCurrentDay()
             .subscribeOn(Schedulers.io())
             .map{trackingUserLocation ->
@@ -150,7 +174,6 @@ class UserLocationReceiver @Inject constructor(
 
                 Timber.d("ДанныеМаршрута=${jsonStr}")
 
-                //return@map jsonStr.toRequestBody("application/json; charset=utf-8".toMediaType())
                 return@map jsonBody
 
             }
@@ -163,18 +186,21 @@ class UserLocationReceiver @Inject constructor(
             .subscribe(
                 { response ->
                     Timber.d(response.toString())
-                    //view?.showMainActivityMsg(R.string.msgRouteUserSendOk)
                     disposable.dispose()
 
                 }, { throwable ->
-                    //view?.errorReceived(throwable)
                     disposable.dispose()
                     throwable.printStackTrace()
                     when (throwable) {
                         is HttpException -> {
                             Timber.d("throwable.code()=${throwable.code()}")
                             when (throwable.code()) {
-                                401 -> toaster.showToast(R.string.unauthorized)
+                                401 -> {
+                                    //toaster.showToast(R.string.unauthorized)
+                                    Timber.d("code_401_from_UserLocationReciver")
+                                    ctx.sendBroadcast(Intent("unauthorized"))
+                                    //(ctx as MainActivity).doAuthorization(msgId = R.string.auth_restored)
+                                }
                                 else -> toaster.showToast("Ошибка! ${throwable.message}")
                             }
                         }

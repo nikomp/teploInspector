@@ -17,7 +17,6 @@ import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.net.UnknownHostException
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -27,19 +26,34 @@ class OrderPresenter @Inject constructor(
     val toaster: Toaster
 ) {
 
-    var tempHistory= HistoryOrderState()
+    private var tempHistory= HistoryOrderState()
 
     var view: OrderContractView? = null
 
-    lateinit var disposable: Disposable
+    private lateinit var disposable: Disposable
 
     fun attachView(view: OrderContractView) {
         this.view=view
     }
 
+    fun saveDateTime(order: Orders) {
+        disposable=Single.fromCallable {
+            db.ordersDao().update(order)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                disposable.dispose()
+                Timber.d("Обновили_дату_время")
+
+            },{throwable ->
+                disposable.dispose()
+                throwable.printStackTrace()
+            })
+    }
 
     fun addHistoryState(order: Orders) {
-        Single.fromCallable {
+        disposable=Single.fromCallable {
             db.ordersDao().update(order)
             val date=Date()
             val history=HistoryOrderState(id = date.hashCode(), idOrder = order.id, stateOrder = order.status!!, dateChange = date)
@@ -48,14 +62,18 @@ class OrderPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{id ->
+            .subscribe({id ->
+                disposable.dispose()
                 Timber.d("inserted ID=$id")
                 val history= Models.HistoryOrderOnServer(unique_id=id,
                     idOrder = tempHistory.idOrder,
                     stateOrder = tempHistory.stateOrder,
                     dateChange = tempHistory.dateChange.time)
                 sendHistoryToServer(history)
-            }
+            },{throwable ->
+                disposable.dispose()
+                throwable.printStackTrace()
+            })
     }
 
     private fun sendHistoryToServer(history: Models.HistoryOrderOnServer) {
@@ -74,11 +92,6 @@ class OrderPresenter @Inject constructor(
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
                 throwable.printStackTrace()
-                /*if (view!=null) {
-                    view?.errorReceived(throwable)
-                } else {
-
-                }*/
                 errorHandler(throwable)
                 disposable.dispose()
 
@@ -101,7 +114,14 @@ class OrderPresenter @Inject constructor(
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
-                    401 -> toaster.showToast(R.string.unauthorized)
+                    401 -> {
+                        //toaster.showToast(R.string.unauthorized)
+                        if (view!=null) {
+                            view?.errorReceived(throwable)
+                        } else {
+                            toaster.showToast(R.string.unauthorized)
+                        }
+                    }
                     else -> toaster.showToast("Ошибка! ${throwable.message}")
                 }
             }
@@ -154,7 +174,7 @@ class OrderPresenter @Inject constructor(
             }
     }*/
 
-    fun importData() {
+    /*fun importData() {
         // Вставка данных в БД
         Single.fromCallable{
             val order1 = Orders(
@@ -187,7 +207,7 @@ class OrderPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .subscribe()
-    }
+    }*/
 
 
 

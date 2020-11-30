@@ -11,9 +11,16 @@ import ru.bingosoft.teploInspector.models.Models
 
 //@Suppress("unused")
 interface ApiService {
-    @POST("/defaultauthentication/auth/login")
+    /*@POST("/defaultauthentication/auth/login")
     @Headers("Content-Type: application/json")
     fun getAuthentication(
+        @Body lp: RequestBody
+    ): Single<Models.Uuid>*/
+
+    @POST
+    @Headers("Content-Type: application/json")
+    fun getAuthentication(
+        @Url url: String,
         @Body lp: RequestBody
     ): Single<Models.Uuid>
 
@@ -56,10 +63,21 @@ interface ApiService {
         @Body json: RequestBody
     ): Single<Unit>
 
+    @POST("registryservice/plugins/execute/SaveApplicationBaseInformationCommand")
+    @Headers("Content-Type: application/json")
+    fun sendGiOrder(
+        @Body json: RequestBody
+    ): Single<Unit>
 
     @POST("registryservice/plugins/execute/SaveSurveyResultCommand")
     @Headers("Content-Type: application/json")
     fun doReverseSync(
+        @Body json: RequestBody
+    ): Single<List<Models.DataFile>>?
+
+    @POST("registryservice/plugins/execute/SaveSurveyResultCommand")
+    @Headers("Content-Type: application/json")
+    fun doReverseSyncOrder(
         @Body json: RequestBody
     ): Single<List<Models.DataFile>>?
 

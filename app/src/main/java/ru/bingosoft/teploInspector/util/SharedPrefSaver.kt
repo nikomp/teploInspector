@@ -3,18 +3,15 @@ package ru.bingosoft.teploInspector.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
-import android.util.Log
 import org.json.JSONObject
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.util.Const.LogTags.SPS
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.APP_PREFERENCES
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.DATESYNC
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.FIREBASE_MESSAGE
-import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOCATION_TRACKING
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ROLE_ID
-import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.SESSION
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.TOKEN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_FULLNAME
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_ID
@@ -26,6 +23,7 @@ import java.util.*
 
 
 class SharedPrefSaver(ctx: Context) {
+    var sptoken: String=""
     private val sharedPreference: SharedPreferences = ctx.getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
 
 
@@ -34,12 +32,21 @@ class SharedPrefSaver(ctx: Context) {
         val editor: SharedPreferences.Editor = sharedPreference.edit()
         editor.putString(LOGIN, login)
         editor.apply()
-        Log.d(SPS, login)
-
     }
 
     fun getLogin(): String {
         return sharedPreference.getString(LOGIN, "") ?: ""
+    }
+
+    fun saveEnterType(type: String="default") {
+        Timber.d("saveEnterType")
+        val editor: SharedPreferences.Editor = sharedPreference.edit()
+        editor.putString(ENTER_TYPE, type)
+        editor.apply()
+    }
+
+    fun getEnterType(): String {
+        return sharedPreference.getString(ENTER_TYPE, "") ?: ""
     }
 
     fun saveToken(token: String) {
@@ -70,8 +77,6 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun savePassword(password: String) {
-        Log.d(SPS, "savePassword")
-
         /*val coder = Coder(ctx) // Создадим экземпляр шифратора
         //ШИФРУЕМ
         val eList = coder.encode(password)*/
@@ -85,7 +90,6 @@ class SharedPrefSaver(ctx: Context) {
 
 
     fun getPassword(): String {
-        Log.d(SPS, "getPassword")
         //СЧИТАЕМ
         if (sharedPreference.contains(PASSWORD)) {
             /*val coder = Coder(ctx) // Создадим экземпляр шифратора
@@ -109,25 +113,6 @@ class SharedPrefSaver(ctx: Context) {
         editor.apply()
     }
 
-    fun saveSessionId(sessionId: String) {
-        Log.d(SPS, "saveSessionId")
-        //СОХРАНИМ
-        val editor: SharedPreferences.Editor = this.sharedPreference.edit()
-        editor.putString(SESSION, sessionId)
-        editor.apply()
-    }
-
-    fun getSessionId(): String? {
-        Log.d(SPS, "getSessionId")
-        //СЧИТАЕМ
-        if (sharedPreference.contains(SESSION)) {
-            return sharedPreference.getString(SESSION, "")
-        }
-
-        return ""
-
-    }
-
     fun saveDateSyncDB(date: Date) {
         //СОХРАНИМ
         val editor: SharedPreferences.Editor = this.sharedPreference.edit()
@@ -145,15 +130,13 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun getDateSyncDB():String? {
-        Log.d(SPS, "getDateSyncDB")
-        if (sharedPreference.contains(DATESYNC)) {
+         if (sharedPreference.contains(DATESYNC)) {
             return sharedPreference.getString(DATESYNC,"")
         }
         return ""
     }
 
     fun saveUser(user: Models.User) {
-        Log.d(SPS, "saveUser")
         //СОХРАНИМ
         val editor: SharedPreferences.Editor = this.sharedPreference.edit()
         editor.putString(USER_FULLNAME, user.fullname)
@@ -162,7 +145,6 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun getUser(): Models.User {
-        Log.d(SPS, "saveUser")
         val user=Models.User()
 
         if (sharedPreference.contains(USER_FULLNAME)) {
@@ -183,11 +165,4 @@ class SharedPrefSaver(ctx: Context) {
         }
     }
 
-    fun isLocationTracking() :Boolean {
-        return if (sharedPreference.contains(LOCATION_TRACKING)) {
-            sharedPreference.getBoolean(LOCATION_TRACKING,false)
-        } else {
-            false
-        }
-    }
 }

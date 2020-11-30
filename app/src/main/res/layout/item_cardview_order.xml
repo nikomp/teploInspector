@@ -32,13 +32,22 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:id="@+id/ivExpand"
-                    android:layout_width="20dp"
-                    android:layout_height="12dp"
+                android:id="@+id/ivExpand"
+                android:layout_width="20dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"
+                app:srcCompat="@drawable/arrow_down" />
+
+                <ImageView
+                    android:id="@+id/ivSync"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="8dp"
                     android:visibility="gone"
-                    app:srcCompat="@drawable/arrow_down" />
+                    app:srcCompat="@drawable/ic_sync" />
 
                 <TextView
                     android:id="@+id/number"
@@ -147,20 +156,37 @@
                     app:layout_constraintTop_toBottomOf="@+id/name"
                     tools:text="Нижний Новгород, Россия, 603146, Михайловская улица, 24" />
 
-                <TextView
+                <!--<TextView
                     android:id="@+id/date"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp"
                     android:fontFamily="@font/roboto_medium"
                     android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
 
                     android:textColor="@color/orderTextDate"
                     android:textSize="13sp"
                     app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/btnRoute"
+                    tools:text="09.06.2020 15:03" />-->
+
+                <Button
+                    android:id="@+id/btnChangeDateTime"
+                    android:layout_width="190dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_weight="1"
+                    android:drawableLeft="@drawable/ic_calendar_blue"
+                    android:paddingLeft="16dp"
+                    android:textAllCaps="false"
+                    android:textColor="@color/orderTextDate"
+                    android:textSize="13sp"
+                    app:backgroundTint="@color/orderButtonBackground"
+                    app:iconPadding="0dp"
+                    app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/adress"
-                    tools:text="09.06.2020 15:03" />
+                    tools:text="24.11.2020 11:50" />
 
                 <TextView
                     android:id="@+id/fio"
@@ -173,7 +199,7 @@
                     android:textColor="@color/orderButtonText2"
                     android:textSize="13sp"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/date"
+                    app:layout_constraintTop_toBottomOf="@+id/btnChangeDateTime"
                     tools:text="Иванов Иван Иванович" />
 
                 <!--#Spinner_без_underline #Spinner_dropDown_width-->
@@ -241,21 +267,6 @@
                         app:iconPadding="0dp"
                         tools:text="Маршрут 3.2 км" />
                 </LinearLayout>
-
-                <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fab2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:layout_marginEnd="4dp"
-                android:backgroundTint="@color/colorAccent"
-                android:clickable="true"
-                app:fabCustomSize="32dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/name"
-                app:srcCompat="@drawable/ic_local_phone_black_8dp"
-                android:focusable="true"
-                tools:ignore="VectorDrawableCompat" />-->
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

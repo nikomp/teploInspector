@@ -1,25 +1,27 @@
 package ru.bingosoft.teploInspector.ui.map_bottom
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
-import com.yandex.mapkit.geometry.Point
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
@@ -34,7 +36,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-class MapBottomSheet(val order: Orders, private val userLocation: Point, private val parentFragment: MapFragment): BottomSheetDialogFragment(), MapBottomSheetContractView, View.OnClickListener {
+class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment): BottomSheetDialogFragment(), MapBottomSheetContractView{
 
     private lateinit var rootView: View
 
@@ -58,32 +60,45 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
         super.onCreate(savedInstanceState)
 
         val locationManager=this.requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+        // Проверим разрешения на геолокацию, если нет выдаем сообщение
+        if (ActivityCompat.checkSelfPermission(
+                parentFragment.requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                parentFragment.requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+
+            toaster.showToast(R.string.not_gps_permission)
+        } else {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+        }
+
     }
 
+    @SuppressLint("RestrictedApi")
     override fun setupDialog(dialog: Dialog, style: Int) {
         super.setupDialog(dialog, style)
 
         Timber.d("MapBottomSheet_setupDialog")
+        rootView=View.inflate(parentFragment.requireContext(),R.layout.map_bottom_sheet,null)
 
-        val view=
-            LayoutInflater.from(context).inflate(R.layout.map_bottom_sheet,null)
-        this.rootView=view
-        dialog.setContentView(view)
+        dialog.setContentView(rootView)
 
-        view.findViewById<TextView>(R.id.number).text="№ ${order.number}"
-        view.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+        rootView.findViewById<TextView>(R.id.number).text=parentFragment.getString(R.string.order_number,order.number)
+        rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         if (order.typeOrder.isNullOrEmpty()){
-            view.findViewById<TextView>(R.id.order_type).text="Тип заявки"
+            rootView.findViewById<TextView>(R.id.order_type).text="Тип заявки"
         } else {
-            view.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+            rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         }
 
         val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
-        mbsOrderState.setText(order.status?.toUpperCase())
+        mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(mbsOrderState, order.status)
 
-        val adapterStatus: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,
             R.layout.template_multiline_spinner_item_state_order,
             R.id.text1,
@@ -98,19 +113,19 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
                 if (order.answeredCount==0 && s.toString()=="Выполнена") {
                     parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
                     mbsOrderState.removeTextChangedListener(this)
-                    mbsOrderState.setText(order.status?.toUpperCase())
+                    mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
                     return
                 }
 
-                if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
-                    order.status=s.toString().toLowerCase().capitalize()
+                if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
+                    order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
                     changeColorMBSState(mbsOrderState, order.status)
                     orderPresenter.addHistoryState(order)
                 }
 
                 mbsOrderState.removeTextChangedListener(this)
-                mbsOrderState.setText(s.toString().toUpperCase())
+                mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
                 mbsOrderState.addTextChangedListener(this)
             }
 
@@ -126,31 +141,38 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
 
         if (order.dateVisit!=null && order.timeVisit!=null) {
             val strDateTimeVisit="${order.dateVisit} ${order.timeVisit}"
-            val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
-            view.findViewById<TextView>(R.id.date).text=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            try {
+                val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
+                if (date!=null) {
+                    rootView.findViewById<TextView>(R.id.btnChangeDateTime).text=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                }
+            } catch (e:Exception) {
+                e.printStackTrace()
+            }
+
         } else {
-            view.findViewById<TextView>(R.id.date).text=getString(R.string.not_date_visit)
+            rootView.findViewById<TextView>(R.id.btnChangeDateTime).text=getString(R.string.not_date_visit)
         }
 
-        view.findViewById<TextView>(R.id.name).text=order.purposeObject
-        view.findViewById<TextView>(R.id.adress).text=order.address
-        view.findViewById<TextView>(R.id.fio).text=order.contactFio
+        rootView.findViewById<TextView>(R.id.name).text=order.purposeObject
+        rootView.findViewById<TextView>(R.id.adress).text=order.address
+        rootView.findViewById<TextView>(R.id.fio).text=order.contactFio
         /*if (order.typeTransportation.isNullOrEmpty()) {
             view.findViewById<TextView>(R.id.type_transportation).text="Нет данных"
         } else {
             view.findViewById<TextView>(R.id.type_transportation).text=order.typeTransportation
         }*/
 
-        val btnPhone=view.findViewById<Button>(R.id.btnPhone)
+        val btnPhone=rootView.findViewById<Button>(R.id.btnPhone)
         if (order.phone.isNullOrEmpty()) {
             btnPhone.text=btnPhone.context.getString(R.string.no_contact)
             btnPhone.isEnabled=false
-            btnPhone.setTextColor(R.color.enabledText)
+            btnPhone.setTextColor(ContextCompat.getColor(parentFragment.requireContext(),R.color.enabledText))
         } else {
             btnPhone.text=order.phone
         }
 
-        val btnRoute=view.findViewById<Button>(R.id.btnRoute)
+        val btnRoute=rootView.findViewById<Button>(R.id.btnRoute)
         //btnRoute.text="Маршрут 3.2 км"
 
 
@@ -164,14 +186,14 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
             btnRoute.text=rootView.context.getString(R.string.route)
         }
 
-        btnPhone.setOnClickListener { _ ->
+        btnPhone.setOnClickListener {
             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.phone}"))
             if (intent.resolveActivity(btnPhone.context.packageManager) != null) {
                 ContextCompat.startActivity(btnPhone.context, intent, null)
             }
         }
 
-        btnRoute.setOnClickListener { _ ->
+        btnRoute.setOnClickListener {
             Timber.d("btnRoute.setOnClickListener")
 
             //Включаем фрагмент со списком Маршрутов для конкретной заявки
@@ -180,13 +202,13 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
 
         }
 
-        val adapter: ArrayAdapter<String> = ArrayAdapter<String>(
+        val adapter: ArrayAdapter<String> = ArrayAdapter(
             parentFragment.requireContext(),
             R.layout.template_multiline_spinner_item,
             Const.TypeTransportation.list
         )
 
-        val mbsTypeTransportation=view.findViewById<MaterialBetterSpinner>(R.id.type_transportation)
+        val mbsTypeTransportation=rootView.findViewById<MaterialBetterSpinner>(R.id.type_transportation)
         mbsTypeTransportation.setAdapter(adapter)
 
         mbsTypeTransportation.addTextChangedListener(object: TextWatcher {
@@ -198,7 +220,10 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
                     btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
                 }
 
-                if (s.toString().toUpperCase()!=order.typeTransportation?.toUpperCase()) {
+                if (s.toString().toUpperCase(Locale.ROOT) != order.typeTransportation?.toUpperCase(
+                        Locale.ROOT
+                    )
+                ) {
                     order.typeTransportation=s.toString()
                     orderPresenter.changeTypeTransortation(order)
                 }
@@ -252,6 +277,7 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
 
 
     private fun hideBottomSheet() {
+        Timber.d("MapBottomSheet_hideBottomSheet")
         // Закроем BottomSheetDialog
         val params =(rootView.parent as View).layoutParams as CoordinatorLayout.LayoutParams
         val behavior = params.behavior
@@ -259,10 +285,5 @@ class MapBottomSheet(val order: Orders, private val userLocation: Point, private
             behavior.state= BottomSheetBehavior.STATE_HIDDEN
         }
     }
-
-    override fun onClick(v: View?) {
-
-    }
-
 
 }

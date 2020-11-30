@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.util
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.graphics.Color
@@ -29,6 +30,7 @@ import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import timber.log.Timber
 import java.io.File
 import java.lang.reflect.Type
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,7 +39,7 @@ import java.util.*
  */
 //private val rootView: View, val checkup: Checkup, private val photoHelper: PhotoHelper, private val checkupPresenter: CheckupPresenter
 @Suppress("unused")
-class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
+class UICreator(private val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: List<Models.TemplateControl>
     private var enabledControls: MutableList<View> = mutableListOf()
     private val dateAndTime: Calendar =Calendar.getInstance()
@@ -245,11 +247,28 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
         doAssociateParent(templateStep, parent)
 
+        //#Перенос_строк #Combobox
+        // Проставим переносы в строку. Длина строки 40 символов
+        val listLinesWithBreak= mutableListOf<String>()
+        it.value.forEach {
+            var item=it
+            var newitem=""
+            while (item.length > 40) {
+                val spacepos = item.lastIndexOf(" ", 40) // ищем первый пробел начиная с 40 символа к началу строки
+                val strtemp = item.substring(0, spacepos)
+                newitem = newitem + strtemp+"\n"
+
+                // Удалим из item подстроку
+                item=item.replace(strtemp, "")
+            }
+            newitem += item
+            listLinesWithBreak.add(newitem)
+        }
 
         val spinnerArrayAdapter: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,
             R.layout.template_multiline_spinner_item,
-            it.value
+            listLinesWithBreak //it.value
         )
 
         materialSpinner.isEnabled = enabled
@@ -267,7 +286,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             materialSpinner.setText(it.resvalue)
         }
         // Вешаем обработчик на spinner последним, иначе сбрасывается цвет шага
-        materialSpinner.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+        materialSpinner.addTextChangedListener(TextWatcherHelper(it, templateStep))
         enabledControls.add(materialSpinner)
 
     }
@@ -299,7 +318,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             textInputEditText.setText(it.resvalue)
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
-        textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+        textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
 
         enabledControls.add(textInputLayout)
     }
@@ -330,7 +349,6 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         textInputEditText.addTextChangedListener(
             TextWatcherHelper(
                 it,
-                this,
                 templateStep
             )
         )
@@ -363,7 +381,33 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             textInputEditText.setText(it.resvalue)
         }
 
-        textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+        //#Проверка_формата_даты
+        textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
+        textInputEditText.setOnFocusChangeListener { v, hasFocus ->
+            Timber.d("фокус_даты=$hasFocus")
+            val strDate=(v as TextInputEditText).text.toString()
+            if (!hasFocus && strDate.isNotEmpty()) {
+                Timber.d("strDate=$strDate")
+                if (!strDate.matches("[0-3]\\d.[01]\\d.\\d{4}".toRegex())) {
+                    Timber.d("Ошибка_даты")
+                    textInputEditText.error=parentFragment.getString(R.string.error_date)
+                    parentFragment.errorControls.add(textInputEditText)
+                } else {
+                    val df=SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU"))
+                    df.isLenient=false
+                    try {
+                        df.parse(strDate)
+                        if (parentFragment.errorControls.contains(textInputEditText)) {
+                            parentFragment.errorControls.remove(textInputEditText)
+                        }
+                    } catch (e: ParseException) {
+                        e.printStackTrace()
+                        textInputEditText.error=parentFragment.getString(R.string.error_date)
+                        parentFragment.errorControls.add(textInputEditText)
+                    }
+                }
+            }
+        }
 
         enabledControls.add(textInputLayout)
     }
@@ -393,10 +437,11 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             textInputEditText.setText(it.resvalue)
         }
 
-        textInputEditText.addTextChangedListener(TextWatcherHelper(it,this,templateStep))
+        textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
 
         enabledControls.add(textInputLayout)
     }
+
 
     private fun createPhoto(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
@@ -424,9 +469,6 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         btnPhoto.tag=templateStep
         btnPhoto.setOnClickListener{
             Timber.d("Добавляем фото")
-            //val ts=it.tag
-
-
             // Сбрасываем признак Checked
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
@@ -434,16 +476,56 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
             photoHelper.createPhoto(curOrder.guid, stepCheckup)
         }
 
-        val btnClearAll =
-            templateStep.findViewById<MaterialButton>(R.id.btnPhotoDeleteAll)
-        btnClearAll.isEnabled = enabled
-        btnClearAll.setOnClickListener {
-            Timber.d("Удалим все фото")
+        val btnDeletePhoto = templateStep.findViewById<MaterialButton>(R.id.btnDeletePhoto)
+        btnDeletePhoto.tag=templateStep
+        btnDeletePhoto.setOnClickListener {
+            Timber.d("Удалим фото")
+            val ts=it.tag
+            val tc=((ts as View).tag as Models.TemplateControl)
+
+            val pager = templateStep.findViewById(R.id.pager) as ViewPager
+
+            // Получим текущую страницу
+            val indexPhoto=pager.currentItem
+            Timber.d("pager.adapter.count=${pager.adapter?.count}")
+            if (pager.adapter?.count!! >0) {
+                // Получим список фоток из папки
+                val imagesPhoto: List<String>
+                imagesPhoto = if (!tc.resvalue.isNullOrEmpty()) {
+                    OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/${tc.resvalue}")
+                } else {
+                    val curOrder=(parentFragment.activity as MainActivity).currentOrder
+                    val photoDirectory="${curOrder.guid}/${stepCheckup.guid}"
+                    OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/$photoDirectory")
+                }
+                val photoForDelete=imagesPhoto[indexPhoto]
+                Timber.d("photoForDelete=$photoForDelete")
+                if (photoHelper.deletePhoto(photoForDelete)) {
+                    val imagesNew= mutableListOf<String>()
+                    imagesNew.addAll(imagesPhoto)
+                    imagesNew.removeAt(indexPhoto)
+                    parentFragment.refreshPhotoViewer(templateStep, imagesNew, rootView.context)
+
+                    // Проверим папку, может она пуста
+                    val curOrder=(parentFragment.activity as MainActivity).currentOrder
+                    if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${stepCheckup.guid}")) {
+                        Timber.d("Папка есть, она не пуста")
+                    } else {
+                        Timber.d("Удалчем_папку")
+                        // Удалим папку, очистим photoStep?.resvalue
+                        val dir=File("$DCIM_DIR/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}")
+                        dir.delete()
+                        tc.answered=false
+                        tc.resvalue=null
+                        (parentFragment.activity as MainActivity).photoDir=""
+                    }
+                }
+            }
         }
 
         val images: List<String>
         images = if (!it.resvalue.isNullOrEmpty()) {
-            Timber.d("Фото ${it.resvalue}")
+            Timber.d("Фото_${it.resvalue}")
             // Обновим список с фото
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             val stDir = "PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
@@ -507,6 +589,9 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
         enabledControls.add(btnPhoto)
     }
 
+
+
+    @SuppressLint("UseRequireInsteadOfGet")
     private fun createNodes(llContainer: LinearLayout): List<LinearLayout> {
         Timber.d("генерим узлы")
         val listNodesView= mutableListOf<LinearLayout>()
@@ -516,7 +601,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
 
                 Timber.d("Узел $i")
-                templateStep.findViewById<TextView>(R.id.question).text="Узел $i"
+                templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(R.string.name_node,i)
 
                 val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
                 val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
@@ -553,7 +638,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                 R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
 
             Timber.d("$name $i")
-            templateStep.findViewById<TextView>(R.id.question).text="$name $i"
+            templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(R.string.question,name,i)
 
             val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
             val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
@@ -675,14 +760,18 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
     }
 
     fun checkEnabled() {
+        Timber.d("checkEnabled")
+        Timber.d("parentFragment_currentOrder_status=${parentFragment.currentOrder.status}")
         enabled= !(parentFragment.currentOrder.status==parentFragment.getString(R.string.status_IN_WAY)||
                 parentFragment.currentOrder.status==parentFragment.getString(R.string.status_OPEN))
+
+        Timber.d("enabledControls_size=${enabledControls.size}")
+        Timber.d("enabled=${enabled}")
 
         enabledControls.forEach {
             if (it is MaterialBetterSpinner) {
                 if (enabled) {
                     it.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
-                    //it.setTextColor(android.R.attr.textColorPrimary)
                 } else {
                     it.dropDownHeight = 0
                 }
@@ -707,6 +796,7 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
 
 
     private fun showDialog(id: Int, textInputEditText: TextInputEditText) {
+        //Если потребуется вводить дату вручную, нужно поставить флаг focusableInTouchMode в XML
         if (id== DIALOG_DATE) {
             val dateListener =
                 DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
@@ -716,6 +806,12 @@ class UICreator(val parentFragment: CheckupFragment, val checkup: Checkup) {
                     textInputEditText.setText(
                         SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(dateAndTime.time)
                     )
+                    textInputEditText.error=null
+                    Timber.d("errorControls=${parentFragment.errorControls}")
+                    Timber.d("textInputEditText=${textInputEditText.id}")
+                    if (parentFragment.errorControls.contains(textInputEditText)) {
+                        parentFragment.errorControls.remove(textInputEditText)
+                    }
                 }
 
             DatePickerDialog(parentFragment.requireContext(),

@@ -10,7 +10,7 @@ interface OrdersDao {
     fun getAll(): Flowable<List<Orders>>
 
     @Query("SELECT * FROM orders WHERE id = :id")
-    fun getById(id: Long): Orders
+    fun getById(id: Long): Flowable<Orders>
 
     @Query("SELECT * FROM orders WHERE number = :number")
     fun getByNumber(number: String): Flowable<Orders>

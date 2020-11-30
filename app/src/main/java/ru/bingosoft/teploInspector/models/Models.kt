@@ -4,6 +4,7 @@ import android.widget.TextView
 import com.google.gson.JsonArray
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
+import com.yandex.mapkit.geometry.Point
 import ru.bingosoft.teploInspector.db.Orders.Orders
 
 class Models {
@@ -41,6 +42,10 @@ class Models {
         @SerializedName("id_order") var id_order: Int = 0,
         @SerializedName("history_order_state") var history_order_state: JsonArray = JsonArray(),
         @SerializedName("controls") var controls: JsonArray = JsonArray()
+    )
+
+    class ResultOrder (
+        @SerializedName("data") var data: JsonArray = JsonArray()
     )
 
     class HistoryOrderOnServer (
@@ -85,7 +90,9 @@ class Models {
         @Expose @SerializedName("archival_records") val archival_records: Int?=null,
 
 
-        @Expose @SerializedName("answered") var answered: Boolean = false
+        @Expose @SerializedName("answered") var answered: Boolean = false,
+
+        var parent: TemplateControl?=null
     ) {
         override fun toString(): String {
             return "TemplateControl(id=$id, results_id=$results_id, node=$node, guid='$guid', type='$type', value=${value.contentToString()}, question='$question', hint='$hint', resvalue=$resvalue, maxRange=$maxRange, minRange=$minRange, datetime=$datetime, replication_nodes=$replication_nodes, replicating_archival_records=$replicating_archival_records, group_checklist=$group_checklist, answered=$answered)"
@@ -97,6 +104,15 @@ class Models {
         val order: Orders,
         val markerView: TextView
     )
+
+    class StopTransferMarker(
+        val name: String,
+        val position: Point
+    ) {
+        override fun toString(): String {
+            return "StopTransferMarker(name='$name', position=$position)"
+        }
+    }
 
     class DataFile(
         @SerializedName("idOrder") var idOrder: Int=0,

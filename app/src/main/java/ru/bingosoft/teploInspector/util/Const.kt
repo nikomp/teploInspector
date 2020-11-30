@@ -4,26 +4,21 @@ import android.os.Environment
 import com.yandex.mapkit.geometry.Point
 
 class Const {
-    object LogTags {
-        const val LOGTAG = "myLogs"
-        const val SPS = "sharedPrefSaver"
-    }
 
     object RequestCodes {
         const val PHOTO = 1
         const val AUTH = 2
         const val PERMISSION = 123
-        const val QR_SCAN=11
     }
 
     object SharedPrefConst {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
+        const val ENTER_TYPE = "enter_type"
         const val TOKEN = "token"
         const val USER_ID = "user_id"
         const val ROLE_ID = "role_id"
         const val PASSWORD = "password"
-        const val SESSION = "session_id"
         const val DATESYNC = "last_sync_date"
         const val USER_FULLNAME = "fullname"
         const val USER_PHOTO_URL = "photo_url"
@@ -59,13 +54,16 @@ class Const {
         const val PROVIDER_DISABLED="PROVIDER_DISABLED"
         const val PROVIDER_ENABLED="PROVIDER_ENABLED"
         const val NOT_AVAILABLE="NOT_AVAILABLE"
-        const val AVAILABLE="AVAILABLE"
+        const val LOCATION_UPDATED="LOCATION_UPDATED"
+
+        const val INTERVAL_SENDING_ROUTE=3 // в минутах, 0.5 - 30 секунд
     }
 
     object MessageCode {
         const val REFUSED_PERMISSION=1 //пользователь отказался выдать разрешение на Геолокацию
         const val REPEATEDLY_REFUSED=2 //пользователь повторно отказался включить GPS
-        const val DISABLE_LOCATION=3 //пользователь выключил GPS
+        const val DISABLE_LOCATION=3 //GPS сигнал потерян или выключен
+        const val ENABLE_LOCATION=4 //GPS сигнал восстановлен
     }
 
     object Location {
@@ -104,19 +102,12 @@ class Const {
         )
     }
 
-    object TechnicalСharacteristicList {
-        val list=listOf("Номер узла",
-            "Кол-во шайб",
-            "Дш расч."
-        )
-    }
-
     object Dialog {
         const val DIALOG_DATE=1
         const val DIALOG_TIME=2
     }
 
-    object webSocket{
+    object WebSocketConst{
         const val NORMAL_CLOSURE_STATUS = 1000
         const val NOTIFICATION_CHANNEL_ID = "TeploInspector"
     }

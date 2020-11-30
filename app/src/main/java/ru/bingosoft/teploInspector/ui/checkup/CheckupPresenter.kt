@@ -9,6 +9,7 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AppDatabase
+import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
@@ -26,7 +27,7 @@ class CheckupPresenter @Inject constructor(
         this.view=view
     }
 
-    fun loadCheckup(id: Long) {
+    /*fun loadCheckup(id: Long) {
         Timber.d("loadCheckups")
         disposable=db.checkupDao().getCheckupByOrderId(id)
             .subscribeOn(Schedulers.io())
@@ -41,12 +42,12 @@ class CheckupPresenter @Inject constructor(
 
         Timber.d("ОК")
 
-    }
+    }*/
 
     fun loadCheckupByOrder(orderId: Long) {
         Timber.d("loadCheckupByOrder orderId=$orderId")
         // Получим информацию о чеклисте, по orderId
-        Single.fromCallable {
+        disposable=Single.fromCallable {
             db.checkupDao().getCheckupByOrder(orderId)
         }
             .subscribeOn(Schedulers.io())
@@ -55,15 +56,36 @@ class CheckupPresenter @Inject constructor(
                 { checkup ->
                     Timber.d("checkupxxxx=$checkup")
                     view?.dataIsLoaded(checkup)
+                    disposable.dispose()
                 },{ throwable ->
+                    disposable.dispose()
                     Timber.d("errorX")
                     throwable.printStackTrace()
                     view?.errorReceived(Throwable("Чеклист пуст"))
+
                 }
             )
 
     }
 
+    fun saveGeneralInformationOrder(orders: Orders) {
+        Timber.d("saveGeneralInformationOrder")
+
+        disposable=Single.fromCallable{
+            db.ordersDao().update(orders)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                disposable.dispose()
+                view?.sendGiOrder()
+                view?.doSaveCheckup()
+            },{error ->
+                disposable.dispose()
+                error.printStackTrace()
+                view?.errorReceived(error)
+            })
+    }
 
     fun saveCheckup(uiCreator: UICreator) {
         Timber.d("Сохраняем данные чеклиста")
@@ -109,16 +131,18 @@ class CheckupPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({_ ->
+            .subscribe({
+                disposable.dispose()
                 view?.setAnsweredCount(filterControls.size)
             },{throwable ->
+                disposable.dispose()
                 view?.errorReceived(throwable)
             })
 
 
     }
 
-    private fun updateTechParamsCount(uiCreator: UICreator) {
+    /*private fun updateTechParamsCount(uiCreator: UICreator) {
         // Отфильтруем только вопросы у которых answered=true
         val filterControls = uiCreator.controlList.filter { it.answered }
 
@@ -129,12 +153,16 @@ class CheckupPresenter @Inject constructor(
             db.ordersDao().updateAnsweredCount(uiCreator.checkup.idOrder, filterControls.size)
         }
             .subscribeOn(Schedulers.io())
-            .subscribe{_ ->
+            .subscribe({
                 view?.setAnsweredCount(filterControls.size)
-            }
+                disposable.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposable.dispose()
+            })
 
 
-    }
+    }*/
 
     fun onDestroy() {
         this.view = null
@@ -145,7 +173,7 @@ class CheckupPresenter @Inject constructor(
 
     fun getTechParams(idOrder: Long) {
         Timber.d("techParams=$idOrder")
-        Single.fromCallable {
+        disposable=Single.fromCallable {
             db.techParamsDao().getTechParamsOrder(idOrder)
         }
             .subscribeOn(Schedulers.io())
@@ -156,8 +184,10 @@ class CheckupPresenter @Inject constructor(
             }
             .subscribe ({ techParams ->
                 view?.techParamsLoaded(techParams)
+                disposable.dispose()
             },{ throwable ->
                 throwable.printStackTrace()
+                disposable.dispose()
             })
     }
 }

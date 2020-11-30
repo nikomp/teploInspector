@@ -5,10 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.app.SearchManager
-import android.content.Context
-import android.content.DialogInterface
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -30,7 +27,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.FragmentNavigator
-import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
@@ -49,6 +45,7 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.map.MapFragment
@@ -102,7 +99,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private lateinit var dialogFilterGroupOrder: AlertDialog
     lateinit var dialogFilterStateOrder: AlertDialog
     private lateinit var dialogFilterDateOrder: AlertDialog
-    lateinit var filterView: ConstraintLayout
+    private lateinit var filterView: ConstraintLayout
 
     var isMapFragmentShow=false
     lateinit var orders: List<Orders>
@@ -116,7 +113,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     lateinit var menu: Menu
 
-    var messageId: Int=0
+    private var messageId: Int=0
+    var ordersIdsNotSync: MutableList<Long> = mutableListOf()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,10 +123,21 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
         mainPresenter.attachView(this)
+        mainPresenter.getAllOrderNotSync()
+
+
+        // Авторизуемся сразу при входе в приложение, чтоб уходили GPS данные
+        // Авторизуемся так только если есть логин и пароль в настройках
+        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+            Timber.d("Первая_авторизация")
+            doAuthorization() // Сразу пробуем авторизоваться
+        }
+
 
         // Запросим разрешение на геолокацию, нужны для сервиса
         requestPermission()
@@ -143,8 +152,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
 
-        // Регистрируем широковещательный слушатель для получения данных от фонового сервиса
-        LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
+        // Регистрируем широковещательный слушатель для получения данных от фонового сервиса MapkitLocationService
+        //LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
+        //LocalBroadcastManager.getInstance(this).registerReceiver(unauthorizedReceiver,IntentFilter("unauthorized"))
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
 
@@ -206,19 +216,23 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val imgButtonAuth=header.findViewById<ImageButton>(R.id.imgbAuth)
         imgButtonAuth.setOnClickListener {
             Timber.d("Auth")
-            //clearBackstack()
             // Запустим активити с авторизацией
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivityForResult(intent, AUTH)
-            drawerLayout.closeDrawer(Gravity.LEFT)
+            doAuthorization()
+            drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+    }
+
+    private val unauthorizedReceiver=object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Timber.d("unauthorizedReceiver_onReceive")
+            doAuthorization(msgId = R.string.auth_restored)
+        }
     }
 
 
     private fun checkIntent() {
         Timber.d("checkIntent")
-        val intent=getIntent()
         messageId=intent.getIntExtra("messageId",0)
         Timber.d("$messageId")
         if (messageId!=0) {
@@ -226,7 +240,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    fun isInitCurrentOrder() :Boolean {        return ::currentOrder.isInitialized
+    fun isInitCurrentOrder() :Boolean {
+        return ::currentOrder.isInitialized
     }
 
 
@@ -272,7 +287,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             Timber.d("startService_MainActivity")
             // Стартуем фоновый сервис для отслеживания пользователя
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
-            startService(Intent(this,UserLocationService::class.java))
+            startService(Intent(this,UserLocationService::class.java)) // Отслеживаем состояние GPS
+            startService(Intent(this,MapkitLocationService::class.java)) // Отслеживаем координаты
         }
     }
 
@@ -291,7 +307,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     // Разрешения выданы
                     Timber.d("startService_Permission")
                     startService(Intent(this,UserLocationService::class.java))
-                    //enableLocationComponent()
+                    startService(Intent(this,MapkitLocationService::class.java))
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
@@ -343,7 +359,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterDateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
                 //Меняем позицию диалога
-                dialogFilterDateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+                dialogFilterDateOrder.window?.setGravity(Gravity.TOP or Gravity.END)
 
                 dialogFilterDateOrder.setOnCancelListener(dialogDateFilterCancelListener)
 
@@ -360,9 +376,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             } else {
                 dialogFilterDateOrder.show()
             }
-
-
-
 
             true
         }
@@ -391,7 +404,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterStateOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
                 //Меняем позицию диалога
-                dialogFilterStateOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+                dialogFilterStateOrder.window?.setGravity(Gravity.TOP or Gravity.END)
 
                 dialogFilterStateOrder.setOnCancelListener(dialogStateFilterCancelListener)
 
@@ -500,13 +513,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
 
-                    val navHostFragment: NavHostFragment? =
+                    /*val navHostFragment: NavHostFragment? =
                         supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
                     val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
+                    Timber.d("of_$of")
                     of?.doAuthorization()
                     if (of==null) {
                         doAuthorization()
-                    }
+                    }*/
 
                 }
                 else -> {
@@ -516,7 +530,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    private fun doAuthorization() {
+    fun doAuthorization(msgId:Int=R.string.auth_ok) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = this.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -525,8 +539,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val login = this.sharedPref.getLogin()
             val password = this.sharedPref.getPassword()
 
-            mainPresenter.attachView(this)
-            mainPresenter.authorization(login, password) // Проверим есть ли авторизация
+            //mainPresenter.attachView(this)
+            val url = if (this.sharedPref.getEnterType()=="directory_service") {
+                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+            } else {
+                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+            }
+            mainPresenter.authorization(url, login, password, msgId) // Проверим есть ли авторизация
         } else {
             Timber.d("логин/пароль=ОТСУТСТВУЮТ")
             // Запустим активити с настройками
@@ -541,10 +560,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("MainAct_destroy")
         super.onDestroy()
         stopService(Intent(this,UserLocationService::class.java))
+        stopService(Intent(this,MapkitLocationService::class.java))
         mainPresenter.onDestroy()
-        //unregisterReceiver(userLocationReceiver)
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -572,9 +592,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
         }
 
+        if (currentFragmentClassName==getString(R.string.checkup_fragment_className)) {
+            Timber.d("navController_navigate_nav_home1")
+            return
+        }
 
-        if (supportFragmentManager.backStackEntryCount==0) {
+        if (supportFragmentManager.backStackEntryCount==0 /*&& currentFragmentClassName==getString(R.string.order_fragment_className)*/){ //(supportFragmentManager.backStackEntryCount==0)
             Timber.d("onBackPressed_Заявки")
+
             // Сбросим текущую заявку
             currentOrder= Orders(guid = "")
             supportActionBar?.setTitle(R.string.menu_orders)
@@ -593,60 +618,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
 
             // Выходим из приложения при повторном клике на кнопку Назад
+            Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
             if (doubleBackToExitCounter==2) {
                 toaster.showToast(R.string.double_back)
-                Handler().postDelayed({ doubleBackToExitCounter = 0 }, 4000)
+                Handler().postDelayed({ doubleBackToExitCounter = 0 }, 3500)
             }
             if (doubleBackToExitCounter==3) {
+                Timber.d("finish")
                 finish()
             }
 
-
-            /*val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-            if (rv!=null) {
-                Timber.d("rv!=null")
-                if (filteredOrders.isNotEmpty()) {
-                    (rv.adapter as OrderListAdapter).ordersFilterList=this.filteredOrders
-                }
-
-                //#Recyclerview_binding_finish
-                rv.addOnLayoutChangeListener(object: View.OnLayoutChangeListener{
-                    override fun onLayoutChange(
-                        v: View?,
-                        left: Int,
-                        top: Int,
-                        right: Int,
-                        bottom: Int,
-                        oldLeft: Int,
-                        oldTop: Int,
-                        oldRight: Int,
-                        oldBottom: Int
-                    ) {
-                        rv.removeOnLayoutChangeListener(this)
-                        Timber.d("onLayoutChange")
-                        if (isBackPressed) {
-                            isBackPressed=false
-                        }
-                        if (isSearchView) {
-                            isSearchView=false
-                        }
-                    }
-
-                })
-                rv.adapter?.notifyDataSetChanged()
-            } else {
-                Timber.d("navController_navigate_nav_home2")
-                navController.navigate(R.id.nav_home)
-                if (isBackPressed) {
-                    isBackPressed=false
-                }
-                if (isSearchView) {
-                    isSearchView=false
-                }
-            }*/
-
         }
-
     }
 
 
@@ -665,12 +647,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     override fun showMarkers(orders: List<Orders>) {
-        /*val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-        val mf=supportFragmentManager.findFragmentByTag("fragment_map") as? MapFragment
-        mf?.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)*/
         Timber.d("MainAct_showMarkers")
-
-
 
         // Фильтруем заявки
         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
@@ -702,6 +679,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("lastKnownFilenamePhoto=${lastKnownFilenamePhoto}")
         OtherUtil().saveExifLocation(lastKnownFilenamePhoto,photoLocation)
 
+        val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+        if (childFragment is CheckupFragment) {
+            childFragment.setPhotoResult(photoStep?.id, photoDir)
+        }
+
 
         Timber.d("setPhotoResult_from_Activity")
         photoStep?.answered = true
@@ -727,6 +710,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 setMode() //Включена карта
                 true
             }
+            R.id.repeat_sync -> {
+                Timber.d("Повторная_синхронизация")
+                Timber.d("ordersIdsNotSync_size=${ordersIdsNotSync.size}")
+                mainPresenter.repeatSendData()
+
+                true
+            }
             else -> {
                 false
             }
@@ -743,16 +733,33 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         toaster.showToast(msg)
     }
 
-    override fun dataSyncOK() {
+    override fun dataSyncOK(idOrder: Long?) {
         Timber.d("dataSyncOK")
         mainPresenter.updData()
+        if (idOrder!=null) {
+            ordersIdsNotSync.remove(idOrder)
+        }
+
     }
 
-    /*override fun updDataOK() {
-        Timber.d("updDataOK")
-        //Передаем маршрут пользователя
-        mainPresenter.sendUserRoute()
-    }*/
+    override fun dataNotSync(idOrder: Long, throwable: Throwable) {
+        Timber.d("dataNotSync")
+        if (!ordersIdsNotSync.contains(idOrder)) {
+            ordersIdsNotSync.add(idOrder)
+        }
+        if (throwable is ThrowHelper) {
+            mainPresenter.isCheckupWithResult("${throwable.message}")
+        } else {
+            errorReceived(throwable)
+        }
+        mainPresenter.updData(sync=2)
+    }
+
+     /*override fun updDataOK() {
+         Timber.d("updDataOK")
+         //Передаем маршрут пользователя
+         mainPresenter.sendUserRoute()
+     }*/
 
     override fun filesSend(countFiles: Int, indexCurrentFile: Int) {
         if (countFiles==indexCurrentFile) {
@@ -762,12 +769,16 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
      override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
+         Timber.d("saveLoginPasswordToSharedPreference")
          sharedPref.saveLogin(stLogin)
          sharedPref.savePassword(stPassword)
      }
 
      override fun saveToken(token: String) {
+         Timber.d("saveToken")
+         sharedPref.sptoken=token
          sharedPref.saveToken(token)
+
      }
 
      override fun startNotificationService(token: String) {
@@ -788,6 +799,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          messageId=0
      }
 
+     override fun setIdsOrdersNotSync(list: List<Long>) {
+         ordersIdsNotSync.clear()
+         ordersIdsNotSync.addAll(list)
+
+     }
+
 
      override fun errorReceived(throwable: Throwable) {
         Timber.d("MainACT_errorReceived_$throwable")
@@ -795,18 +812,36 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
-                    401 -> toaster.showToast(R.string.unauthorized)
-                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                    401 -> {
+                        //toaster.showToast(R.string.unauthorized)
+                        doAuthorization(msgId = R.string.auth_restored)
+                    }
+                    else -> toaster.showErrorToast("Ошибка! ${throwable.message}")
                 }
             }
             is UnknownHostException ->{
-                toaster.showToast(R.string.no_address_hostname)
+                toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("Ошибка! ${throwable.message}")
+                toaster.showErrorToast("Ошибка! ${throwable.message}")
             }
         }
     }
+
+    override fun refreshRecyclerView() {
+        ordersIdsNotSync.clear()
+        val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+        if (rv!=null) {
+            rv.adapter?.notifyDataSetChanged()
+        }
+    }
+
+     override fun registerReceiver() {
+         Timber.d("registerReceiver")
+         // Регистрируем широковещательный слушатель для получения данных от фонового сервиса MapkitLocationService
+         LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
+         LocalBroadcastManager.getInstance(this).registerReceiver(unauthorizedReceiver,IntentFilter("unauthorized"))
+     }
 
     fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
@@ -857,7 +892,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     dialogFilterGroupOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
                     //Меняем позицию диалога
-                    dialogFilterGroupOrder.window?.setGravity(Gravity.TOP or Gravity.RIGHT)
+                    dialogFilterGroupOrder.window?.setGravity(Gravity.TOP or Gravity.END)
 
                     dialogFilterGroupOrder.setOnCancelListener(dialogCancelListener)
 
@@ -882,6 +917,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 Timber.d("Фильтр_по_дате_Все")
                 filteredOrders= listOf()
                 filterOrderByDate("all")
+                if (::dialogFilterDateOrder.isInitialized) {
+                    dialogFilterDateOrder.dismiss()
+                }
             }
             R.id.rbToday -> {
                 Timber.d("Фильтр_по_дате_Сегодня")
@@ -892,6 +930,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 val dateText: String = dateFormat.format(currentDate)
                 Timber.d("dateText=$dateText")
                 filterOrderByDate(dateText)
+                if (::dialogFilterDateOrder.isInitialized) {
+                    dialogFilterDateOrder.dismiss()
+                }
 
             }
             R.id.rbTomorrow -> {
@@ -904,6 +945,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 val dateText: String = dateFormat.format(tomorrowDate)
                 Timber.d("dateText=$dateText")
                 filterOrderByDate(dateText)
+                if (::dialogFilterDateOrder.isInitialized) {
+                    dialogFilterDateOrder.dismiss()
+                }
             }
             R.id.rbDate -> {
                 Timber.d("Фильтр_по_дате_Дата")
@@ -913,14 +957,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                         date.set(Calendar.YEAR, year)
                         date.set(Calendar.MONTH, month)
                         date.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                        /*tietFilterDate.setText(
-                            SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(date.time)
-                        )*/
 
                         val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                         val dateText: String = dateFormat.format(date.time)
                         Timber.d("dateText=$dateText")
                         filterOrderByDate(dateText)
+                        if (::dialogFilterDateOrder.isInitialized) {
+                            dialogFilterDateOrder.dismiss()
+                        }
                     }
 
                 DatePickerDialog(this,
@@ -934,19 +978,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 Timber.d("Фильтр_по_Статусу_Все")
                 filteredOrders= listOf()
                 filterOrderByState("all")
+                /*if (::dialogFilterStateOrder.isInitialized) {
+                    dialogFilterStateOrder.dismiss()
+                }*/
             }
             R.id.rbWithoutDone -> {
                 Timber.d("Фильтр_по_Статусу_Кроме_Выполненных_и_Отмененных")
                 filterOrderByState("all_without_Done_and_Cancel")
+                /*if (::dialogFilterStateOrder.isInitialized) {
+                    dialogFilterStateOrder.dismiss()
+                }*/
             }
-
-            /*R.id.tietFilterDate -> {
-                Timber.d("Фильтр_по_дате_Дата")
-
-            }*/
-            /*R.id.btnSearch -> {
-                Timber.d("Открываем окно с поиском")
-            }*/
         }
     }
 
@@ -954,77 +996,78 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("setCountFiltersGroup")
 
         if (::orders.isInitialized) {
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase()}.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase() }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase() }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase() }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase(
+                Locale.ROOT
+            )
+            }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase(
+                Locale.ROOT
+            )
+            }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase(
+                Locale.ROOT
+            )
+            }.size.toString()
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase(
+                Locale.ROOT
+            )
+            }.size.toString()
         }
 
     }
 
-    private val dialogCancelListener=object: DialogInterface.OnCancelListener{
-        override fun onCancel(dialog: DialogInterface?) {
-            Timber.d("setOnCancelListener")
-            // Считаем сколько фильтров поставили
-            val cb1=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType1)
-            val cb2=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType2)
-            val cb3=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType3)
-            val cb4=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType4)
+    private val dialogCancelListener= DialogInterface.OnCancelListener {
+        Timber.d("setOnCancelListener")
+        // Считаем сколько фильтров поставили
+        val cb1=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType1)
+        val cb2=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType2)
+        val cb3=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType3)
+        val cb4=dialogFilterGroupOrder.findViewById<CheckBox>(R.id.cbType4)
 
-            val filterGroupList= mutableListOf<String>()
-            var filterCount=0
-            if (cb1.isChecked) {
-                filterCount+=1
-                filterGroupList.add(getString(R.string.orderType1).toLowerCase())
-            }
-            if (cb2.isChecked) {
-                filterCount+=1
-                filterGroupList.add(getString(R.string.orderType2).toLowerCase())
-            }
-            if (cb3.isChecked) {
-                filterCount+=1
-                filterGroupList.add(getString(R.string.orderType3).toLowerCase())
-            }
-            if (cb4.isChecked) {
-                filterCount+=1
-                filterGroupList.add(getString(R.string.orderType4).toLowerCase())
-            }
-
-            filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
-            if (filterCount==4) {
-                filteredOrders= listOf()
-            }
-
-            // Фильтруем заявки
-            val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-            val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
-            if (childFragment is OrderFragment) {
-                childFragment.filteredOrderByGroup(filterGroupList)
-            }
-            if (childFragment is MapFragment){
-                Timber.d("Включена карта")
-                val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
-
-                childFragment.showMarkers(filteredOrderByGroup)
-            }
-
+        val filterGroupList= mutableListOf<String>()
+        var filterCount=0
+        if (cb1.isChecked) {
+            filterCount+=1
+            filterGroupList.add(getString(R.string.orderType1).toLowerCase(Locale.ROOT))
+        }
+        if (cb2.isChecked) {
+            filterCount+=1
+            filterGroupList.add(getString(R.string.orderType2).toLowerCase(Locale.ROOT))
+        }
+        if (cb3.isChecked) {
+            filterCount+=1
+            filterGroupList.add(getString(R.string.orderType3).toLowerCase(Locale.ROOT))
+        }
+        if (cb4.isChecked) {
+            filterCount+=1
+            filterGroupList.add(getString(R.string.orderType4).toLowerCase(Locale.ROOT))
         }
 
+        Timber.d("filterCount=$filterCount")
+
+        filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
+        if (filterCount==4) {
+            filteredOrders= listOf()
+        }
+
+        // Фильтруем заявки
+        val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
+        Timber.d("childFragment=$childFragment")
+        if (childFragment is OrderFragment) {
+            childFragment.filteredOrderByGroup(filterGroupList)
+        }
+        if (childFragment is MapFragment){
+            Timber.d("Включена карта")
+            val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
+
+            childFragment.showMarkers(filteredOrderByGroup)
+        }
     }
 
-     private val dialogDateFilterCancelListener=object: DialogInterface.OnCancelListener{
-         override fun onCancel(dialog: DialogInterface?) {
-             Timber.d("dialogDateFilterCancelListener")
-         }
+     private val dialogDateFilterCancelListener= DialogInterface.OnCancelListener { Timber.d("dialogDateFilterCancelListener") }
 
-     }
-
-     private val dialogStateFilterCancelListener=object: DialogInterface.OnCancelListener{
-         override fun onCancel(dialog: DialogInterface?) {
-             Timber.d("dialogStateFilterCancelListener")
-         }
-
-     }
+     private val dialogStateFilterCancelListener= DialogInterface.OnCancelListener { Timber.d("dialogStateFilterCancelListener") }
 
      private fun filterOrderByDate(dateText: String) {
          // Фильтруем заявки
@@ -1064,6 +1107,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
              childFragment.showMarkers(filteredOrderByState)
+         }
+     }
+
+     fun filterOrderByGroup() {
+         if (this::dialogFilterGroupOrder.isInitialized) {
+             dialogCancelListener.onCancel(dialogFilterGroupOrder)
          }
      }
 

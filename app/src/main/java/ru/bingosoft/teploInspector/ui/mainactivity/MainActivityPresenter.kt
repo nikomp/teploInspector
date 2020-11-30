@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
+import android.view.View
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import io.reactivex.Single
@@ -13,6 +14,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
+import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
@@ -32,6 +34,9 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     lateinit var userLocationNative: UserLocationNative
 
     private lateinit var disposable: Disposable
+    private lateinit var disposableFiles: Disposable
+    private lateinit var disposableAuth: Disposable
+    private lateinit var disposableSendGi: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
 
 
@@ -40,7 +45,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
 
-    fun authorization(stLogin: String?, stPassword: String?){
+    fun authorization(url:String, stLogin: String?, stPassword: String?, msgId: Int=R.string.auth_ok){
         Timber.d("authorization1 $stLogin _ $stPassword")
         if (stLogin!=null && stPassword!=null) {
 
@@ -50,7 +55,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
                 .toRequestBody("application/json".toMediaType())
 
-            disposable = apiService.getAuthentication(jsonBody)
+
+            disposableAuth = apiService.getAuthentication(url, jsonBody)
                 .subscribeOn(Schedulers.io())
                 .flatMap { uuid ->
                     Timber.d("uuid=$uuid")
@@ -62,17 +68,17 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { token ->
-                        Timber.d(token.token)
+                        Timber.d("авторизовались=${token.token}")
+                        disposableAuth.dispose()
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
+                        view?.registerReceiver()
                         view?.startNotificationService(token.token)
-                        view?.showMainActivityMsg(R.string.auth_ok)
+                        view?.showMainActivityMsg(msgId)
                         view?.checkMessageId()
-                        disposable.dispose()
-
                     }, { throwable ->
                         throwable.printStackTrace()
-                        disposable.dispose()
+                        disposableAuth.dispose()
                     }
                 )
 
@@ -100,8 +106,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             )
     }
 
-    private fun isCheckupWithResult(msg: String) {
-        Single.fromCallable{
+    fun isCheckupWithResult(msg: String) {
+        disposable=Single.fromCallable{
             db.checkupDao().existCheckupWithResult()
         }
             .subscribeOn(Schedulers.io())
@@ -110,15 +116,139 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 Timber.d("result_existCheckupWithResult=$result")
                 if (result>0) {
                     view?.showMainActivityMsg("$msg Есть чеклисты с неподтвержденными шагами")
+                    disposable.dispose()
                 } else {
                     view?.showMainActivityMsg(msg)
+                    disposable.dispose()
                 }
             }
     }
 
+    fun repeatSendData() {
+        Timber.d("repeatSendData")
+        disposable =
+            db.checkupDao()
+                .getResultAll2()
+                .subscribeOn(Schedulers.io())
+                .takeWhile { listResult ->
+                    Timber.d("listResult=$listResult")
+                    if (listResult.isEmpty()) {
+                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
+                    } else {
+                        listResult.isNotEmpty()
+                    }
+                }
+                .flatMap { results ->
+                    Timber.d("100_${results.size}")
+                    // Конвертируем строку controls в JsonArray
+                    Timber.d("Данные65=${Gson().toJson(results)}")
+                    val resultX= mutableListOf<Models.Result2>()
 
-    fun sendData3(idOrder:Long) {
-        Timber.d("sendData3")
+
+                    checkupsWasSync= mutableListOf()
+                    results.forEach {
+                        Timber.d("controls=${it.controls}")
+                        checkupsWasSync.add(it.id_order) // Сохраняю данные, которые должны быть переданы
+
+                        val result=Models.Result2()
+                        result.id_order=it.id_order
+
+                        Timber.d("it.history_order_state=${it.history_order_state}")
+                        if (it.history_order_state!=null) {
+                            /*val gson = Gson()
+                            val reader = JsonReader(StringReader(it.history_order_state))
+                            reader.setLenient(true)*/
+                            result.history_order_state=Gson().fromJson(it.history_order_state?.trim(), JsonArray::class.java)
+                        }
+                        result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
+
+                        resultX.add(result)
+                    }
+
+                    val reverseData=Models.ReverseData()
+                    reverseData.data=resultX
+
+                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
+                    longInfo("Данные222=${Gson().toJson(reverseData)}")
+
+                    val jsonBody = Gson().toJson(reverseData)
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+
+                    Timber.d("Данные3=${jsonBody}")
+
+                    apiService.doReverseSync(jsonBody)?.toFlowable()
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {response: List<Models.DataFile> ->
+                        //disposable.dispose()
+                        if (response.isNotEmpty()) {
+                            Timber.d("response=${response[0].id}")
+                            sendFile(response)
+                        } else {
+                            view?.dataSyncOK(null)
+                            view?.showMainActivityMsg(R.string.msgDataSendOk)
+                            view?.refreshRecyclerView()
+                        }
+                    }, { throwable ->
+                        Timber.d("MainActivityPresenter_throwable")
+                        throwable.printStackTrace()
+                        view?.errorReceived(throwable)
+                        //view?.dataNotSync(idOrder,throwable)
+                        //disposable.dispose()
+                    }
+                )
+    }
+
+    fun sendGiOrder(idOrder:Long) {
+        disposableSendGi =
+            db.ordersDao()
+                .getById(idOrder)
+                .subscribeOn(Schedulers.io())
+                /*.takeWhile { listResult ->
+                    Timber.d("listResult=$listResult")
+                    if (listResult.isEmpty()) {
+                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
+                    } else {
+                        listResult.isNotEmpty()
+                    }
+                }*/
+                .flatMap { orders ->
+                    // Конвертируем строку controls в JsonArray
+                    Timber.d("Данные=${Gson().toJson(orders)}")
+
+                    // Обернем данные в JsonArray, нужно Доктрине на сервере
+                    val result= mutableListOf<Orders>()
+                    result.add(orders)
+                    val resultX=Models.ResultOrder()
+                    resultX.data=Gson().fromJson(Gson().toJson(result), JsonArray::class.java)
+
+                    val ordersData=Gson().toJson(resultX)
+                    longInfo("ДанныеOrder=$ordersData")
+
+                    val jsonBody = ordersData
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+                    apiService.sendGiOrder(jsonBody).toFlowable()
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {
+                        Timber.d("Общие_сведения_отправлены")
+                        disposableSendGi.dispose()
+                    }, { throwable ->
+                        Timber.d("MainActivityPresenter_throwable")
+                        disposableSendGi.dispose()
+                        throwable.printStackTrace()
+                        view?.errorReceived(throwable)
+
+                    }
+                )
+    }
+
+    fun sendData3(idOrder: Long, syncView: View? = null) {
+        Timber.d("sendData3_$idOrder")
         disposable =
             db.checkupDao()
                 .getResultByOrderId(idOrder)
@@ -174,28 +304,30 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     {response: List<Models.DataFile> ->
+                        disposable.dispose()
                         if (response.isNotEmpty()) {
                             Timber.d("response=${response[0].id}")
                             sendFile(response)
                         } else {
-                            view?.dataSyncOK()
+
+                            view?.dataSyncOK(idOrder)
                             view?.showMainActivityMsg(R.string.msgDataSendOk)
-                            disposable.dispose()
+                            if (syncView!=null) {
+                                syncView.visibility=View.GONE
+                            }
+
                         }
                     }, { throwable ->
+                        Timber.d("MainActivityPresenter_throwable")
                         throwable.printStackTrace()
-                        if (throwable is ThrowHelper) {
-                            isCheckupWithResult("${throwable.message}")
-                        } else {
-                            //view?.showMainActivityMsg(R.string.msgDataSendError)
-                            view?.errorReceived(throwable)
-                        }
-                        disposable.dispose()
+                        view?.dataNotSync(idOrder,throwable)
+                        //disposable.dispose()
                     }
                 )
     }
 
     private fun sendFile(dataFileArray: List<Models.DataFile>) {
+        Timber.d("sendFile")
         dataFileArray.forEachIndexed {index, datafile->
             Timber.d("$DCIM_DIR/PhotoForApp/${datafile.dir}")
             val directory = File("$DCIM_DIR/PhotoForApp/${datafile.dir}")
@@ -215,34 +347,38 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     )
                     filesBody2.add(part2)
                 }
-
-
             }
 
-            apiService.sendFiles(datafile.id, 2518, filesBody)
+            disposable=apiService.sendFiles(datafile.id, 2518, filesBody)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     {response ->
-                        Timber.d("sendingFiles $response")
-                        //view?.filesSend(dataFileArray.size,index+1)
+                        Timber.d("sendingFiles_$response")
+                        disposable.dispose()
                         // Фотографии сохраним еще и для заявки
-                        apiService.sendFiles(datafile.idOrder, 2380, filesBody2)
+                        disposableFiles=apiService.sendFiles(datafile.idOrder, 2380, filesBody2)
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
                             .subscribe(
                                 {
+                                    Timber.d("sendingFiles_OK")
                                     view?.filesSend(dataFileArray.size,index+1)
+                                    disposableFiles.dispose()
                                 },
                                 {throwable ->
+                                    disposableFiles.dispose()
+                                    Timber.d("sendingFiles_throwable")
                                     view?.errorReceived(throwable)
                                     throwable.printStackTrace()
                                 }
                             )
                     },
                     {throwable ->
+                        Timber.d("sendingFiles_throwable2")
                         view?.errorReceived(throwable)
                         throwable.printStackTrace()
+                        disposable.dispose()
                     }
                 )
 
@@ -309,21 +445,41 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             })
     }
 
-    fun updData() {
-        Timber.d("updData")
+    fun updData(sync:Int=1) {
         if (this::disposable.isInitialized) {
-            Timber.d("disposable.dispose()")
             disposable.dispose()
         }
+        Timber.d("updData")
         Single.fromCallable {
             Timber.d("$checkupsWasSync")
 
             checkupsWasSync.forEach {
-                db.checkupDao().updateSync(it)
+                // sync=1 Данные сохранены и отправлены на сервер,
+                // sync=2 Данные сохранены но не отправлены на сервер
+                db.checkupDao().updateSync(it,sync)
             }
         }
             .subscribeOn(Schedulers.io())
             .subscribe ()
+
+
+    }
+
+    fun getAllOrderNotSync() {
+        Timber.d("getAllOrderNotSync")
+        disposable=Single.fromCallable {
+            db.checkupDao().getIdAllOrdersNotSync()
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({ response ->
+                Timber.d("orderIdsNotSync=$response")
+                view?.setIdsOrdersNotSync(response)
+                disposable.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposable.dispose()
+            })
     }
 
 

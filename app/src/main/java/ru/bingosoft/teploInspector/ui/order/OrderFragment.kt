@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.order
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -38,6 +39,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
 import java.net.UnknownHostException
@@ -70,7 +72,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     private lateinit var currentOrder: Orders
     lateinit var root: View
-    lateinit var orders: List<Orders>
+    var orders: List<Orders> = listOf()
     //var filteredOrdersOrderFragment: List<Orders> = listOf()
 
 
@@ -93,6 +95,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
 
         Timber.d("root=$root")
+
         return root
     }
 
@@ -103,7 +106,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         loginPresenter.onDestroy()
     }
 
-    fun doAuthorization(factivity: FragmentActivity=this.requireActivity()) {
+    private fun doAuthorization(factivity: FragmentActivity=this.requireActivity()) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = factivity.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -112,8 +115,14 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             val login = this.sharedPref.getLogin()
             val password = this.sharedPref.getPassword()
 
+            val url = if (this.sharedPref.getEnterType()=="directory_service") {
+                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+            } else {
+                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+            }
+
             loginPresenter.attachView(this)
-            loginPresenter.authorization(login, password) // Проверим есть ли авторизация
+            loginPresenter.authorization(url, login, password) // Проверим есть ли авторизация
         } else {
             Timber.d("логин/пароль=ОТСУТСТВУЮТ")
             // Запустим активити с настройками
@@ -132,9 +141,16 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     if (data != null) {
                         val login = data.getStringExtra("login")
                         val password = data.getStringExtra("password")
+                        val enterType = data.getStringExtra(ENTER_TYPE)
+
+                        val url = if (enterType=="directory_service") {
+                            "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                        } else {
+                            "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                        }
 
                         loginPresenter.attachView(this)
-                        loginPresenter.authorization(login, password)
+                        loginPresenter.authorization(url,login, password)
 
                     }
                 }
@@ -147,7 +163,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Timber.d("OrderFragment onCreate")
+        Timber.d("OrderFragment_onCreate")
         AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
@@ -180,9 +196,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             }
         } else {
             activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
+            activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))
         }
     }
 
+    @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -201,6 +219,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
 
                     activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
+                    activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
@@ -241,6 +260,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun saveToken(token: String) {
+        sharedPref.sptoken=token
         sharedPref.saveToken(token)
     }
 
@@ -337,10 +357,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         sharedPref.saveUser(user)
     }
 
-    override fun startLocationService() {
+    /*override fun startLocationService() {
         // Стартуем фоновый сервис для отслеживания пользователя
         activity?.startService(Intent(activity, UserLocationService::class.java))
-    }
+    }*/
 
     override fun startNotificationService(token: String) {
         // Старутем сервис отслеживания уведомлений
@@ -361,8 +381,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         this.orders=orders
         (activity as MainActivity).orders=orders
-
-        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
 
         // инициализируем контейнер SwipeRefreshLayout
         val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
@@ -388,6 +406,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         //По-умолчанию показываем все кроме выполненных и отмененных
         (activity as MainActivity).filterOrderByState("all_without_Done_and_Cancel")
+        (activity as MainActivity).filterOrderByGroup()
     }
 
     //#Android_Studio #длинный_лог
@@ -404,6 +423,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     fun filteredOrderByGroup(filterGroupList: List<String>) {
+        Timber.d("filteredOrderByGroup")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
 
@@ -416,11 +436,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     fun filteredOrderByDate(strDate: String) {
         Timber.d("filteredOrderByDate")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        var filteredOrderByDate= listOf<Orders>()
-        if (strDate=="all") {
-            filteredOrderByDate=orders.filter { it.dateVisit !=null }
+        val filteredOrderByDate = if (strDate=="all") {
+            orders.filter { it.dateVisit !=null }
         } else {
-            filteredOrderByDate=orders.filter { it.dateVisit ==strDate }
+            orders.filter { it.dateVisit ==strDate }
         }
 
 
@@ -433,7 +452,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     fun filteredOrderByState(filter: String) {
         Timber.d("filteredOrderByState")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        var filteredOrderByState= listOf<Orders>()
+        val filteredOrderByState: List<Orders>
         if (filter=="all") {
             filteredOrderByState=orders.filter { it.status !=null }
         } else {
@@ -462,26 +481,38 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
-                    401 -> toaster.showToast(R.string.unauthorized)
-                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                    401 -> {
+                        //toaster.showToast(R.string.unauthorized)
+                        (activity as MainActivity).doAuthorization(msgId = R.string.auth_restored)
+                    }
+                    else -> toaster.showErrorToast("Ошибка! ${throwable.message}")
                 }
             }
             is UnknownHostException ->{
-                toaster.showToast(R.string.no_address_hostname)
+                toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("Ошибка! ${throwable.message}")
+                toaster.showErrorToast("Ошибка! ${throwable.message}")
             }
         }
 
+    }
+
+    override fun registerReceiverMainActivity() {
+        (activity as MainActivity).registerReceiver()
     }
 
 
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
 
+        val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        currentOrder = if (rcv.adapter!=null) {
+            (rcv.adapter as OrderListAdapter).getOrder(position)
+        } else {
+            Orders(guid="")
+        }
 
-        currentOrder=(orders_recycler_view.adapter as OrderListAdapter).getOrder(position)
         Timber.d("currentOrder.questionCount=${currentOrder.questionCount}")
         currentOrder.checked=!currentOrder.checked
         (activity as MainActivity).currentOrder=this.currentOrder
@@ -509,7 +540,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
                     val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
 
-                    (this.requireActivity() as MainActivity).filteredOrders=(rcv.adapter as OrderListAdapter).ordersFilterList
+                    if (rcv.adapter!=null) {
+                        (this.requireActivity() as MainActivity).filteredOrders=(rcv.adapter as OrderListAdapter).ordersFilterList
+                    } else {
+                        (this.requireActivity() as MainActivity).filteredOrders= listOf()
+                    }
+
                     (this.requireActivity() as MainActivity).navController.navigate(R.id.nav_slideshow)
                     (this.requireActivity() as FragmentsContractActivity).setMode()
 

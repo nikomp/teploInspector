@@ -21,10 +21,9 @@ import timber.log.Timber
 //#Компонент_аккордион
 //Используется RecyclerView, в item, которого добавляется скрытый элемент,
 // при нажатии на item, он разворачивается в onBindViewHolder
-class StepsAdapter (private val lists: List<String>, val parentFragment: CheckupFragment) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
+class StepsAdapter (private val lists: List<String>, private val parentFragment: CheckupFragment) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
 
     private var expandedPosition=-1
-    private var checupIsCreated=false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StepsViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_cardview_step, parent, false)
@@ -35,7 +34,7 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
         return lists.size
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
 
         holder.stepNumber.text="${position+1}"
@@ -70,6 +69,7 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
         }
         holder.expandStep.setImageDrawable(drawable)
 
+        Timber.d("isExpanded=$isExpanded")
         holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
         Timber.d("position=$position")
         if (position==0 && isExpanded) {
@@ -82,7 +82,7 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
             val adapter=GeneralInformationAdapter(Const.GeneralInformation.list, parentFragment.currentOrder)
             rvgi.adapter = adapter
 
-            //val llGeneralInformation=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_general_information, holder.details, false) as LinearLayout
+
             holder.details.addView(rvgi)
         }
         if (position==1 && isExpanded) {
@@ -96,35 +96,37 @@ class StepsAdapter (private val lists: List<String>, val parentFragment: Checkup
             holder.details.addView(rvtc)
         }
         if (position>1 && isExpanded){
-            //holder.details.removeAllViews()
+            holder.details.removeAllViews()
+            Timber.d("position=$position _$isExpanded")
 
             //Генерируем чеклист
-            if (!checupIsCreated) {
-                if (parentFragment.isCheckupInitialized() ) {
-                    val uiCreator=UICreator(parentFragment, parentFragment.checkup)
-                    uiCreator.create(holder.details)
-                    parentFragment.uiCreator=uiCreator
-                    checupIsCreated=true
-                } else {
-                    parentFragment.toaster.showToast(R.string.checklist_is_empty)
-                }
+            if (parentFragment.isCheckupInitialized() ) {
+                val uiCreator=UICreator(parentFragment, parentFragment.checkup)
+                uiCreator.create(holder.details)
+                parentFragment.uiCreator=uiCreator
+            } else {
+                parentFragment.toaster.showToast(R.string.checklist_is_empty)
             }
-
-
         }
 
-        holder.itemView.isActivated = isExpanded
-        holder.itemView.setOnClickListener {
+        val clickListener= View.OnClickListener {
+            it.setOnClickListener(null)
             expandedPosition = if (isExpanded) -1 else position
+            Timber.d("ClickListener_$expandedPosition _$isExpanded")
             notifyItemChanged(position)
             if ((!isExpanded) && (parentFragment.currentOrder.status=="Открыта"
-                || parentFragment.currentOrder.status=="В пути")) {
+                        || parentFragment.currentOrder.status=="В пути")) {
                 parentFragment.toaster.showToast(R.string.checklist_is_blocked)
 
             }
         }
 
+        holder.itemView.isActivated = isExpanded
+        holder.itemView.setOnClickListener(clickListener)
+
     }
+
+
 
     class StepsViewHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
         override fun onClick(v: View?) {

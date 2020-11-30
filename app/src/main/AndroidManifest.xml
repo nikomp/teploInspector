@@ -62,15 +62,6 @@
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <!--Служба уведомлений Firebase-->
-        <service
-            android:name="ru.bingosoft.teploInspector.util.MyFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
-
         <!--Иконка и цвет уведомлений по умолчанию-->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
@@ -85,11 +76,15 @@
         <service android:name="ru.bingosoft.teploInspector.util.UserLocationService"
             android:enabled="true"/>
 
+        <!--Сервис получения локации пользователя в фоне-->
+        <service android:name="ru.bingosoft.teploInspector.util.MapkitLocationService"
+            android:enabled="true"/>
+
         <!--Сервис получения уведомлений от сервера через WebSocket-->
         <service
             android:name="ru.bingosoft.teploInspector.wsnotification.NotificationService"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
         </service>
     </application>
 

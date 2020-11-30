@@ -6,7 +6,7 @@
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search"
-        android:title="Поиск по адресу"
+        android:title="@string/searchByAddress"
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="always"/>
 

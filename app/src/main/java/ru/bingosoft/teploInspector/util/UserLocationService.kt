@@ -10,7 +10,6 @@ import android.location.LocationProvider
 import android.os.Bundle
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import ru.bingosoft.teploInspector.util.Const.LocationStatus.AVAILABLE
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.NOT_AVAILABLE
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
@@ -21,16 +20,16 @@ import java.util.*
 class UserLocationService: Service() {
 
     private var locationManager: LocationManager?=null
-    private val locationInterval = 1000L
-    private val locationDistance = 10f
+    private val locationInterval = 2000L // минимальное время (в миллисекундах) между получением данных.
+    private val locationDistance = 3f //минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
 
     var startTimeService: Long = 0L
 
 
     var userLocationListener =
         arrayOf(
-            UserLocationListener(LocationManager.GPS_PROVIDER,this)
-            //UserLocationListener(LocationManager.NETWORK_PROVIDER,this)
+            UserLocationListener(LocationManager.GPS_PROVIDER,this),
+            UserLocationListener(LocationManager.NETWORK_PROVIDER,this)
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -43,16 +42,6 @@ class UserLocationService: Service() {
     override fun onCreate() {
         Timber.d("service_onCreate")
         initializeLocationManager()
-        /*try {
-            locationManager?.requestLocationUpdates(
-                LocationManager.NETWORK_PROVIDER, locationInterval, locationDistance,
-                userLocationListener[1]
-            )
-        } catch (e: SecurityException) {
-            Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
-        } catch (e: IllegalArgumentException) {
-            Timber.d("Сетевой провайдер не существует ${e.printStackTrace()}")
-        }*/
 
         try {
             locationManager?.requestLocationUpdates(
@@ -61,10 +50,25 @@ class UserLocationService: Service() {
             )
         } catch (e: SecurityException) {
             Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
-            stopSelf()
+            //stopSelf()
         } catch (e: IllegalArgumentException) {
             Timber.d("GPS провайдер не существует ${e.printStackTrace()}")
-            stopSelf()
+            //stopSelf()
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            locationManager?.requestLocationUpdates(
+                LocationManager.NETWORK_PROVIDER, locationInterval, locationDistance,
+                userLocationListener[1]
+            )
+        } catch (e: SecurityException) {
+            Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
+            //stopSelf()
+        } catch (e: IllegalArgumentException) {
+            Timber.d("GPS провайдер не существует ${e.printStackTrace()}")
+            //stopSelf()
         }
 
         getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putBoolean(
@@ -107,8 +111,9 @@ class UserLocationService: Service() {
 
         override fun onLocationChanged(location: Location?) {
             Timber.d("onLocationChanged $location")
-            sendIntent(location, AVAILABLE)
-            lastLocation.set(location)
+            // Изменение координат отслеживаем через MapkitLocationService
+            /*sendIntent(location, AVAILABLE)
+            lastLocation.set(location)*/
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
@@ -120,21 +125,23 @@ class UserLocationService: Service() {
 
         override fun onProviderEnabled(provider: String?) {
             Timber.d("onProviderEnabled $provider")
-            sendIntent(null, PROVIDER_ENABLED)
+            if (provider=="gps") {
+                sendIntent(null, PROVIDER_ENABLED)
+            }
+
         }
 
         override fun onProviderDisabled(provider: String?) {
             Timber.d("onProviderDisabled $provider")
-            sendIntent(null, PROVIDER_DISABLED)
+            if (provider=="gps") {
+                sendIntent(null, PROVIDER_DISABLED)
+            }
         }
 
         private fun sendIntent(location: Location?, status: String) {
             val intent=Intent("userLocationUpdates")
             if (provider == LocationManager.GPS_PROVIDER) {
                 intent.putExtra("provider","GPS_PROVIDER")
-            }
-            if (provider == LocationManager.NETWORK_PROVIDER) {
-                intent.putExtra("provider","NETWORK_PROVIDER")
             }
             intent.putExtra("status",status)
             if (location != null) {

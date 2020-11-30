@@ -40,8 +40,8 @@ class LoginPresenter @Inject constructor(
         this.view = view
     }
 
-    fun authorization(stLogin: String?, stPassword: String?){
-        Timber.d("authorization1 $stLogin _ $stPassword")
+    fun authorization(url: String, stLogin: String?, stPassword: String?){
+        Timber.d("authorization_LoginPresenter $stLogin _ $stPassword")
         if (stLogin!=null && stPassword!=null) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
@@ -50,7 +50,7 @@ class LoginPresenter @Inject constructor(
             val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
                 .toRequestBody("application/json".toMediaType())
 
-            disposable = apiService.getAuthentication(jsonBody)
+            disposable = apiService.getAuthentication(url, jsonBody)
                 .subscribeOn(Schedulers.io())
                 .flatMap { uuid ->
                     Timber.d("uuid=$uuid")
@@ -66,6 +66,7 @@ class LoginPresenter @Inject constructor(
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
+                        view?.registerReceiverMainActivity()
                         view?.saveToken(token.token)
                         view?.startNotificationService(token.token)
                         view?.checkMessageId()
@@ -217,8 +218,8 @@ class LoginPresenter @Inject constructor(
 
             }
                 .subscribeOn(Schedulers.io())
-                .subscribe ({ _->
-                        Timber.d("Сохранили тех характеристики в БД")
+                .subscribe ({
+                    Timber.d("Сохранили тех характеристики в БД")
                 },{throwable ->
                     throwable.printStackTrace()
                 })
@@ -245,7 +246,7 @@ class LoginPresenter @Inject constructor(
                 Timber.d("Обследования есть")
                 //val data: Models.CheckupList = checkups
 
-                Single.fromCallable {
+                disposable=Single.fromCallable {
                     //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
                     checkups.forEach {
                         Timber.d("VVV_it=$it")
@@ -263,11 +264,14 @@ class LoginPresenter @Inject constructor(
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe ({
+                        disposable.dispose()
                         Timber.d("Сохранили обследования в БД")
                         view?.showOrders()
+
                     }, {error ->
                         Timber.d("error")
                         error.printStackTrace()
+                        disposable.dispose()
                     })
 
                 if (view!=null) {
@@ -293,7 +297,22 @@ class LoginPresenter @Inject constructor(
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
-                    401 -> toaster.showToast(R.string.unauthorized)
+                    401 -> {
+                        //toaster.showToast(R.string.unauthorized)
+                        if (sharedPrefSaver.getLogin().isNotEmpty() && sharedPrefSaver.getPassword().isNotEmpty()) {
+
+                            val login = this.sharedPrefSaver.getLogin()
+                            val password = this.sharedPrefSaver.getPassword()
+
+                            val url = if (this.sharedPrefSaver.getEnterType()=="directory_service") {
+                                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                            } else {
+                                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                            }
+
+                            authorization(url, login, password) // Проверим есть ли авторизация
+                        }
+                    }
                     else -> toaster.showToast("Ошибка! ${throwable.message}")
                 }
             }

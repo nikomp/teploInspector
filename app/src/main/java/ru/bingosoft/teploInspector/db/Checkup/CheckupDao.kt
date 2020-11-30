@@ -15,15 +15,14 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup WHERE idOrder = :id")
     fun getCheckupByOrder(id: Long): Checkup
 
-    @Query("SELECT * FROM checkup where textResult is not null and sync=0 and textResult not like '%\"checked\":false%'")
-    fun getResultAll(): Flowable<List<Checkup>>
+    /*@Query("SELECT * FROM checkup where textResult is not null and sync=0 and textResult not like '%\"checked\":false%'")
+    fun getResultAll(): Flowable<List<Checkup>>*/
 
-    /*@Query("SELECT idOrder as id_order, textResult as controls from Checkup \n" +
-            "where textResult is not null and sync=0")*/
-    @Query("SELECT c.idOrder id_order, c.textResult as controls,\n" +
-            "'['||group_concat('{\"unique_id\":'||h.id||', \"idOrder\":'||h.idOrder||', \"stateOrder\":\"'||h.stateOrder||'\", \"dateChange\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
-            "left join HistoryOrderState h on h.idOrder=c.idOrder\n" +
-            "where textResult is not null and sync=0")
+
+    @Query("SELECT c.idOrder id_order, c.textResult as controls,'['||group_concat('{\"unique_id\":'||h.id||', \"idOrder\":'||h.idOrder||', \"stateOrder\":\"'||h.stateOrder||'\", \"dateChange\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
+            "left join HistoryOrderState h on h.idOrder=c.idOrder \n" +
+            "where textResult is not null and sync=2 \n" +
+            "GROUP by c.idOrder")
     fun getResultAll2(): Flowable<List<Models.Result>>
 
     @Query("SELECT c.idOrder id_order, c.textResult as controls,'['||group_concat('{\"unique_id\":'||h.id||', \"idOrder\":'||h.idOrder||', \"stateOrder\":\"'||h.stateOrder||'\", \"dateChange\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
@@ -34,8 +33,11 @@ interface CheckupDao {
     @Query("SELECT count(*) FROM checkup where textResult is not null and sync=0")
     fun existCheckupWithResult(): Int
 
-    @Query("Update checkup set sync=1 where idOrder=:id")
-    fun updateSync(id:Int)
+    @Query("Update checkup set sync=:sync where idOrder=:id")
+    fun updateSync(id:Int, sync:Int)
+
+    @Query("SELECT idOrder FROM checkup where textResult is not null and sync=2")
+    fun getIdAllOrdersNotSync(): List<Long>
 
     @Query("DELETE FROM checkup")
     fun clearCheckup()

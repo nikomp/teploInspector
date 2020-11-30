@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit
 @Module
 class NetworkModule {
 
-
     @Provides
     fun providesApiService(sharedPrefSaver: SharedPrefSaver) : ApiService {
 
@@ -29,7 +28,15 @@ class NetworkModule {
             .addInterceptor(interceptor)
             .addInterceptor(object : Interceptor {
                 override fun intercept(chain: Interceptor.Chain): Response {
-                    val token = sharedPrefSaver.getToken()
+                    var token=""
+                    if (sharedPrefSaver.sptoken.isEmpty()) {
+                        token = sharedPrefSaver.getToken()
+                        sharedPrefSaver.sptoken=token
+                    } else {
+                        token=sharedPrefSaver.sptoken
+                    }
+
+
                     Timber.d("token=$token")
                     val newRequest = chain.request().newBuilder()
                         //.addHeader("Content-Type","application/json")
@@ -44,6 +51,7 @@ class NetworkModule {
                         val newToken=response.header("X-Auth-Token","")
                         if (!newToken.isNullOrEmpty()){
                             Timber.d("Обновили_токен")
+                            sharedPrefSaver.sptoken=newToken
                             sharedPrefSaver.saveToken(newToken)
                         }
 
@@ -52,9 +60,9 @@ class NetworkModule {
                     return response
                 }
             })
-            .connectTimeout(90, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
-            .readTimeout(90, TimeUnit.SECONDS)
-            .writeTimeout(90, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .build()
 
         val gson = GsonBuilder()

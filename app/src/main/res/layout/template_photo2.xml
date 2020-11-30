@@ -160,15 +160,15 @@
                     app:layout_constraintVertical_bias="0.0" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPhotoDeleteAll"
+                    android:id="@+id/btnDeletePhoto"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@color/buttonBackgroundLight"
                     android:fontFamily="@font/roboto_medium"
-                    android:text="@string/btnDeleteAllPhoto"
-                    android:textColor="@color/inactive_text"
+                    android:text="@string/btnDeletePhoto"
+                    android:textColor="@color/hypertext"
                     android:textSize="12sp"
-                    android:visibility="invisible"
+                    android:visibility="visible"
                     app:backgroundTint="@color/buttonBackgroundLight"
                     app:cornerRadius="22dp"
                     app:layout_constraintBottom_toBottomOf="parent"

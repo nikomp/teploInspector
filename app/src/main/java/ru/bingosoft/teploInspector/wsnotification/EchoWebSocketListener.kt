@@ -14,8 +14,8 @@ import okhttp3.WebSocketListener
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
-import ru.bingosoft.teploInspector.util.Const.webSocket.NORMAL_CLOSURE_STATUS
-import ru.bingosoft.teploInspector.util.Const.webSocket.NOTIFICATION_CHANNEL_ID
+import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NORMAL_CLOSURE_STATUS
+import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANNEL_ID
 import timber.log.Timber
 
 /**

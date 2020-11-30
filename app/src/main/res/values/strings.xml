@@ -15,6 +15,7 @@
     <string name="title_activity_login">Авторизация</string>
     <string name="title_activity_map">Карта</string>
     <string name="auth_ok">Авторизация пройдена</string>
+    <string name="auth_restored">Авторизация восстановлена, повторите последнее действие</string>
     <string name="title_activity_order2">Список заявок</string>
 
 
@@ -79,6 +80,7 @@
     <string name="not_checkup">Ошибка. Нет такого чеклиста</string>
     <string name="driveway">Проезд</string>
     <string name="btnDeleteAllPhoto">Удалить все</string>
+    <string name="btnDeletePhoto">Удалить фото</string>
 
     <string name="network_error_message">Яндекс.Карты: Ошибка сети</string>
     <string name="remote_error_message">Яндекс.Карты: Ошибка удаленного сервера</string>
@@ -100,6 +102,7 @@
     <string name="filterStatus">Фильтр по статусу</string>
 
     <string name="distance">Маршрут %1$s км</string>
+    <string name="time_without_traffic">без пробок %1$s</string>
 
     <string name="no_contact">Нет контактов</string>
     <string name="route">Маршрут</string>
@@ -135,7 +138,7 @@
     <string name="not_count_node">Не указано количество узлов</string>
 
     <string name="unauthorized">Связь с сервером потеряна, повторите авторизацию</string>
-    <string name="no_address_hostname">Нет связи с сетью Интернет</string>
+    <string name="no_address_hostname">Нет связи с Интернет</string>
 
     <string name="checklist_is_blocked">Чек-лист заблокирован. Смените статус заявки на \"В работе\"</string>
     <string name="points_less_than_2">Недостаточно точек для построения маршрута. Проверьте GPS</string>
@@ -143,6 +146,7 @@
     <string name="tooltip_change_state">Смените статус на \"В работе\"</string>
 
     <string name="order_fragment_className">ru.bingosoft.teploInspector.ui.order.OrderFragment</string>
+    <string name="checkup_fragment_className">ru.bingosoft.teploInspector.ui.checkup.CheckupFragment</string>
     <string name="map_fragment_className">ru.bingosoft.teploInspector.ui.map.MapFragment</string>
 
     <string name="double_back">Нажмите еще раз для выхода</string>
@@ -152,8 +156,23 @@
     <string name="filter_date_tomorrow">Завтра</string>
     <string name="filter_date_date">Конкретное число</string>
 
+    <string name="rugged_description">Неровности на дороге</string>
+    <string name="error_date">Требуемый формат даты дд.мм.гггг</string>
+    <string name="error_checklist_contains">Сохранение невозможно. Чеклист содержит ошибки</string>
+
     <string name="filter_status_all">Все</string>
     <string name="filter_status_without_Done_and_Cancel">Кроме Выполненных и Отмененных</string>
+
+    <string name="enter_with_directory_service">Вход через службу каталогов</string>
+
+    <string name="order_number">№ %1$s</string>
+    <string name="count_question_checklist">%1$d/%2$d</string>
+    <string name="name_node">Узел %1$d</string>
+    <string name="question">%1$s %2$d</string>
+    <string name="symbolName">Заявка №%1$s</string>
+
+    <string name="not_gps_permission">Нет разрешений на геолокацию</string>
+    <string name="searchByAddress">Поиск по адресу</string>
 
 
 </resources>

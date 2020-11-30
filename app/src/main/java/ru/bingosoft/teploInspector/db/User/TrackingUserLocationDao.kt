@@ -12,6 +12,10 @@ interface TrackingUserLocationDao {
     @Query("SELECT * FROM TrackingUserLocation\n" +
             "where datetime(round(dateLocation/1000), 'unixepoch')>date() \n" +
             "and lat<>0 and lon<>0")
+    /*@Query("SELECT * FROM TrackingUserLocation\n" +
+            "where datetime(round(dateLocation/1000), 'unixepoch')>date() \n" +
+            "and lat<>0 and lon<>0\n" +
+            "order by dateLocation DESC")*/
     fun getTrackingForCurrentDay(): Flowable<List<TrackingUserLocation>>
 
     @Query("SELECT count(*) FROM TrackingUserLocation")

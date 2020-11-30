@@ -35,7 +35,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:enabled="true"
-            android:focusable="false"
+            android:focusable="auto"
             android:fontFamily="@font/roboto"
             android:inputType="text"
             android:paddingTop="8dp"

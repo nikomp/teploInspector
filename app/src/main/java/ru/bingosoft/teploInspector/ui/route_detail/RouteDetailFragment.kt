@@ -1,14 +1,11 @@
 package ru.bingosoft.teploInspector.ui.route_detail
 
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
-import android.util.DisplayMetrics
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
@@ -30,7 +27,6 @@ import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polyline
 import com.yandex.mapkit.geometry.SubpolylineHelper
 import com.yandex.mapkit.map.*
-import com.yandex.mapkit.mapview.MapView
 import com.yandex.mapkit.transport.Transport
 import com.yandex.mapkit.transport.TransportFactory
 import com.yandex.mapkit.transport.masstransit.*
@@ -57,25 +53,21 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
 
     private lateinit var root: View
-    lateinit var mapView: MapView
 
     private lateinit var carRouter: DrivingRouter
     private lateinit var busRouter: MasstransitRouter
     private var isPedestrianRouter: Boolean=false
 
-    //private val userLocation: Point=Point()
-
     private val requestPoints: ArrayList<RequestPoint> = ArrayList()
 
-    var lastLocation: com.yandex.mapkit.location.Location?=null
-
     lateinit var foundingRoutes: MutableList<Route>
+    lateinit var foundingDrivingRoutes: MutableList<DrivingRoute>
     private lateinit var pedestrianRouter: PedestrianRouter
 
     private var drivingSession: DrivingSession? = null
 
-    lateinit var directions: Directions
-    lateinit var transports: Transport
+    private lateinit var directions: Directions
+    private lateinit var transports: Transport
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,78 +97,131 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             when (v.id) {
                 R.id.btnCar -> {
                     Timber.d("CLICK_CAR")
-                    v.isEnabled=false
-                    v.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.colorCardItem))
+                    v.isEnabled = false
+                    v.setBackgroundColor(
+                        ContextCompat.getColor(
+                            this.requireContext(),
+                            R.color.colorCardItem
+                        )
+                    )
 
-                    val btnFoot=(v.parent as View).findViewById<Button>(R.id.btnFoot)
-                    btnFoot.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnFoot.isEnabled=true
+                    val btnFoot = (v.parent as View).findViewById<Button>(R.id.btnFoot)
+                    btnFoot.setBackgroundColor(
+                        ContextCompat.getColor(
+                            this.requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnFoot.isEnabled = true
 
-                    val btnBus=(v.parent as View).findViewById<Button>(R.id.btnBus)
-                    btnBus.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnBus.isEnabled=true
+                    val btnBus = (v.parent as View).findViewById<Button>(R.id.btnBus)
+                    btnBus.setBackgroundColor(
+                        ContextCompat.getColor(
+                            this.requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnBus.isEnabled = true
 
 
-                    carRouter=directions.createDrivingRouter()
-                    if (requestPoints.size>1) {
-                        drivingSession = carRouter.requestRoutes(requestPoints, DrivingOptions(), drivingRouteListener)
+                    carRouter = directions.createDrivingRouter()
+                    if (requestPoints.size > 1) {
+                        drivingSession = carRouter.requestRoutes(
+                            requestPoints,
+                            DrivingOptions(),
+                            drivingRouteListener
+                        )
                         Timber.d("carRouter_created")
                     } else {
                         toaster.showToast(R.string.points_less_than_2)
                     }
 
 
-                    hideBottomSheet()
+                    //hideBottomSheet()
                 }
 
                 R.id.btnBus -> {
                     Timber.d("bus_clicked")
-                    (v as Button).isEnabled=false
-                    v.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.colorCardItem))
+                    (v as Button).isEnabled = false
+                    v.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.colorCardItem
+                        )
+                    )
 
-                    val btnCar=(v.parent as View).findViewById<Button>(R.id.btnCar)
-                    btnCar.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnCar.isEnabled=true
+                    val btnCar = (v.parent as View).findViewById<Button>(R.id.btnCar)
+                    btnCar.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnCar.isEnabled = true
 
-                    val btnFoot=(v.parent as View).findViewById<Button>(R.id.btnFoot)
-                    btnFoot.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnFoot.isEnabled=true
+                    val btnFoot = (v.parent as View).findViewById<Button>(R.id.btnFoot)
+                    btnFoot.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnFoot.isEnabled = true
 
                     busRouter = TransportFactory.getInstance().createMasstransitRouter()
                     Timber.d("busRouter=$busRouter")
                     //Timber.d("requestPoints=${requestPoints[0].point.latitude} ${requestPoints[1].point.latitude}")
-                    val options = MasstransitOptions(ArrayList<String>(), ArrayList<String>(), TimeOptions())
-                    if (requestPoints.size>1) {
+                    val options = MasstransitOptions(
+                        ArrayList<String>(),
+                        ArrayList<String>(),
+                        TimeOptions()
+                    )
+                    if (requestPoints.size > 1) {
                         busRouter.requestRoutes(requestPoints, options, routeListener)
                     } else {
                         toaster.showToast(R.string.points_less_than_2)
                     }
 
-                    isPedestrianRouter=false
+                    isPedestrianRouter = false
                 }
 
                 R.id.btnFoot -> {
-                    (v as Button).isEnabled=false
-                    v.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.colorCardItem))
+                    (v as Button).isEnabled = false
+                    v.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.colorCardItem
+                        )
+                    )
 
-                    val btnBus=(v.parent as View).findViewById<Button>(R.id.btnBus)
-                    btnBus.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnBus.isEnabled=true
+                    val btnBus = (v.parent as View).findViewById<Button>(R.id.btnBus)
+                    btnBus.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnBus.isEnabled = true
 
-                    val btnCar=(v.parent as View).findViewById<Button>(R.id.btnCar)
-                    btnCar.setBackgroundColor(ContextCompat.getColor(this.context!!, R.color.routeButtonPanel))
-                    btnCar.isEnabled=true
+                    val btnCar = (v.parent as View).findViewById<Button>(R.id.btnCar)
+                    btnCar.setBackgroundColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            R.color.routeButtonPanel
+                        )
+                    )
+                    btnCar.isEnabled = true
 
-                    pedestrianRouter=transports.createPedestrianRouter()
+                    pedestrianRouter = transports.createPedestrianRouter()
 
-                    if (requestPoints.size>1) {
-                        pedestrianRouter.requestRoutes(requestPoints,TimeOptions(),routeListener)
+                    if (requestPoints.size > 1) {
+                        pedestrianRouter.requestRoutes(requestPoints, TimeOptions(), routeListener)
                     } else {
                         toaster.showToast(R.string.points_less_than_2)
                     }
 
 
-                    isPedestrianRouter=true
+                    isPedestrianRouter = true
 
                 }
             }
@@ -205,19 +250,6 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                 foundingRoutes=routes
             }
 
-
-            /*if (routes.isNotEmpty()) {
-                val sections= routes[0].sections
-                Timber.d("sections=${sections.size}")
-                sections.forEach{
-                    Timber.d("section=${it.metadata.data.transports?.get(0)?.line?.name}")
-                    drawSection(
-                        it.metadata.data,
-                        SubpolylineHelper.subpolyline(
-                            routes[0].geometry, it.geometry
-                        ))
-                }
-            }*/
         }
 
         fun showRoutersList(routes: MutableList<Route>) {
@@ -225,7 +257,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             val routesRecyclerView = root.findViewById(R.id.routers_recycler_view) as RecyclerView
 
             routesRecyclerView.layoutManager = LinearLayoutManager(root.context)
-            val adapter = RouterListAdapter(routes,routerRVClickListeners, isPedestrianRouter)
+            val adapter = RouterListAdapter(routes, routerRVClickListeners, isPedestrianRouter)
             routesRecyclerView.adapter = adapter
         }
     }
@@ -244,12 +276,39 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
         override fun onDrivingRoutes(routes: MutableList<DrivingRoute>) {
             if (routes.isNotEmpty()) {
-                routes.forEach {
-                    Timber.d("saveRoute")
-                    //parentFragment.lastCarRouter.add(parentFragment.mapView.map.mapObjects.addPolyline(it.geometry)) // Сохраним маршрут, чтоб потом можно было его удалить
-                    parentFragment.lastCarRouterPolyline.add(it)
+                showRoutersList(routes)
+                if (routes.isNotEmpty()) {
+                    foundingDrivingRoutes=routes
                 }
+                /*routes.forEach {
+                    Timber.d("saveRoute")
+                    Timber.d("weight_distance=${it.metadata.weight.distance.value}_${it.metadata.weight.distance.text}")
+                    val polylineMapObject=parentFragment.mapView.map.mapObjects.addPolyline(it.geometry)
+                    parentFragment.lastCarRouter.add(polylineMapObject)
+
+                }*/
             }
+        }
+
+        fun showRoutersList(routes: MutableList<DrivingRoute>) {
+            Timber.d("showRoutersList=${routes.size}")
+            val routesRecyclerView = root.findViewById(R.id.routers_recycler_view) as RecyclerView
+
+            routesRecyclerView.layoutManager = LinearLayoutManager(root.context)
+            val adapter = DrivingRouterListAdapter(routes, drivingRouterRVClickListener)
+            routesRecyclerView.adapter = adapter
+        }
+
+    }
+
+    private val drivingRouterRVClickListener=object: DrivingRouterRVClickListener{
+        override fun drivingRouterRVListClicked(v: View?, position: Int) {
+            Timber.d("drivingRouterRVListClicked")
+            val route=foundingDrivingRoutes[position]
+            val polylineMapObject=parentFragment.mapView.map.mapObjects.addPolyline(route.geometry)
+            parentFragment.lastCarRouter.add(polylineMapObject)
+
+            hideBottomSheet()
         }
 
     }
@@ -263,11 +322,13 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             Timber.d("sections=${sections.size}")
             sections.forEach{
                 Timber.d("section=${it.metadata.data.transports?.get(0)?.line?.name}")
+
                 drawSection(
-                    it.metadata.data,
+                    it,
                     SubpolylineHelper.subpolyline(
                         route.geometry, it.geometry
-                    ))
+                    )
+                )
             }
 
             hideBottomSheet()
@@ -295,21 +356,29 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
             //TODO("Not yet implemented")
         }
 
+        @SuppressLint("UseRequireInsteadOfGet")
         override fun onPlacemarkVisited(p0: PlacemarkMapObject) {
-            val o=(p0.userData as Models.CustomMarker).order
-            val tvMarker=(p0.userData as Models.CustomMarker).markerView
-            if (o==order) {
-                if (parentFragment.prevMapObjectMarker!=null) {
-                    // выключим предыдущий маркер
-                    val prevTvMarker=(parentFragment.prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
-                    prevTvMarker.isEnabled=!prevTvMarker.isEnabled
-                    (parentFragment.prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
-                }
+            if (p0.userData!=null) {
+                val o=(p0.userData as Models.CustomMarker).order
+                val tvMarker=(p0.userData as Models.CustomMarker).markerView
+                if (o==order) {
+                    if (parentFragment.prevMapObjectMarker!=null) {
+                        // выключим предыдущий маркер
+                        val prevTvMarker=(parentFragment.prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
+                        prevTvMarker.isEnabled=!prevTvMarker.isEnabled
+                        (parentFragment.prevMapObjectMarker as PlacemarkMapObject).setView(
+                            ViewProvider(
+                                prevTvMarker
+                            )
+                        )
+                    }
 
-                tvMarker.isEnabled=!tvMarker.isEnabled
-                p0.setView(ViewProvider(tvMarker))
-                parentFragment.prevMapObjectMarker=p0
+                    tvMarker.isEnabled=!tvMarker.isEnabled
+                    p0.setView(ViewProvider(tvMarker))
+                    parentFragment.prevMapObjectMarker=p0
+                }
             }
+
         }
 
         override fun onCollectionVisitEnd(p0: MapObjectCollection) {
@@ -323,9 +392,24 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
     }
 
-    fun drawSection(data: SectionMetadata.SectionData, geometry: Polyline) {
+    fun drawSection(section: Section, geometry: Polyline) {
         val polylineMapObject = parentFragment.mapView.map.mapObjects.addPolyline(geometry)
         parentFragment.lastCarRouter.add(polylineMapObject) // Сохраним маршрут, чтоб потом можно было его удалить
+
+        val data=section.metadata.data
+
+        if (section.stops.isNotEmpty()) {
+            var nameTransport=""
+            if (data.transports!=null) {
+                data.transports!!.forEach {
+                    nameTransport=nameTransport+it.line.name+", "
+                }
+                nameTransport=nameTransport.substring(0,nameTransport.length-2)
+            }
+            val stopTransferMarker=Models.StopTransferMarker(nameTransport,section.stops[0].position)
+            importStopTransferOnMap(stopTransferMarker)
+        }
+
 
         if (data.transports != null) {
             val transports=data.transports
@@ -356,7 +440,10 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         }
     }
 
-    private fun getVehicleType(transport: com.yandex.mapkit.transport.masstransit.Transport, knownVehicleTypes:HashSet<String>):String? {
+    private fun getVehicleType(
+        transport: com.yandex.mapkit.transport.masstransit.Transport,
+        knownVehicleTypes: HashSet<String>
+    ):String? {
         val type=transport.line.vehicleTypes
         Timber.d("transport=${transport.line.name}_${transport.line.vehicleTypes}")
         type.forEach{
@@ -374,15 +461,14 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         //parentFragment.mkfInstatnce.onStart()
     }
 
+    @SuppressLint("RestrictedApi")
     override fun setupDialog(dialog: Dialog, style: Int) {
         super.setupDialog(dialog, style)
 
         Timber.d("MapBottomSheet_setupDialog")
 
-        val view=
-            LayoutInflater.from(context).inflate(R.layout.fragment_route_detail,null)
-        this.root=view
-        dialog.setContentView(view)
+        root=View.inflate(requireContext(), R.layout.fragment_route_detail, null)
+        dialog.setContentView(root)
 
         //(this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle("")
 
@@ -396,21 +482,11 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         btnFoot.setOnClickListener(this)
 
 
-
-        root.findViewById<TextView>(R.id.symbolNumber).text="Заявка №${order.number}"
-        root.findViewById<TextView>(R.id.address).text=order.address
-
-        Timber.d("order=$order")
-        //Сохраним маршрут с точками
-        requestPoints.add(
-            RequestPoint(
-                Point(order.lat,order.lon),
-                RequestPointType.WAYPOINT,
-                null
-            )
+        root.findViewById<TextView>(R.id.symbolNumber).text=requireContext().getString(
+            R.string.symbolName,
+            order.number
         )
-
-        Timber.d("requestPoints=${requestPoints[0].point.latitude}_${requestPoints[0].point.longitude}")
+        root.findViewById<TextView>(R.id.address).text=order.address
 
         if ((this.activity as MainActivity).userLocationReceiver.isInitLocation()) {
             Timber.d("userLocationReceiver_isInitLocation")
@@ -426,6 +502,18 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                 )
             )
         }
+
+        Timber.d("order=$order")
+        //Последней в маршрут добавляем точку с заявкой
+        requestPoints.add(
+            RequestPoint(
+                Point(order.lat, order.lon),
+                RequestPointType.WAYPOINT,
+                null
+            )
+        )
+
+        Timber.d("requestPoints=${requestPoints[0].point.latitude}_${requestPoints[0].point.longitude}")
 
         Timber.d("AUTOCLICK!")
         if (order.typeTransportation==null) {
@@ -456,13 +544,12 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog= super.onCreateDialog(savedInstanceState)
         dialog.setOnShowListener { bottomDialog ->
-            val bottomSheetDialog = bottomDialog as BottomSheetDialog
-            //setupFullHeight(bottomSheetDialog)
+            bottomDialog as BottomSheetDialog
         }
         return dialog
     }
 
-    private fun setupFullHeight(bottomSheetDialog: BottomSheetDialog) {
+    /*private fun setupFullHeight(bottomSheetDialog: BottomSheetDialog) {
         val bottomSheet: FrameLayout? =
             bottomSheetDialog.findViewById(R.id.design_bottom_sheet) as FrameLayout?
         val behavior: BottomSheetBehavior<*> =
@@ -472,30 +559,41 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         layoutParams.height = getWindowHeight()
         bottomSheet.layoutParams = layoutParams
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
-    }
+    }*/
 
 
-    private fun getWindowHeight(): Int {
+    /*private fun getWindowHeight(): Int {
         val displayMetrics = DisplayMetrics()
         this.activity?.windowManager?.defaultDisplay?.getMetrics(displayMetrics)
         return displayMetrics.heightPixels
-    }
+    }*/
 
     override fun onStop() {
         super.onStop()
-        //mapView.onStop()
         MapKitFactory.getInstance().onStop()
-        //parentFragment.mkfInstatnce.onStop()
     }
 
 
     fun hideBottomSheet() {
         // Закроем BottomSheetDialog
+        Timber.d("RDF_hideBottomSheet")
         val params =(root.parent as View).layoutParams as CoordinatorLayout.LayoutParams
         val behavior = params.behavior
         if (behavior!=null && behavior is BottomSheetBehavior) {
             behavior.state= BottomSheetBehavior.STATE_HIDDEN
         }
+    }
+
+
+    private fun importStopTransferOnMap(stopTransferMarker: Models.StopTransferMarker) {
+        Timber.d("importStopTransferOnMap=$stopTransferMarker")
+        val view=View.inflate(this.requireContext(),R.layout.template_stop_marker,null)
+        val tvStopMarker=view.findViewById<TextView>(R.id.tvStopMarker)
+
+        tvStopMarker.text=stopTransferMarker.name
+
+        val marker=parentFragment.mapView.map.mapObjects.addPlacemark(stopTransferMarker.position,ViewProvider(view)) //
+        parentFragment.lastStopTransferMarkers.add(marker)
     }
 
 }

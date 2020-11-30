@@ -63,11 +63,12 @@
                     android:id="@+id/tiet"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:drawableLeft="@drawable/ic_calendar"
+                    android:digits="0123456789."
                     android:drawablePadding="8dp"
-                    android:focusableInTouchMode="false"
+                    android:drawableStart="@drawable/ic_calendar"
                     android:fontFamily="@font/roboto_medium"
                     android:inputType="date"
+                    android:focusableInTouchMode="true"
                     android:textSize="15sp"
                     tools:text="18.08.2020" />
             </com.google.android.material.textfield.TextInputLayout>

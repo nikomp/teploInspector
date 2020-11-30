@@ -1,8 +1,9 @@
 package ru.bingosoft.teploInspector.ui.checkup
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Context
-import android.content.Context.LAYOUT_INFLATER_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -25,6 +26,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
+import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
@@ -33,10 +35,10 @@ import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
 import ru.bingosoft.teploInspector.util.photoSliderHelper.HorizontalAdapter
 import timber.log.Timber
-import java.io.File
 import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -47,7 +49,6 @@ import kotlin.collections.ArrayList
 class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     var uiCreator: UICreator?=null
-
 
     @Inject
     lateinit var checkupPresenter: CheckupPresenter
@@ -75,6 +76,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var currentOrder: Orders
     var techParams: List<TechParams> = listOf()
 
+    var errorControls= mutableListOf<View>()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -83,14 +86,12 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         AndroidSupportInjection.inject(this)
         Timber.d("CheckupFragment.onCreateView")
 
-        val view = inflater.inflate(R.layout.fragment_gallery2, container, false)
+        rootView = inflater.inflate(R.layout.fragment_gallery2, container, false)
 
         // Устанавливаем заголовок фрагмента
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.title_checkup_fragment)
 
-        this.rootView=view
-
-        val btnSave = view.findViewById(R.id.mbSaveCheckup) as MaterialButton
+        val btnSave = rootView.findViewById(R.id.mbSaveCheckup) as MaterialButton
         btnSave.setOnClickListener(this)
 
 
@@ -105,14 +106,15 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
 
         checkupPresenter.attachView(this)
-        //orderPresenter.attachView(this)
-        //this.techParams=(rootView.context as MainActivity).techParams
-        setCheckup((this.requireActivity() as MainActivity).currentOrder)
-        setTechParams((this.requireActivity() as MainActivity).currentOrder.id)
-        if ((this.requireActivity() as MainActivity).photoStep!=null &&
-            (this.requireActivity() as MainActivity).photoDir!="" ) {
-            setPhotoResult((this.requireActivity() as MainActivity).photoStep?.id,
-                (this.requireActivity() as MainActivity).photoDir)
+
+        if ((requireActivity() as MainActivity).isInitCurrentOrder()) {
+            setCheckup((requireActivity() as MainActivity).currentOrder)
+            setTechParams((requireActivity() as MainActivity).currentOrder.id)
+            if ((requireActivity() as MainActivity).photoStep!=null &&
+                (requireActivity() as MainActivity).photoDir!="" ) {
+                setPhotoResult((requireActivity() as MainActivity).photoStep?.id,
+                    (requireActivity() as MainActivity).photoDir)
+            }
         }
 
 
@@ -140,7 +142,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
 
         checkPermission()
-        return view
+        return rootView
     }
 
     private fun setTechParams(idOrder: Long) {
@@ -148,11 +150,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
 
-    /*override fun onStop() {
-        Timber.d("CheckupFragment_onStop")
-        super.onStop()
-    }*/
-
+    @SuppressLint("ResourceAsColor", "SetTextI18n")
     private fun fillOrderData() {
         Timber.d("fillOrderData")
         val order=(rootView.context as MainActivity).currentOrder
@@ -165,8 +163,52 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         }
         val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
-        mbsOrderState.setText(order.status?.toUpperCase())
+        mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(mbsOrderState, order.status)
+
+        val btnChangeDateTime=rootView.findViewById<Button>(R.id.btnChangeDateTime)
+        btnChangeDateTime.setOnClickListener {
+            Timber.d("btnChangeDateTime_setOnClickListener")
+            lateinit var alertDialog: AlertDialog
+            val layoutInflater = LayoutInflater.from(requireContext())
+            val dialogView: View =
+                layoutInflater.inflate(R.layout.alert_change_date_time, (rootView as ViewGroup), false)
+
+            val builder = AlertDialog.Builder(requireContext())
+
+            dialogView.btnOk.setOnClickListener{
+                Timber.d("dialogView.buttonOK")
+                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+                val strDateTimeVisit="${newDate.text} ${newTime.text}"
+
+                Timber.d(strDateTimeVisit)
+                try {
+                    val date=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).parse(strDateTimeVisit)
+                    if (date!=null) {
+                        btnChangeDateTime.text=
+                            SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                        order.dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
+                        order.timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
+                        Timber.d("order=$order")
+                        orderPresenter.saveDateTime(order)
+                        currentOrder=order
+
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+
+                alertDialog.dismiss()
+
+            }
+
+            builder.setView(dialogView)
+            builder.setCancelable(true)
+            alertDialog=builder.create()
+            alertDialog.show()
+        }
 
         val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,
@@ -184,15 +226,15 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 if (order.answeredCount==0 && s.toString()=="Выполнена") {
                     toaster.showToast(R.string.checklist_not_changed_status)
                     mbsOrderState.removeTextChangedListener(this)
-                    mbsOrderState.setText(order.status?.toUpperCase())
+                    mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
                     return
                 }
 
-                uiCreator?.checkEnabled()
 
-                if (s.toString().toUpperCase()!=order.status?.toUpperCase()) {
-                    order.status=s.toString().toLowerCase().capitalize()
+                if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
+                    order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
+                    currentOrder=order
                     changeColorMBSState(mbsOrderState, order.status)
                     try {
                         orderPresenter.addHistoryState(order)
@@ -201,8 +243,10 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     }
                 }
 
+                uiCreator?.checkEnabled()
+
                 mbsOrderState.removeTextChangedListener(this)
-                mbsOrderState.setText(s.toString().toUpperCase())
+                mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
                 mbsOrderState.addTextChangedListener(this)
 
 
@@ -227,14 +271,19 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         if (order.dateVisit!=null && order.timeVisit!=null) {
             val strDateTimeVisit="${order.dateVisit} ${order.timeVisit}"
-            val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
-            if (date!=null) {
-                rootView.findViewById<TextView>(R.id.date).text=
-                    SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+            try {
+                val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
+                if (date!=null) {
+                    btnChangeDateTime.text=
+                        SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
 
+
         } else {
-            rootView.findViewById<TextView>(R.id.date).text=getString(R.string.not_date_visit)
+            btnChangeDateTime.text=getString(R.string.not_date_visit)
         }
 
         rootView.findViewById<TextView>(R.id.name).text=order.purposeObject
@@ -305,7 +354,10 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 }
 
 
-                if (s.toString().toUpperCase()!=order.typeTransportation?.toUpperCase()) {
+                if (s.toString().toUpperCase(Locale.ROOT) != order.typeTransportation?.toUpperCase(
+                        Locale.ROOT
+                    )
+                ) {
                     order.typeTransportation=s.toString()
                     orderPresenter.changeTypeTransortation(order)
                 }
@@ -333,13 +385,12 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         Timber.d("checkStateOrder")
         Timber.d("order.status=${order.status}")
         if (order.status=="Открыта" || order.status=="В пути") {
-            val inflater = rootView.context.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
             val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
 
             Timber.d("pw=$pw")
             if (pw==null) {
-                val viewPopupWindow = inflater.inflate(R.layout.popup_orders_state,null)
+                val viewPopupWindow = View.inflate(rootView.context,R.layout.popup_orders_state,null)
                 pw=PopupWindow(viewPopupWindow, LinearLayout.LayoutParams.WRAP_CONTENT,LinearLayout.LayoutParams.WRAP_CONTENT, false)
                 pw?.showAsDropDown(mbsOrderState,0,-20)
             } else {
@@ -397,9 +448,6 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
 
     override fun dataIsLoaded(checkup: Checkup) {
-        Timber.d("dataIsLoaded")
-        Timber.d(checkup.toString())
-
         this.checkup=checkup
         photoHelper.parentFragment=this
     }
@@ -414,8 +462,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     override fun setAnsweredCount(count: Int) {
         Timber.d("setAnsweredCount")
-        //rootView.findViewById<TextView>(R.id.countQuestion).text="${currentOrder.questionCount}/${count}"
-        rootView.findViewWithTag<TextView>("countQuestionChecklist").text="${currentOrder.questionCount}/${count}"
+
+        //rootView.findViewWithTag<TextView>("countQuestionChecklist").text="${currentOrder.questionCount}/${count}"
+        rootView.findViewWithTag<TextView>("countQuestionChecklist").text=getString(R.string.count_question_checklist,currentOrder.questionCount,count)
         currentOrder.answeredCount=count
 
     }
@@ -431,19 +480,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
                     Timber.d("mbSaveCheckup")
-                    if (uiCreator!=null) {
-                        Timber.d("checkupPresenter.saveCheckup")
-
-                        val changedCheckupCount = uiCreator!!.controlList.filter { it.answered }.size
-                        if (changedCheckupCount!=0) {
-                            checkupPresenter.saveCheckup(uiCreator!!)
-                        } else {
-                            toaster.showToast(R.string.checklist_not_changed)
-                        }
-
+                    // Всегда сохраняем основные данные по заявке
+                    if (errorControls.isEmpty()) {
+                        checkupPresenter.saveGeneralInformationOrder(currentOrder)
+                        //doSaveCheckup()
                     } else {
-                        toaster.showToast(R.string.checklist_not_loaded)
+                        toaster.showErrorToast(R.string.error_checklist_contains)
                     }
+
                 }
             }
         }
@@ -478,7 +522,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         Timber.d("CheckupFragment_onPause")
         super.onPause()
         pw?.dismiss()
-        setVisibleMenuItems(true) // Возвращаем видимость меню
+        (activity as MainActivity).currentOrder=currentOrder
     }
 
     override fun onDetach() {
@@ -489,6 +533,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     override fun onDestroyView() {
         Timber.d("CheckupFragment_onDestroyView")
         super.onDestroyView()
+        setVisibleMenuItems(true) // Возвращаем видимость меню
     }
 
     override fun onRequestPermissionsResult(
@@ -523,23 +568,21 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         super.onStop()
     }
 
-    private fun setPhotoResult(controlId: Int?, photoDir: String) {
+
+    fun setPhotoResult(controlId: Int?, photoDir: String, v: View?=null) {
         Timber.d("setPhotoResult from fragment $controlId")
         if (controlId!=null) {
-            val linearLayout=rootView.findViewById<LinearLayout>(controlId)
-            //linearLayout.findViewById<TextView>(R.id.photoResult).text=this.getString(R.string.photoResult,photoDir)
+            val linearLayout=
+                if (v==null) {
+                    rootView.findViewById(controlId)
+                } else {
+                    (v as LinearLayout)
+                }
+
             // Обновим список с фото
-            val stDir = "PhotoForApp/$photoDir"
-            val storageDir =
-                File(
-                    Const.Photo.DCIM_DIR,
-                    stDir
-                )
-
-            Timber.d("$storageDir")
-
-            val images = OtherUtil().getFilesFromDir("$storageDir")
+            val images = OtherUtil().getFilesFromDir("$DCIM_DIR/PhotoForApp/$photoDir")
             refreshPhotoViewer(linearLayout, images, rootView.context)
+
         }
     }
 
@@ -568,7 +611,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         horizontalAdapter.notifyDataSetChanged()
     }
 
-    fun setCheckup(order: Orders) {
+    private fun setCheckup(order: Orders) {
         Timber.d("showCheckupOrder ${order.status}")
         currentOrder=order
         checkupPresenter.loadCheckupByOrder(order.id)
@@ -582,18 +625,41 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             is HttpException -> {
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
-                    401 -> toaster.showToast(R.string.unauthorized)
-                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                    401 -> {
+                        //toaster.showToast(R.string.unauthorized)
+                        (activity as MainActivity).doAuthorization(msgId = R.string.auth_restored)
+                    }
+                    else -> toaster.showErrorToast("Ошибка! ${throwable.message}")
                 }
             }
             is UnknownHostException ->{
-                toaster.showToast(R.string.no_address_hostname)
+                toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("${throwable.message}")
+                toaster.showErrorToast("${throwable.message}")
             }
         }
 
+    }
+
+    override fun sendGiOrder() {
+        (this.activity as MainActivity).mainPresenter.sendGiOrder(currentOrder.id)
+    }
+
+    override fun doSaveCheckup() {
+        if (uiCreator!=null) {
+            Timber.d("checkupPresenter.saveCheckup")
+
+            val changedCheckupCount = uiCreator!!.controlList.filter { it.answered }.size
+            if (changedCheckupCount!=0) {
+                checkupPresenter.saveCheckup(uiCreator!!)
+            } else {
+                toaster.showToast(R.string.checklist_not_changed)
+            }
+
+        } else {
+            toaster.showToast(R.string.checklist_not_loaded)
+        }
     }
 
 }

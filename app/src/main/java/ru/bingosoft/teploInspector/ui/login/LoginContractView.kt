@@ -13,11 +13,13 @@ interface LoginContractView {
     fun alertRepeatSync()
     fun saveDateSyncToSharedPreference(date: Date)
     fun saveInfoUserToSharedPreference(user: Models.User)
-    fun startLocationService()
+    //fun startLocationService()
 
     fun startNotificationService(token: String)
     fun checkMessageId()
 
     fun errorReceived(throwable: Throwable)
+
+    fun registerReceiverMainActivity()
 
 }

@@ -36,35 +36,6 @@
             android:layout_height="wrap_content"
             android:text="@string/filter_date_date" />
 
-        <!--<com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilFilterDate"
-            style="@style/TextInputLayoutStyle"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginLeft="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginRight="8dp"
-            android:layout_marginBottom="8dp"
-            app:boxCornerRadiusBottomEnd="8dp"
-            app:boxCornerRadiusBottomStart="8dp"
-            app:boxCornerRadiusTopEnd="8dp"
-            app:boxCornerRadiusTopStart="8dp">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/tietFilterDate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:drawableLeft="@drawable/ic_calendar"
-                android:drawablePadding="8dp"
-                android:focusableInTouchMode="false"
-                android:fontFamily="@font/roboto_medium"
-                android:hint="Конкретная дата"
-                android:inputType="date"
-                android:textSize="15sp"
-                tools:text="18.08.2020" />
-        </com.google.android.material.textfield.TextInputLayout>-->
     </RadioGroup>
 
 </LinearLayout>
