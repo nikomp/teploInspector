@@ -124,14 +124,17 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     holder.btnRoute.setTextColor(Color.parseColor("#C7CCD1"))
                 }
 
-                if (s.toString().toUpperCase(Locale.ROOT) != ordersFilterList[position].typeTransportation?.toUpperCase(
-                        Locale.ROOT
-                    )
-                ) {
-                    ordersFilterList[position].typeTransportation=s.toString()
-                    parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
+                try {
+                    if (s.toString().toUpperCase(Locale.ROOT) != ordersFilterList[position].typeTransportation?.toUpperCase(
+                            Locale.ROOT
+                        )
+                    ) {
+                        ordersFilterList[position].typeTransportation=s.toString()
+                        parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
+                    }
+                } catch (e: Throwable) {
+                    parentFragment.errorReceived(e)
                 }
-
 
                 holder.typeTransportation.removeTextChangedListener(this)
                 holder.typeTransportation.setText(s.toString())

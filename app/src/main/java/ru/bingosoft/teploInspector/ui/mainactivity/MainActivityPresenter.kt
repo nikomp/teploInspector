@@ -37,6 +37,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     private lateinit var disposableFiles: Disposable
     private lateinit var disposableAuth: Disposable
     private lateinit var disposableSendGi: Disposable
+    private lateinit var disposableAllMessage: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
 
 
@@ -76,13 +77,36 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         view?.startNotificationService(token.token)
                         view?.showMainActivityMsg(msgId)
                         view?.checkMessageId()
+                        view?.getAllMessage()
                     }, { throwable ->
                         throwable.printStackTrace()
+                        view?.errorReceived(throwable)
                         disposableAuth.dispose()
                     }
                 )
 
         }
+
+    }
+
+    fun getAllMessage() {
+        Timber.d("getAllMessage")
+        disposable=apiService.getAllMessages()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({listNotifications ->
+                Timber.d("Получили_все_уведомления")
+                val unreadNotifications=listNotifications.filter { it.read_date==null }
+                Timber.d("unreadNotifications=${unreadNotifications.size}")
+                if (unreadNotifications.isNotEmpty()) {
+                    Timber.d("view=$view")
+                    view?.showUnreadNotification(unreadNotifications)
+                }
+                disposable.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposable.dispose()
+            })
 
     }
 
@@ -102,6 +126,20 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 }, { throwable ->
                     throwable.printStackTrace()
                     disposable.dispose()
+                }
+            )
+    }
+
+    fun markAllMessageAsRead() {
+        Timber.d("markAllMessageAsRead")
+        disposableAllMessage = apiService.markAllMessageAsRead()
+            .subscribeOn(Schedulers.io())
+            .subscribe(
+                {
+                    disposableAllMessage.dispose()
+                }, { throwable ->
+                    throwable.printStackTrace()
+                    disposableAllMessage.dispose()
                 }
             )
     }

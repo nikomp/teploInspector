@@ -9,21 +9,21 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 
 class Models {
 
-    class LP(
+    data class LP(
         @SerializedName("login") var login: String = "",
         @SerializedName("password") var password: String = ""
     )
 
-    class Uuid(
+    data class Uuid(
         @SerializedName("uuid") var uuid: String = ""
     )
 
-    class Token(
+    data class Token(
         @SerializedName("token") var token: String = "",
         @SerializedName("name") var name: String = ""
     )
 
-    class User(
+    data class User(
         @SerializedName("photo_url") var photoUrl: String = "",
         @SerializedName("fullname") var fullname: String = "",
         @SerializedName("surname") var surname: String = "",
@@ -31,24 +31,24 @@ class Models {
         @SerializedName("fname") var fname: String = ""
     )
 
-    class Result (
+    data class Result (
         @SerializedName("id_order") var id_order: Int=0,
         @SerializedName("history_order_state") var history_order_state: String?="",
         @SerializedName("controls") var controls: String=""
     )
 
 
-    class Result2 (
+    data class Result2 (
         @SerializedName("id_order") var id_order: Int = 0,
         @SerializedName("history_order_state") var history_order_state: JsonArray = JsonArray(),
         @SerializedName("controls") var controls: JsonArray = JsonArray()
     )
 
-    class ResultOrder (
+    data class ResultOrder (
         @SerializedName("data") var data: JsonArray = JsonArray()
     )
 
-    class HistoryOrderOnServer (
+    data class HistoryOrderOnServer (
         @SerializedName("unique_id") var unique_id: Long = 0,
         @SerializedName("idOrder") var idOrder: Long? =null,
         @SerializedName("stateOrder") var stateOrder: String="",
@@ -56,19 +56,19 @@ class Models {
     )
 
 
-    class FileRoute(
+    data class FileRoute(
         @SerializedName("fileRoute") var fileRoute: String=""
     )
 
-    class ControlList(
+    data class ControlList(
         @Expose @SerializedName("controls") var list: MutableList<TemplateControl> = mutableListOf()
     )
 
-    class CommonControlList(
+    data class CommonControlList(
         @Expose @SerializedName("common") var list: MutableList<ControlList> = mutableListOf()
     )
 
-    class TemplateControl (
+    data class TemplateControl (
         @Expose @SerializedName("id_question") var id: Int = 0,
         @Expose @SerializedName("results_id") var results_id: Int = 0,
         @Expose @SerializedName("node") val node: Int? = null,
@@ -93,43 +93,35 @@ class Models {
         @Expose @SerializedName("answered") var answered: Boolean = false,
 
         var parent: TemplateControl?=null
-    ) {
-        override fun toString(): String {
-            return "TemplateControl(id=$id, results_id=$results_id, node=$node, guid='$guid', type='$type', value=${value.contentToString()}, question='$question', hint='$hint', resvalue=$resvalue, maxRange=$maxRange, minRange=$minRange, datetime=$datetime, replication_nodes=$replication_nodes, replicating_archival_records=$replicating_archival_records, group_checklist=$group_checklist, answered=$answered)"
-        }
-    }
+        //var view: View?=null
+    )
 
-
-    class CustomMarker(
+    data class CustomMarker(
         val order: Orders,
         val markerView: TextView
     )
 
-    class StopTransferMarker(
+    data class StopTransferMarker(
         val name: String,
         val position: Point
-    ) {
-        override fun toString(): String {
-            return "StopTransferMarker(name='$name', position=$position)"
-        }
-    }
+    )
 
-    class DataFile(
+    data class DataFile(
         @SerializedName("idOrder") var idOrder: Int=0,
         @SerializedName("id") var id: Int=0,
         @SerializedName("resValue") var dir: String=""
     )
 
-    class FilesFromServer(
+    data class FilesFromServer(
         @SerializedName("guid") var guid: String="",
         @SerializedName("fileName") var fileName: String=""
     )
 
-    class ReverseData(
+    data class ReverseData(
         @SerializedName("data") var data: List<Result2> = listOf()
     )
 
-    class MessageData(
+    data class MessageData(
         @SerializedName("text") var text: String="",
         @SerializedName("date") var date: Long=0L,
         @SerializedName("event_type") var event_type: Int=0,
@@ -137,11 +129,11 @@ class Models {
         @SerializedName("lon") var lon: Double?=0.0
     )
 
-    class FCMToken(
+    data class FCMToken(
         @SerializedName("fcmToken") var token: String=""
     )
 
-    class Notification(
+    data class Notification(
         @SerializedName("id") val id: Int=0,
         @SerializedName("notification_id") val notification_id: Int=0,
         @SerializedName("author_id") val author_id: Int=0,
@@ -155,17 +147,13 @@ class Models {
         @SerializedName("email") val email: String?=null,
         @SerializedName("create_date") val create_date: String="",
         @SerializedName("submit_date") val submit_date: String="",
-        @SerializedName("read_date") val read_date: String=""
+        @SerializedName("read_date") val read_date: String?=""
         //@SerializedName("author") val author: List<Author>?=null,
         //@SerializedName("notification") val notification: List<NoticationData>?=null
 
-    ) {
-        override fun toString(): String {
-            return "Notification(id=$id, notification_id=$notification_id, author_id=$author_id, recipient_id=$recipient_id, guid='$guid', event_guid='$event_guid', record_id=$record_id, title='$title', content='$content', shows_popup_message=$shows_popup_message, email=$email, create_date='$create_date', submit_date='$submit_date', read_date='$read_date')"
-        }
-    }
+    )
 
-    class Author(
+    /*data class Author(
         @SerializedName("id") val id: Int=0,
         @SerializedName("name") val name: String="",
         @SerializedName("email") val email: String="",
@@ -175,7 +163,7 @@ class Models {
         @SerializedName("avatar_id") val avatar_id: String?=null
     )
 
-    class NoticationData(
+    data class NoticationData(
         @SerializedName("id") val id: Int=0,
         @SerializedName("guid") val guid: String="",
         @SerializedName("icon") val icon: String="",
@@ -200,9 +188,9 @@ class Models {
         @SerializedName("condition_match_type") val condition_match_type: String="",
         @SerializedName("recipient_match_type") val recipient_match_type: String?=null
 
-    )
+    )*/
 
-    class MessageId(
+    data class MessageId(
         @SerializedName("message_id") val id: Int=0
     )
 

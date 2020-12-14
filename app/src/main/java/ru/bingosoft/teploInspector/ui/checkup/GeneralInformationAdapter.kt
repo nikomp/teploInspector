@@ -20,6 +20,7 @@ class GeneralInformationAdapter(private val lists: List<String>, val order :Orde
         parent: ViewGroup,
         viewType: Int
     ): GiItemsViewHolder {
+        Timber.d("GeneralInformationAdapter")
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_general_information, parent, false)
         return GiItemsViewHolder(view)
     }

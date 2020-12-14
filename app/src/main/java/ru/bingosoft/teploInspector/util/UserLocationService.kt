@@ -1,5 +1,8 @@
 package ru.bingosoft.teploInspector.util
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -7,9 +10,11 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationProvider
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.NOT_AVAILABLE
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
@@ -41,7 +46,33 @@ class UserLocationService: Service() {
 
     override fun onCreate() {
         Timber.d("service_onCreate")
-        initializeLocationManager()
+        super.onCreate()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 26) {
+            val channel = NotificationChannel(
+                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES,
+                "Сервис геолокации",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager.createNotificationChannel(channel)
+            val notification: Notification = Notification.Builder(
+                this,
+                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES
+            )
+                .setContentTitle(getText(R.string.gps_service_title))
+                .setContentText(getText(R.string.gps_service_content))
+                .setSmallIcon(R.drawable.ic_service_gps)
+                .build()
+
+
+            startForeground(Const.WebSocketConst.GPS_SERVICE_NOTIFICATION_ID, notification)
+        }
+
+
+        if (locationManager==null) {
+            locationManager=applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        }
 
         try {
             locationManager?.requestLocationUpdates(
@@ -94,20 +125,12 @@ class UserLocationService: Service() {
             Const.SharedPrefConst.LOCATION_TRACKING,false).apply()
     }
 
-    private fun initializeLocationManager() {
-        Timber.d("initializeLocationManager")
-        if (locationManager==null) {
-            locationManager=applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        }
-    }
-
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
 
     class UserLocationListener(val provider: String, private val ctx: Context): LocationListener {
-        var lastLocation=Location(provider)
 
         override fun onLocationChanged(location: Location?) {
             Timber.d("onLocationChanged $location")

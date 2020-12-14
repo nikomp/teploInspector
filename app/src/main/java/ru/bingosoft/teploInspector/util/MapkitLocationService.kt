@@ -1,8 +1,12 @@
 package ru.bingosoft.teploInspector.util
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.yandex.mapkit.MapKitFactory
@@ -10,8 +14,10 @@ import com.yandex.mapkit.directions.DirectionsFactory
 import com.yandex.mapkit.location.*
 import com.yandex.mapkit.transport.TransportFactory
 import ru.bingosoft.teploInspector.BuildConfig
+import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.LOCATION_UPDATED
+import ru.bingosoft.teploInspector.util.Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID
 import timber.log.Timber
 import java.util.*
 
@@ -19,7 +25,7 @@ class MapkitLocationService: Service() {
     var startTimeService: Long = 0L
     private lateinit var locationManager: LocationManager
     private val locationInterval = 30000L // 2000L минимальное время (в миллисекундах) между получением данных.
-    private val locationDistance = 50.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
+    private val locationDistance = 0.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
 
     private val locationListener=UserLocationListener(this)
 
@@ -34,6 +40,27 @@ class MapkitLocationService: Service() {
     override fun onCreate() {
         Timber.d("service_onCreate")
         super.onCreate()
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 26) {
+            val channel = NotificationChannel(
+                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES,
+                "Сервис геолокации",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager.createNotificationChannel(channel)
+            val notification: Notification = Notification.Builder(
+                this,
+                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES
+            )
+                .setContentTitle(getText(R.string.location_service_title))
+                .setContentText(getText(R.string.location_service_content))
+                .setSmallIcon(R.drawable.ic_service_location)
+                .build()
+
+
+            startForeground(LOCATION_SERVICE_NOTIFICATION_ID, notification)
+        }
+
 
         MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
         MapKitFactory.setLocale("ru_RU")
@@ -103,7 +130,7 @@ class MapkitLocationService: Service() {
 
             // Получим разницу времени старта слежения и текущего времении
             val currentTime=Date().time
-            val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as MapkitLocationService).startTimeService, Date().time)
+            val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as MapkitLocationService).startTimeService, currentTime)
             Timber.d("diffTimeMinute=$diffTimeMinute")
             if (diffTimeMinute>=INTERVAL_SENDING_ROUTE) {
                 intent.putExtra("sendRouteToServer",true)

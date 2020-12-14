@@ -62,14 +62,16 @@ class LoginPresenter @Inject constructor(
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { token ->
-                        Timber.d(token.token)
+
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.registerReceiverMainActivity()
                         view?.saveToken(token.token)
                         view?.startNotificationService(token.token)
-                        view?.checkMessageId()
+                        view?.checkMessageId() // Уведомление прочитано
+                        Timber.d("LoginPresenter_getAllMessage")
+                        view?.getAllMessage()
 
                         val v = view
                         if (v != null) {

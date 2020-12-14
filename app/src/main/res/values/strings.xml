@@ -130,6 +130,7 @@
     <string name="status_OPEN">Открыта</string> нд
 
     <string name="checklist_is_empty">Чеклист пуст</string>
+    <string name="th_is_empty">Нет технических характеристик</string>
     <string name="checklist_not_loaded">Чеклист не загружен</string>
     <string name="checklist_not_changed">Отредактируйте чеклист перед сохранением</string>
     <string name="checklist_not_changed_status">Отредактируйте и сохраните чеклист</string>
@@ -173,6 +174,19 @@
 
     <string name="not_gps_permission">Нет разрешений на геолокацию</string>
     <string name="searchByAddress">Поиск по адресу</string>
+
+    <string name="notification_service_title">Запущен сервис уведомлений</string>
+    <string name="notification_service_content">Фоновая служба для получения уведомлений</string>
+
+    <string name="location_service_title">Запущен сервис геолокации</string>
+    <string name="location_service_content">Фоновая служба для получения координат</string>
+
+    <string name="gps_service_title">Запущен сервис контроля GPS</string>
+    <string name="gps_service_content">Фоновая служба для контроля GPS</string>
+
+    <string name="notification_title">Новых уведомлений: %1$d</string>
+    <string name="notifications_read">Все уведомления прочитаны</string>
+
 
 
 </resources>

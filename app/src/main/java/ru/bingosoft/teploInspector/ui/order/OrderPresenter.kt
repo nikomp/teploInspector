@@ -141,15 +141,13 @@ class OrderPresenter @Inject constructor(
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
-                Timber.d("Данные получили из БД")
+                Timber.d("Данные_получили_из_БД")
                 Timber.d(it.toString())
                 view?.showOrders(it)
                 disposable.dispose()
             }
 
-        Timber.d("ОК")
     }
-
 
     fun onDestroy() {
         this.view = null
@@ -157,6 +155,26 @@ class OrderPresenter @Inject constructor(
             disposable.dispose()
         }
     }
+
+    /*fun getAllMessage() {
+        Timber.d("getAllMessage")
+        disposable=apiService.getAllMessages()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({listNotifications ->
+                Timber.d("Получили_все_уведомления")
+                val unreadNotifications=listNotifications.filter { it.read_date==null }
+                Timber.d("unreadNotifications=${unreadNotifications.size}")
+                if (unreadNotifications.isNotEmpty()) {
+                    view?.showUnreadNotification(unreadNotifications)
+                }
+                disposable.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposable.dispose()
+            })
+
+    }*/
 
     /*fun getTechParams(idOrder: Long) {
         Timber.d("techParams=$idOrder")

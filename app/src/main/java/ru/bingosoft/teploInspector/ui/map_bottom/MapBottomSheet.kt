@@ -16,9 +16,12 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
@@ -36,12 +39,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment): BottomSheetDialogFragment(), MapBottomSheetContractView{
+class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFragment): BottomSheetDialogFragment(),
+    MapBottomOrdersRVClickListeners {
 
     private lateinit var rootView: View
-
-    @Inject
-    lateinit var mbsPresenter: MapBottomSheetPresenter
 
     @Inject
     lateinit var orderPresenter: OrderPresenter
@@ -54,6 +55,10 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
 
     @Inject
     lateinit var userLocationNative: UserLocationNative
+
+    var order: Orders?=null
+    var rcv: RecyclerView?=null
+    var cv: CardView?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidSupportInjection.inject(this)
@@ -86,8 +91,27 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
 
         dialog.setContentView(rootView)
 
+        rcv=rootView.findViewById(R.id.rvListOrders) as RecyclerView
+        rcv?.layoutManager = LinearLayoutManager(this.activity)
+        cv=rootView.findViewById(R.id.cv) as CardView
+        if (orders.size>1) {
+            Timber.d("orders_size=${orders.size}")
+            Timber.d("orders=$orders")
+            cv?.visibility=View.GONE
+            rcv?.visibility=View.VISIBLE
+            val adapter = MapBottomOrdersListAdapter(orders,this)
+            rcv?.adapter = adapter
+
+        } else {
+            cv?.visibility=View.VISIBLE
+            rcv?.visibility=View.GONE
+            fillOrderData(orders.last())
+        }
+    }
+
+    private fun fillOrderData(order: Orders) {
         rootView.findViewById<TextView>(R.id.number).text=parentFragment.getString(R.string.order_number,order.number)
-        rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+        rootView.findViewById<TextView>(R.id.order_type).text= order.typeOrder
         if (order.typeOrder.isNullOrEmpty()){
             rootView.findViewById<TextView>(R.id.order_type).text="Тип заявки"
         } else {
@@ -157,11 +181,6 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
         rootView.findViewById<TextView>(R.id.name).text=order.purposeObject
         rootView.findViewById<TextView>(R.id.adress).text=order.address
         rootView.findViewById<TextView>(R.id.fio).text=order.contactFio
-        /*if (order.typeTransportation.isNullOrEmpty()) {
-            view.findViewById<TextView>(R.id.type_transportation).text="Нет данных"
-        } else {
-            view.findViewById<TextView>(R.id.type_transportation).text=order.typeTransportation
-        }*/
 
         val btnPhone=rootView.findViewById<Button>(R.id.btnPhone)
         if (order.phone.isNullOrEmpty()) {
@@ -173,11 +192,6 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
         }
 
         val btnRoute=rootView.findViewById<Button>(R.id.btnRoute)
-        //btnRoute.text="Маршрут 3.2 км"
-
-
-        /*val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
-        btnRoute.text=requireContext().getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"*/
 
         if (userLocationNative.userLocation.latitude!=0.0 && userLocationNative.userLocation.longitude!=0.0) {
             val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
@@ -238,9 +252,6 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
             }
 
         })
-
-        mbsPresenter.attachView(this)
-
     }
 
     fun changeColorMBSState(view: MaterialBetterSpinner, status:String?) {
@@ -270,11 +281,6 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mbsPresenter.onDestroy()
-    }
-
 
     private fun hideBottomSheet() {
         Timber.d("MapBottomSheet_hideBottomSheet")
@@ -284,6 +290,12 @@ class MapBottomSheet(val order: Orders, private val parentFragment: MapFragment)
         if (behavior!=null && behavior is BottomSheetBehavior) {
             behavior.state= BottomSheetBehavior.STATE_HIDDEN
         }
+    }
+
+    override fun recyclerViewListClicked(v: View?, position: Int) {
+        cv?.visibility=View.VISIBLE
+        rcv?.visibility=View.GONE
+        fillOrderData(orders[position])
     }
 
 }

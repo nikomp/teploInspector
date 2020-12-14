@@ -49,6 +49,7 @@ import kotlin.collections.ArrayList
 class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     var uiCreator: UICreator?=null
+    var llMainUi= mutableListOf<View>()
 
     @Inject
     lateinit var checkupPresenter: CheckupPresenter
@@ -85,6 +86,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     ): View? {
         AndroidSupportInjection.inject(this)
         Timber.d("CheckupFragment.onCreateView")
+        Timber.d("MainActivity_orders_CheckupFragment=${(requireContext() as MainActivity).orders}")
 
         rootView = inflater.inflate(R.layout.fragment_gallery2, container, false)
 
@@ -153,6 +155,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     @SuppressLint("ResourceAsColor", "SetTextI18n")
     private fun fillOrderData() {
         Timber.d("fillOrderData")
+        if (!(rootView.context as MainActivity).isInitCurrentOrder()) {
+            return
+        }
         val order=(rootView.context as MainActivity).currentOrder
 
         rootView.findViewById<TextView>(R.id.number).text="№ ${order.number}"
@@ -569,20 +574,22 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
 
-    fun setPhotoResult(controlId: Int?, photoDir: String, v: View?=null) {
-        Timber.d("setPhotoResult from fragment $controlId")
+    fun setPhotoResult(controlId: Int?, photoDir: String) {
+        Timber.d("setPhotoResult_from_fragment $controlId")
         if (controlId!=null) {
-            val linearLayout=
-                if (v==null) {
-                    rootView.findViewById(controlId)
-                } else {
-                    (v as LinearLayout)
-                }
+            var linearLayout: LinearLayout?=null
+            try {
+                linearLayout=rootView.findViewById(controlId)
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                errorReceived(e)
+            }
 
             // Обновим список с фото
-            val images = OtherUtil().getFilesFromDir("$DCIM_DIR/PhotoForApp/$photoDir")
-            refreshPhotoViewer(linearLayout, images, rootView.context)
-
+            if (linearLayout!=null) {
+                val images = OtherUtil().getFilesFromDir("$DCIM_DIR/PhotoForApp/$photoDir")
+                refreshPhotoViewer(linearLayout, images, rootView.context)
+            }
         }
     }
 

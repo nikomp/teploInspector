@@ -67,6 +67,7 @@ class NetworkModule {
 
         val gson = GsonBuilder()
             .setDateFormat("yyyy-MM-dd H:mm")
+            .setLenient()
             .create()
 
         val retrofit = Retrofit.Builder()

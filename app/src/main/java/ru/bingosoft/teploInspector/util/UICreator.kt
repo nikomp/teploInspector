@@ -11,6 +11,7 @@ import android.view.WindowManager
 import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
@@ -70,7 +71,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         controlList.forEach controls@ {
             when (it.type) {
-                "combobox","date","time","textinput","numeric","photo" -> {
+                "combobox", "date", "time", "textinput", "numeric", "photo" -> {
                     Timber.d("генерим ${it.type}")
                     createWithGrouping(it)
                     return@controls
@@ -83,6 +84,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         }
 
+    }
+
+    fun saveUI() {
+        Timber.d("saveUI")
+        val ll=rootView.findViewById<LinearLayout>(R.id.llMain)
+        parentFragment.llMainUi.addAll(ll.children)
     }
 
     private fun createWithGrouping(it: Models.TemplateControl) {
@@ -100,14 +107,14 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 // Тиражируем по узлам
                 if (it.node!=null) {
                     if (listllNode.isNotEmpty()) {
-                        val llCurrentNode=listllNode[it.node-1]
+                        val llCurrentNode=listllNode[it.node - 1]
                         when (it.type) {
-                            "combobox" -> createCombobox(it,llCurrentNode)
-                            "textinput" -> createTextInput(it,llCurrentNode)
-                            "numeric" -> createNumeric(it,llCurrentNode)
-                            "date" -> createDate(it,llCurrentNode)
-                            "time" -> createTime(it,llCurrentNode)
-                            "photo" -> createPhoto(it,llCurrentNode)
+                            "combobox" -> createCombobox(it, llCurrentNode)
+                            "textinput" -> createTextInput(it, llCurrentNode)
+                            "numeric" -> createNumeric(it, llCurrentNode)
+                            "date" -> createDate(it, llCurrentNode)
+                            "time" -> createTime(it, llCurrentNode)
+                            "photo" -> createPhoto(it, llCurrentNode)
                         }
                     }
                 }
@@ -116,8 +123,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 // Есть еще и группа
                 if (it.node!=null) {
                     if (listllNode.isNotEmpty()) {
-                        val llCurrentNode=listllNode[it.node-1]
-                        val llGroup=createGroup(it.group_checklist,llCurrentNode,it.node.toString())
+                        val llCurrentNode=listllNode[it.node - 1]
+                        val llGroup=createGroup(
+                            it.group_checklist,
+                            llCurrentNode,
+                            it.node.toString()
+                        )
                         when (it.type) {
                             "combobox" -> createCombobox(it, llGroup)
                             "textinput" -> createTextInput(it, llGroup)
@@ -161,15 +172,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 } else {
                     Timber.d("it.group_checklist=${it.group_checklist}")
                     if (listllArchHour.isEmpty() && it.group_checklist=="Часовые") {
-                        listllArchHour=createArchGroup(llGroupNodes!!,"Часовые")
+                        listllArchHour=createArchGroup(llGroupNodes!!, "Часовые")
                     }
                     if (listllArchDaily.isEmpty() && it.group_checklist=="Суточные") {
-                        listllArchDaily=createArchGroup(llGroupNodes!!,"Суточные")
+                        listllArchDaily=createArchGroup(llGroupNodes!!, "Суточные")
                     }
                     // Есть еще и группа
                     if (it.archival_records!=null) {
                         if (listllArchHour.isNotEmpty()) {
-                            val llCurrentNode=listllArchHour[it.archival_records-1]
+                            val llCurrentNode=listllArchHour[it.archival_records - 1]
                             //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
@@ -181,7 +192,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                             }
                         }
                         if (listllArchDaily.isNotEmpty()) {
-                            val llCurrentNode=listllArchDaily[it.archival_records-1]
+                            val llCurrentNode=listllArchDaily[it.archival_records - 1]
                             //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
@@ -198,14 +209,18 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 // Тиражирования по узлам и по архивным записям нет
                 if (it.group_checklist!=null) {
                     //..., но есть Группа
-                    var llGroup=createGroup(it.group_checklist,rootView.findViewById(R.id.llMain))
+                    var llGroup=createGroup(it.group_checklist, rootView.findViewById(R.id.llMain))
                     // Проверим, возможно эта группа тиражируется по узлам (как ИТП(общий ввод))
                     Timber.d("_it=$it")
                     if (it.replicated_on!=null) {
                         Timber.d("it.replicated_on=${it.replicated_on}")
                         if (it.node_itp!=null) {
                             Timber.d("it.node_itp=${it.node_itp}")
-                            llGroup=createGroup("Узел ${it.group_checklist} ${it.node_itp}",llGroup,it.node_itp)
+                            llGroup=createGroup(
+                                "Узел ${it.group_checklist} ${it.node_itp}",
+                                llGroup,
+                                it.node_itp
+                            )
                         }
                     }
 
@@ -237,11 +252,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     private fun createCombobox(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_material_spinner, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_material_spinner, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
         //templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
         val materialSpinner=templateStep.findViewById<MaterialBetterSpinner>(R.id.android_material_design_spinner)
 
@@ -293,14 +309,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     private fun createTextInput(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_textinput, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_textinput, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
 
         //attachListenerToFab(templateStep,it)
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
@@ -331,7 +348,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         templateStep.id = it.id
         templateStep.findViewById<TextView>(R.id.question).text = it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
         val textInputLayout = templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint = it.hint
@@ -358,11 +375,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     private fun createDate(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_date, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_date, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint=it.hint
@@ -393,7 +411,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     textInputEditText.error=parentFragment.getString(R.string.error_date)
                     parentFragment.errorControls.add(textInputEditText)
                 } else {
-                    val df=SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU"))
+                    val df=SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU"))
                     df.isLenient=false
                     try {
                         df.parse(strDate)
@@ -414,11 +432,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     private fun createTime(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_time, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_time, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
         val textInputLayout=templateStep.findViewById<TextInputLayout>(R.id.til)
         textInputLayout.hint=it.hint
@@ -445,11 +464,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     private fun createPhoto(it: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_photo2, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_photo2, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it,templateStep)
+        setQuestionColor(it, templateStep)
 
         templateStep.tag=it
 
@@ -598,10 +618,14 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         if (parentFragment.currentOrder.countNode!=null) {
             for (i in 1..parentFragment.currentOrder.countNode!!) {
                 val templateStep=LayoutInflater.from(rootView.context).inflate(
-                    R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
+                    R.layout.template_group, rootView.parent as ViewGroup?, false
+                ) as LinearLayout
 
                 Timber.d("Узел $i")
-                templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(R.string.name_node,i)
+                templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
+                    R.string.name_node,
+                    i
+                )
 
                 val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
                 val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
@@ -610,10 +634,20 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 clTitle.setOnClickListener {
                     if (llNode.visibility==View.VISIBLE) {
                         llNode.visibility=View.GONE
-                        ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                        ivExpand.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                rootView.context,
+                                R.drawable.arrow_up
+                            )
+                        )
                     } else {
                         llNode.visibility=View.VISIBLE
-                        ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                        ivExpand.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                rootView.context,
+                                R.drawable.arrow_down
+                            )
+                        )
                     }
                 }
 
@@ -635,10 +669,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         val listNodesView= mutableListOf<LinearLayout>()
         for (i in 1..5) {
             val templateStep=LayoutInflater.from(rootView.context).inflate(
-                R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
+                R.layout.template_group, rootView.parent as ViewGroup?, false
+            ) as LinearLayout
 
             Timber.d("$name $i")
-            templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(R.string.question,name,i)
+            templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
+                R.string.question,
+                name,
+                i
+            )
 
             val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
             val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
@@ -647,10 +686,20 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             clTitle.setOnClickListener {
                 if (llNode.visibility==View.VISIBLE) {
                     llNode.visibility=View.GONE
-                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_up
+                        )
+                    )
                 } else {
                     llNode.visibility=View.VISIBLE
-                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_down
+                        )
+                    )
                 }
             }
 
@@ -668,7 +717,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         Timber.d("генерим группу для Узлов")
 
         val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
+            R.layout.template_group, rootView.parent as ViewGroup?, false
+        ) as LinearLayout
 
         //attachListenerToFab(templateStep,it)
 
@@ -682,10 +732,20 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         clTitle.setOnClickListener {
             if (llGroup.visibility==View.VISIBLE) {
                 llGroup.visibility=View.GONE
-                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                ivExpand.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        rootView.context,
+                        R.drawable.arrow_up
+                    )
+                )
             } else {
                 llGroup.visibility=View.VISIBLE
-                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                ivExpand.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        rootView.context,
+                        R.drawable.arrow_down
+                    )
+                )
             }
         }
 
@@ -695,7 +755,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         return llGroup
     }
 
-    private fun createGroup(name: String, parent: LinearLayout, node: String=""): LinearLayout {
+    private fun createGroup(name: String, parent: LinearLayout, node: String = ""): LinearLayout {
         Timber.d("генерим группу $name$node")
 
         // Проверим, возможно группа уже создана
@@ -704,7 +764,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             return ll[0]
         } else {
             val templateStep=LayoutInflater.from(rootView.context).inflate(
-                R.layout.template_group, rootView.parent as ViewGroup?, false) as LinearLayout
+                R.layout.template_group, rootView.parent as ViewGroup?, false
+            ) as LinearLayout
 
             templateStep.findViewById<TextView>(R.id.question).text=name
 
@@ -716,10 +777,20 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             clTitle.setOnClickListener {
                 if (llGroup.visibility==View.VISIBLE) {
                     llGroup.visibility=View.GONE
-                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_up
+                        )
+                    )
                 } else {
                     llGroup.visibility=View.VISIBLE
-                    ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_down
+                        )
+                    )
                 }
             }
 
@@ -783,14 +854,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     /**
      * Метод, в котором осуществляется привязка дочернего View к родительскому
      */
-    private fun doAssociateParent(v: View, mainView: View, index: Int?=null){
+    private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
         if (mainView is LinearLayout) {
             if (index!=null) {
-                mainView.addView(v,index)
+                mainView.addView(v, index)
             } else {
                 mainView.addView(v)
             }
-
         }
     }
 
@@ -804,7 +874,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     dateAndTime.set(Calendar.MONTH, month)
                     dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth)
                     textInputEditText.setText(
-                        SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).format(dateAndTime.time)
+                        SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateAndTime.time)
                     )
                     textInputEditText.error=null
                     Timber.d("errorControls=${parentFragment.errorControls}")
@@ -814,7 +884,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     }
                 }
 
-            DatePickerDialog(parentFragment.requireContext(),
+            DatePickerDialog(
+                parentFragment.requireContext(),
                 dateListener,
                 dateAndTime.get(Calendar.YEAR),
                 dateAndTime.get(Calendar.MONTH),
@@ -826,11 +897,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     dateAndTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
                     dateAndTime.set(Calendar.MINUTE, minute)
                     textInputEditText.setText(
-                        SimpleDateFormat("HH:mm", Locale("ru","RU")).format(dateAndTime.time)
+                        SimpleDateFormat("HH:mm", Locale("ru", "RU")).format(dateAndTime.time)
                     )
                 }
 
-            TimePickerDialog(parentFragment.requireContext(),
+            TimePickerDialog(
+                parentFragment.requireContext(),
                 timeListener,
                 dateAndTime.get(Calendar.HOUR_OF_DAY),
                 dateAndTime.get(Calendar.MINUTE), true

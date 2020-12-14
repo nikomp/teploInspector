@@ -1,5 +1,7 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
+import ru.bingosoft.teploInspector.models.Models
+
 interface MainActivityContractView {
     fun showMainActivityMsg(resID: Int)
     fun showMainActivityMsg(msg: String)
@@ -13,6 +15,8 @@ interface MainActivityContractView {
 
     fun checkMessageId()
     fun setEmptyMessageId()
+    fun getAllMessage()
+    fun showUnreadNotification(listNotification: List<Models.Notification>)
 
     fun setIdsOrdersNotSync(list: List<Long>)
 

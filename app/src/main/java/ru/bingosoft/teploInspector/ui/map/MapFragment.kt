@@ -22,7 +22,6 @@ import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.Directions
 import com.yandex.mapkit.directions.DirectionsFactory
-import com.yandex.mapkit.directions.driving.DrivingRoute
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.location.*
@@ -64,7 +63,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     var orders: List<Orders> = listOf()
     lateinit var mapView: MapView
     lateinit var map: Map
-    //lateinit var userLocationLayer: UserLocationLayer
     var userLocationLayer: UserLocationLayer?=null
     private lateinit var locationManager:LocationManager
 
@@ -82,7 +80,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     private lateinit var mkInstances: MapKit
     var lastCarRouter=mutableListOf<PolylineMapObject>()
     var lastStopTransferMarkers=mutableListOf<PlacemarkMapObject>()
-    var lastCarRouterPolyline=mutableListOf<DrivingRoute>()
     var prevMapObjectMarker: MapObject?=null
 
 
@@ -95,15 +92,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         if (control!=null) {
             controlId=control
         }
-        Timber.d("mapLoadedListener_orders=$orders")
 
-        if (orders.isEmpty()) {
-            Timber.d("Грузим_все_маркеры_Заявок")
-            mapPresenter.loadMarkers() // Грузим все маркеры Заявок
-        } else {
-            Timber.d("Показываем_маркеры_после_загрузки_карты")
-            showMarkers(orders)
-        }
+        Timber.d("MapFragment_filteredOrders=${(activity as MainActivity).filteredOrders}")
+        showMarkers((this.requireActivity() as MainActivity).filteredOrders)
 
         if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
             if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
@@ -253,6 +244,16 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         val order=(mapObject.userData as Models.CustomMarker).order
         val tvMarker=(mapObject.userData as Models.CustomMarker).markerView
+
+        val listOrders=
+        if (tvMarker.tag!=null) {
+            Timber.d("tvMarker_tag=${(tvMarker.tag as List<*>).size}")
+            tvMarker.tag as List<Orders>
+
+        } else {
+             listOf(order)
+        }
+
         if (prevMapObjectMarker!=null) {
             // выключим предыдущий маркер
             val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
@@ -265,14 +266,13 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         prevMapObjectMarker=mapObject
 
         if (locationListener.lastLocation!=null) {
-            val mapBottomSheet = MapBottomSheet(order, fragment)
+            val mapBottomSheet = MapBottomSheet(listOrders, fragment)
             mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
-
         } else {
             Timber.d("locationListener.lastLocation==null")
             locationManager.requestSingleUpdate(locationListener)
             if (locationListener.lastLocation!=null) {
-                val mapBottomSheet = MapBottomSheet(order, fragment)
+                val mapBottomSheet = MapBottomSheet(listOrders, fragment)
                 mapBottomSheet.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET")
             }
         }
@@ -314,13 +314,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        orders = if ((this.requireActivity() as MainActivity).filteredOrders.isEmpty()) {
-            (this.requireActivity() as MainActivity).orders
-        } else {
-            (this.requireActivity() as MainActivity).filteredOrders
-        }
-
-
         MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
         MapKitFactory.setLocale("ru_RU")
         MapKitFactory.initialize(this.context)
@@ -353,27 +346,13 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     override fun showMarkers(orders: List<Orders>) {
         Timber.d("showMarkers=$orders")
         this.orders=orders
-        (activity as MainActivity).filteredOrders=orders
+        /*(activity as MainActivity).orders=orders
+        (activity as MainActivity).filteredOrders=orders*/
 
         map.mapObjects.clear()
         orders.forEach{
             importOrdersOnMap(it)
         }
-
-
-        /*if (lastCarRouterPolyline.isNotEmpty()) {
-            Timber.d("показываем маршрут $lastCarRouterPolyline")
-            lastCarRouterPolyline.forEach {
-                //Timber.d("показываем маршрут ${it.geometry}")
-                try {
-                    val polylineMapObject=map.mapObjects.addPolyline(it.geometry)
-                    lastCarRouter.add(polylineMapObject)
-                } catch (e:Exception) {
-                    e.printStackTrace()
-                }
-
-            }
-        }*/
     }
 
 
@@ -391,8 +370,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                 stOrdersName += "${it.number},\n"
             }
             stOrdersName=stOrdersName.substring(0,stOrdersName.length-2)
+
+            tvMarker.tag=ordersAddress
             tvMarker.text=stOrdersName
-            //tvMarker.setBackgroundColor(Color.WHITE)
             tvMarker.setCompoundDrawablesWithIntrinsicBounds(null,null,null, ContextCompat.getDrawable(fragment.requireContext(),R.drawable.ic_marker_selector5))
         } else {
             tvMarker.text=order.number
@@ -508,7 +488,6 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                     (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
 
                     this.requireActivity().onBackPressed()
-
 
                     (this.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
                     (this.requireActivity() as MainActivity).filteredOrders=this.orders

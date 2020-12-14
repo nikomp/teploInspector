@@ -42,7 +42,7 @@ class PhotoHelper {
 
 
         } catch (ex: IOException) {
-            Timber.d("Ошибка createImageFile " + ex.message)
+            Timber.d("Ошибка createImageFile %s", ex.message)
         }
     }
 

@@ -17,6 +17,7 @@ interface LoginContractView {
 
     fun startNotificationService(token: String)
     fun checkMessageId()
+    fun getAllMessage()
 
     fun errorReceived(throwable: Throwable)
 

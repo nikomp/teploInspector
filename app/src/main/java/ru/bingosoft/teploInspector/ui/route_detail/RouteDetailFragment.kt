@@ -125,6 +125,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
 
 
                     carRouter = directions.createDrivingRouter()
+
                     if (requestPoints.size > 1) {
                         drivingSession = carRouter.requestRoutes(
                             requestPoints,
@@ -133,7 +134,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                         )
                         Timber.d("carRouter_created")
                     } else {
-                        toaster.showToast(R.string.points_less_than_2)
+                        toaster.showErrorToast(R.string.points_less_than_2)
                     }
 
 
@@ -179,7 +180,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                     if (requestPoints.size > 1) {
                         busRouter.requestRoutes(requestPoints, options, routeListener)
                     } else {
-                        toaster.showToast(R.string.points_less_than_2)
+                        toaster.showErrorToast(R.string.points_less_than_2)
                     }
 
                     isPedestrianRouter = false
@@ -217,7 +218,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
                     if (requestPoints.size > 1) {
                         pedestrianRouter.requestRoutes(requestPoints, TimeOptions(), routeListener)
                     } else {
-                        toaster.showToast(R.string.points_less_than_2)
+                        toaster.showErrorToast(R.string.points_less_than_2)
                     }
 
 

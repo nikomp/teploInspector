@@ -109,7 +109,11 @@ class Const {
 
     object WebSocketConst{
         const val NORMAL_CLOSURE_STATUS = 1000
+        const val NOTIFICATION_CHANNEL_ID_SERVICES = "TeploInspectorServices"
         const val NOTIFICATION_CHANNEL_ID = "TeploInspector"
+        const val NOTIFICATION_SERVICE_NOTIFICATION_ID = 521
+        const val LOCATION_SERVICE_NOTIFICATION_ID = 522
+        const val GPS_SERVICE_NOTIFICATION_ID = 523
     }
 
 }

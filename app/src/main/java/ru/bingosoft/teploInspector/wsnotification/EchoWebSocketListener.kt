@@ -4,9 +4,10 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.google.gson.Gson
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -18,10 +19,11 @@ import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NORMAL_CLOSURE_STAT
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANNEL_ID
 import timber.log.Timber
 
+
 /**
  * Слушаем WebSocket, выполняем действия в UI потоке
  */
-class EchoWebSocketListener (private var ctx: Context) :WebSocketListener() {
+class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
         Timber.d("WS onOpen")
     }
@@ -31,20 +33,30 @@ class EchoWebSocketListener (private var ctx: Context) :WebSocketListener() {
 
         val notification= Gson().fromJson(text, Models.Notification::class.java)
         Timber.d("notification=$notification")
-        createNotofication(notification)
+        createNotification(notification)
 
     }
 
-    private fun createNotofication(notification: Models.Notification) {
+    private fun createNotification(notification: Models.Notification) {
         val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Your Notifications", NotificationManager.IMPORTANCE_HIGH)
 
-            notificationChannel.description = "Description"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Служебные уведомления",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build()
+
             notificationChannel.enableLights(true)
             notificationChannel.lightColor = Color.RED
             notificationChannel.vibrationPattern = longArrayOf(0, 1000, 500, 1000)
+            notificationChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),audioAttributes)
             notificationChannel.enableVibration(true)
             notificationManager.createNotificationChannel(notificationChannel)
         }
@@ -56,24 +68,27 @@ class EchoWebSocketListener (private var ctx: Context) :WebSocketListener() {
 
         val notificationBuilder = NotificationCompat.Builder(ctx, NOTIFICATION_CHANNEL_ID)
 
-        val resultIntent= Intent(ctx, MainActivity::class.java).putExtra("messageId",notification.id)
+        val resultIntent= Intent(ctx, MainActivity::class.java).putExtra(
+            "messageId",
+            notification.id
+        )
         val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(ctx).run {
             addNextIntentWithParentStack(resultIntent)
             getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
         }
 
-        notificationBuilder.setAutoCancel(true)
-            .setColor(ContextCompat.getColor(ctx, R.color.colorAccent))
+        val customNotification=notificationBuilder.setAutoCancel(true)
             .setContentTitle(notification.title)
             .setContentText(notification.content)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             .setDefaults(Notification.DEFAULT_ALL)
             .setWhen(System.currentTimeMillis())
-            .setSmallIcon(R.drawable.ic_notifications_black_24dp)
+            .setSmallIcon(R.drawable.ic_new_notification)
             .setContentIntent(resultPendingIntent)
             .setAutoCancel(true)
+            .build()
 
-
-        notificationManager.notify(1000, notificationBuilder.build())
+        notificationManager.notify(1000, customNotification)
     }
 
     override fun onClosing(
@@ -90,7 +105,7 @@ class EchoWebSocketListener (private var ctx: Context) :WebSocketListener() {
         t: Throwable,
         response: Response?
     ) {
-        Timber.d("Error : " + t.message)
+        Timber.d(t)
     }
 
 

@@ -100,4 +100,10 @@ interface ApiService {
         @Body json: RequestBody
     ): Single<Boolean>
 
+    @GET("notificationservice/messages")
+    fun getAllMessages():Single<List<Models.Notification>>
+
+    @PUT("notificationservice/messages/read-all")
+    fun markAllMessageAsRead(): Single<Boolean>
+
 }

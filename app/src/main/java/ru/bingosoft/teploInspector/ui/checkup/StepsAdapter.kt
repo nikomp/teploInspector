@@ -24,6 +24,7 @@ import timber.log.Timber
 class StepsAdapter (private val lists: List<String>, private val parentFragment: CheckupFragment) : RecyclerView.Adapter<StepsAdapter.StepsViewHolder>() {
 
     private var expandedPosition=-1
+    private var llMainTemplate: LinearLayout?=null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StepsViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_cardview_step, parent, false)
@@ -36,7 +37,7 @@ class StepsAdapter (private val lists: List<String>, private val parentFragment:
 
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
-
+        Timber.d("onBindViewHolder")
         holder.stepNumber.text="${position+1}"
         holder.stepName.text=lists[position]
         when (position) {
@@ -87,26 +88,43 @@ class StepsAdapter (private val lists: List<String>, private val parentFragment:
         }
         if (position==1 && isExpanded) {
             holder.details.removeAllViews()
-            val rvtc=LayoutInflater.from(holder.itemView.context).inflate(R.layout.order_technical_characteristics, holder.details, false) as RecyclerView
-            rvtc.layoutManager = LinearLayoutManager(holder.itemView.context)
-            //val adapter=TechnicalCharacteristicAdapter(Const.TechnicalСharacteristicList.list)
-            val adapter=TechnicalCharacteristicAdapter(parentFragment.techParams)
-            rvtc.adapter = adapter
+            //Генерируем тех характеристики
+            if (parentFragment.techParams.isNotEmpty()) {
+                Timber.d("llMainTemp=${parentFragment.llMainUi}")
+                val uiCreator=TechnicalCharacteristics(parentFragment.techParams,holder.details)
+                uiCreator.create()
+            } else {
+                parentFragment.toaster.showToast(R.string.th_is_empty)
+            }
 
-            holder.details.addView(rvtc)
+
         }
-        if (position>1 && isExpanded){
+        if (position==2 && isExpanded){
             holder.details.removeAllViews()
-            Timber.d("position=$position _$isExpanded")
 
             //Генерируем чеклист
-            if (parentFragment.isCheckupInitialized() ) {
-                val uiCreator=UICreator(parentFragment, parentFragment.checkup)
-                uiCreator.create(holder.details)
-                parentFragment.uiCreator=uiCreator
+            Timber.d("llMainTemp=${parentFragment.llMainUi}")
+            if (parentFragment.llMainUi.isNotEmpty()) {
+                parentFragment.llMainUi.forEach {
+                    holder.details.addView(it)
+                }
+                parentFragment.llMainUi= mutableListOf()
+
             } else {
-                parentFragment.toaster.showToast(R.string.checklist_is_empty)
+                if (parentFragment.isCheckupInitialized() ) {
+                    val uiCreator=UICreator(parentFragment, parentFragment.checkup)
+                    uiCreator.create(holder.details)
+                    parentFragment.uiCreator=uiCreator
+                } else {
+                    parentFragment.toaster.showToast(R.string.checklist_is_empty)
+                }
             }
+
+        }
+
+        // Если чеклист сворачивается сохраним его текущее состояние
+        if (position==2 && !isExpanded) {
+            parentFragment.uiCreator?.saveUI()
         }
 
         val clickListener= View.OnClickListener {

@@ -1,16 +1,15 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
 import android.Manifest
-import android.app.Activity
-import android.app.AlertDialog
-import android.app.DatePickerDialog
-import android.app.SearchManager
+import android.app.*
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.location.Location
 import android.location.LocationManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -20,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var navController: NavController
 
-    private var mapPoint: Point=Point(0.0,0.0)
+    private var mapPoint: Point=Point(0.0, 0.0)
     private var controlMapId: Int=0
     var photoDir: String=""
     var lastKnownFilenamePhoto=""
@@ -102,11 +102,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private lateinit var filterView: ConstraintLayout
 
     var isMapFragmentShow=false
-    lateinit var orders: List<Orders>
+    //lateinit var orders: List<Orders>
+    var orders= listOf<Orders>()
     var isBackPressed=false
     var isSearchView=false
 
     var filteredOrders: List<Orders> = listOf()
+    var isDefaultFilter=false
 
     private var doubleBackToExitCounter=0
 
@@ -158,7 +160,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
 
-        drawerLayout.addDrawerListener(object: DrawerLayout.DrawerListener {
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
             override fun onDrawerStateChanged(newState: Int) {
                 Timber.d("onDrawerStateChanged")
             }
@@ -233,10 +235,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private fun checkIntent() {
         Timber.d("checkIntent")
-        messageId=intent.getIntExtra("messageId",0)
-        Timber.d("$messageId")
+        messageId=intent.getIntExtra("messageId", 0)
         if (messageId!=0) {
             mainPresenter.markMessageAsRead(messageId)
+        }
+        val messageAll=intent.getBooleanExtra("allMessageRead",false)
+        Timber.d("messageAll=$messageAll")
+        if (messageAll) {
+            mainPresenter.markAllMessageAsRead()
         }
     }
 
@@ -248,9 +254,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private fun buildAlertMessageNoGps() {
         val builder= AlertDialog.Builder(this)
         builder.setMessage("Датчик GPS выключен, включить?").setCancelable(false)
-            .setPositiveButton("Да"
+            .setPositiveButton(
+                "Да"
             ) { _, _ -> startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
-            .setNegativeButton("Нет"
+            .setNegativeButton(
+                "Нет"
             ) { dialog, _ ->
                 Timber.d("Сообщение администратору")
                 mainPresenter.sendMessageToAdmin(REPEATEDLY_REFUSED)
@@ -273,13 +281,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private fun requestPermission() {
         // Проверим разрешения
         Timber.d("requestPermission")
-        if (ContextCompat.checkSelfPermission(this,(Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
             Timber.d("requestPermission1")
             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
                 Timber.d("requestPermission2")
-                requestPermissions(arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ),
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ),
                     Const.RequestCodes.PERMISSION
                 )
             }
@@ -287,8 +296,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             Timber.d("startService_MainActivity")
             // Стартуем фоновый сервис для отслеживания пользователя
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
-            startService(Intent(this,UserLocationService::class.java)) // Отслеживаем состояние GPS
-            startService(Intent(this,MapkitLocationService::class.java)) // Отслеживаем координаты
+            startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
+            startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
         }
     }
 
@@ -306,8 +315,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 ) {
                     // Разрешения выданы
                     Timber.d("startService_Permission")
-                    startService(Intent(this,UserLocationService::class.java))
-                    startService(Intent(this,MapkitLocationService::class.java))
+                    startService(Intent(this, UserLocationService::class.java))
+                    startService(Intent(this, MapkitLocationService::class.java))
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)
@@ -366,7 +375,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterDateOrder.show()
                 // Установим ширину диалогового окна
                 val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
-                dialogFilterDateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+                dialogFilterDateOrder.window?.setLayout(
+                    width,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
 
                 // Отступы диалога от границ экрана
                 val wlp=dialogFilterDateOrder.window?.attributes
@@ -411,7 +423,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 dialogFilterStateOrder.show()
                 // Установим ширину диалогового окна
                 val width=resources.getDimension(R.dimen.dialog_filter_date_width).toInt()
-                dialogFilterStateOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+                dialogFilterStateOrder.window?.setLayout(
+                    width,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
 
                 // Отступы диалога от границ экрана
                 val wlp=dialogFilterStateOrder.window?.attributes
@@ -432,7 +447,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val searchItem=menu.findItem(R.id.action_search)
         if (searchItem!=null) {
             val searchView=searchItem.actionView as SearchView
-            searchView.setPadding(0,0,-30,0)
+            searchView.setPadding(0, 0, -30, 0)
 
             val searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_src_text) as EditText
             searchPlate.hint = getString(R.string.search_by_address)
@@ -449,7 +464,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
 
 
-            searchView.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
+            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                 override fun onQueryTextSubmit(query: String?): Boolean {
                     Timber.d("onQueryTextSubmit")
                     return false
@@ -458,28 +473,36 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 override fun onQueryTextChange(newText: String?): Boolean {
                     Timber.d(newText)
 
-                    isSearchView=true
+                    isSearchView = true
                     //#SearchView_close
-                    if (newText=="") {
+                    if (newText == "") {
                         Timber.d("Закроем")
-                        searchView.isIconified=true
+                        searchView.isIconified = true
                     }
 
                     Timber.d("_isSearchView=true")
 
 
                     if (!isMapFragmentShow) {
-                        val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+                        val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
                     } else {
                         Timber.d("Включена карта11 $newText")
 
-                        val filteredList=orders.filter { it.address!=null && it.address!!.contains(newText!!,true) }
+                        val filteredList = orders.filter {
+                            it.address != null && it.address!!.contains(
+                                newText!!,
+                                true
+                            )
+                        }
 
                         Timber.d("Отфильтровано=${filteredList.size}")
-                        val currentNavHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-                        val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
-                        val mf= currentNavHost?.childFragmentManager?.fragments?.filterNotNull()?.find { it.javaClass.name==currentFragmentClassName } as MapFragment
+                        val currentNavHost =
+                            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                        val currentFragmentClassName =
+                            (navController.currentDestination as FragmentNavigator.Destination).className
+                        val mf = currentNavHost?.childFragmentManager?.fragments?.filterNotNull()
+                            ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
                         mf.showMarkers(filteredList)
 
                     }
@@ -530,10 +553,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    fun doAuthorization(msgId:Int=R.string.auth_ok) {
+    fun doAuthorization(msgId: Int = R.string.auth_ok) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
-        val sharedPref = this.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        val sharedPref = this.getSharedPreferences(
+            Const.SharedPrefConst.APP_PREFERENCES,
+            Context.MODE_PRIVATE
+        )
         if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
 
             val login = this.sharedPref.getLogin()
@@ -559,8 +585,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onDestroy() {
         Timber.d("MainAct_destroy")
         super.onDestroy()
-        stopService(Intent(this,UserLocationService::class.java))
-        stopService(Intent(this,MapkitLocationService::class.java))
+        stopService(Intent(this, UserLocationService::class.java))
+        stopService(Intent(this, MapkitLocationService::class.java))
         mainPresenter.onDestroy()
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
@@ -582,6 +608,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
         Timber.d("fragments.size=${supportFragmentManager.fragments.size}")
+        Timber.d("MainActivity_orders_onBackPressed=${orders}")
 
         val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
         Timber.d("currentFragmentClassName=$currentFragmentClassName")
@@ -602,6 +629,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
             // Сбросим текущую заявку
             currentOrder= Orders(guid = "")
+            photoDir=""
+            photoStep=null
+
             supportActionBar?.setTitle(R.string.menu_orders)
             setMode(false) // Включены Заявки, а не карта
             // Выделим кнопку Список
@@ -677,7 +707,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("locationPhoto=${photoLocation?.latitude}_${photoLocation?.longitude}")
 
         Timber.d("lastKnownFilenamePhoto=${lastKnownFilenamePhoto}")
-        OtherUtil().saveExifLocation(lastKnownFilenamePhoto,photoLocation)
+        OtherUtil().saveExifLocation(lastKnownFilenamePhoto, photoLocation)
 
         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
@@ -752,7 +782,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         } else {
             errorReceived(throwable)
         }
-        mainPresenter.updData(sync=2)
+        mainPresenter.updData(sync = 2)
     }
 
      /*override fun updDataOK() {
@@ -784,7 +814,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
      override fun startNotificationService(token: String) {
          // Старутем сервис отслеживания уведомлений
          Timber.d("tokenToWS=$token")
-         startService(Intent(this,NotificationService::class.java).putExtra("Token",token))
+         startService(Intent(this, NotificationService::class.java).putExtra("Token", token))
      }
 
      override fun checkMessageId() {
@@ -797,6 +827,88 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
      override fun setEmptyMessageId() {
          Timber.d("setEmptyMessageId")
          messageId=0
+     }
+
+     override fun getAllMessage() {
+         mainPresenter.getAllMessage()
+     }
+
+     override fun showUnreadNotification(listNotification: List<Models.Notification>) {
+         Timber.d("showUnreadNotification")
+         var notificationContent=""
+         listNotification.forEach {
+             notificationContent += "\n ${it.content}"
+         }
+
+         Timber.d("notificationContent=$notificationContent")
+         val handler = Handler()
+         handler.postDelayed({
+             createNotification(notificationContent,listNotification.size)
+         }, 8000)
+     }
+
+     private fun createNotification(notificationContent: String, count: Int) {
+         Timber.d("createNotification")
+         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             val notificationChannel = NotificationChannel(
+                 Const.WebSocketConst.NOTIFICATION_CHANNEL_ID,
+                 "Служебные уведомления",
+                 NotificationManager.IMPORTANCE_HIGH
+             )
+
+             val audioAttributes = AudioAttributes.Builder()
+                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                 .build()
+
+             notificationChannel.enableLights(true)
+             notificationChannel.lightColor = Color.RED
+             notificationChannel.vibrationPattern = longArrayOf(0, 1000, 500, 1000)
+             notificationChannel.setSound(
+                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                 audioAttributes
+             )
+             notificationChannel.enableVibration(true)
+             notificationManager.createNotificationChannel(notificationChannel)
+         }
+
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             val channel = notificationManager.getNotificationChannel(Const.WebSocketConst.NOTIFICATION_CHANNEL_ID)
+             channel.canBypassDnd()
+         }
+
+         val notificationBuilder = NotificationCompat.Builder(
+             this,
+             Const.WebSocketConst.NOTIFICATION_CHANNEL_ID
+         )
+
+         val resultIntent= Intent(this, MainActivity::class.java).putExtra(
+             "allMessageRead",true
+         )
+         val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
+             addNextIntentWithParentStack(resultIntent)
+             getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+         }
+
+         val customNotification=notificationBuilder.setAutoCancel(true)
+             .setContentTitle(getString(R.string.notification_title, count))
+             //.setContentText(notificationContent)
+             .setStyle(
+                 NotificationCompat.BigTextStyle()
+                     .bigText(notificationContent)
+             )
+             .setContentIntent(resultPendingIntent)
+             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+             .setDefaults(Notification.DEFAULT_ALL)
+             .setWhen(System.currentTimeMillis())
+             .setSmallIcon(R.drawable.ic_new_notification)
+             .setAutoCancel(true)
+             .build()
+
+         notificationManager.notify(1001, customNotification)
      }
 
      override fun setIdsOrdersNotSync(list: List<Long>) {
@@ -819,7 +931,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     else -> toaster.showErrorToast("Ошибка! ${throwable.message}")
                 }
             }
-            is UnknownHostException ->{
+            is UnknownHostException -> {
                 toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
@@ -839,8 +951,16 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
      override fun registerReceiver() {
          Timber.d("registerReceiver")
          // Регистрируем широковещательный слушатель для получения данных от фонового сервиса MapkitLocationService
-         LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
-         LocalBroadcastManager.getInstance(this).registerReceiver(unauthorizedReceiver,IntentFilter("unauthorized"))
+         LocalBroadcastManager.getInstance(this).registerReceiver(
+             userLocationReceiver, IntentFilter(
+                 "userLocationUpdates"
+             )
+         )
+         LocalBroadcastManager.getInstance(this).registerReceiver(
+             unauthorizedReceiver, IntentFilter(
+                 "unauthorized"
+             )
+         )
      }
 
     fun invalidateNavigationDrawer() {
@@ -888,7 +1008,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                     builder.setView(dialogView)
                     builder.setCancelable(true)
-                    dialogFilterGroupOrder=builder.create()
+                    dialogFilterGroupOrder = builder.create()
                     dialogFilterGroupOrder.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
                     //Меняем позицию диалога
@@ -898,14 +1018,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                     dialogFilterGroupOrder.show()
                     // Установим ширину диалогового окна
-                    val width=resources.getDimension(R.dimen.dialog_filter_width).toInt()
-                    dialogFilterGroupOrder.window?.setLayout(width, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    val width = resources.getDimension(R.dimen.dialog_filter_width).toInt()
+                    dialogFilterGroupOrder.window?.setLayout(
+                        width,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
 
                     // Отступы диалога от границ экрана
-                    val wlp=dialogFilterGroupOrder.window?.attributes
-                    wlp?.y=50
-                    wlp?.x=50
-                    dialogFilterGroupOrder.window?.attributes=wlp
+                    val wlp = dialogFilterGroupOrder.window?.attributes
+                    wlp?.y = 50
+                    wlp?.x = 50
+                    dialogFilterGroupOrder.window?.attributes = wlp
 
                     setCountFiltersGroup()
                 } else {
@@ -915,7 +1038,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbAll -> {
                 Timber.d("Фильтр_по_дате_Все")
-                filteredOrders= listOf()
+                //filteredOrders= listOf()
+                filteredOrders = orders
+                Timber.d("orders=$orders")
                 filterOrderByDate("all")
                 if (::dialogFilterDateOrder.isInitialized) {
                     dialogFilterDateOrder.dismiss()
@@ -937,9 +1062,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbTomorrow -> {
                 Timber.d("Фильтр_по_дате_Завтра")
-                val calendar=Calendar.getInstance()
-                calendar.add(Calendar.DAY_OF_YEAR,1)
-                val tomorrowDate=calendar.time
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
+                val tomorrowDate = calendar.time
 
                 val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val dateText: String = dateFormat.format(tomorrowDate)
@@ -951,14 +1076,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbDate -> {
                 Timber.d("Фильтр_по_дате_Дата")
-                val date =Calendar.getInstance()
+                Timber.d("MainActivity_orders_filteredOrderByDate=${orders}")
+                val date = Calendar.getInstance()
                 val dateListener =
                     DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
                         date.set(Calendar.YEAR, year)
                         date.set(Calendar.MONTH, month)
                         date.set(Calendar.DAY_OF_MONTH, dayOfMonth)
 
-                        val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val dateFormat: DateFormat = SimpleDateFormat(
+                            "yyyy-MM-dd",
+                            Locale.getDefault()
+                        )
                         val dateText: String = dateFormat.format(date.time)
                         Timber.d("dateText=$dateText")
                         filterOrderByDate(dateText)
@@ -967,7 +1096,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                         }
                     }
 
-                DatePickerDialog(this,
+                DatePickerDialog(
+                    this,
                     dateListener,
                     date.get(Calendar.YEAR),
                     date.get(Calendar.MONTH),
@@ -976,18 +1106,19 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbStateAll -> {
                 Timber.d("Фильтр_по_Статусу_Все")
-                filteredOrders= listOf()
+                //filteredOrders= listOf()
+                filteredOrders = orders
                 filterOrderByState("all")
-                /*if (::dialogFilterStateOrder.isInitialized) {
+                if (::dialogFilterStateOrder.isInitialized) {
                     dialogFilterStateOrder.dismiss()
-                }*/
+                }
             }
             R.id.rbWithoutDone -> {
                 Timber.d("Фильтр_по_Статусу_Кроме_Выполненных_и_Отмененных")
                 filterOrderByState("all_without_Done_and_Cancel")
-                /*if (::dialogFilterStateOrder.isInitialized) {
+                if (::dialogFilterStateOrder.isInitialized) {
                     dialogFilterStateOrder.dismiss()
-                }*/
+                }
             }
         }
     }
@@ -995,20 +1126,28 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private fun setCountFiltersGroup() {
         Timber.d("setCountFiltersGroup")
 
-        if (::orders.isInitialized) {
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(R.string.orderType1).toLowerCase(
+        if (orders.isNotEmpty())  { //(::orders.isInitialized)
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(
+                R.string.orderType1
+            ).toLowerCase(
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(R.string.orderType2).toLowerCase(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(
+                R.string.orderType2
+            ).toLowerCase(
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(R.string.orderType3).toLowerCase(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(
+                R.string.orderType3
+            ).toLowerCase(
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(R.string.orderType4).toLowerCase(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(
+                R.string.orderType4
+            ).toLowerCase(
                 Locale.ROOT
             )
             }.size.toString()
@@ -1047,7 +1186,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
         if (filterCount==4) {
-            filteredOrders= listOf()
+            //filteredOrders= listOf()
+            filteredOrders=orders
         }
 
         // Фильтруем заявки
@@ -1060,6 +1200,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (childFragment is MapFragment){
             Timber.d("Включена карта")
             val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
+            filteredOrders=filteredOrderByGroup
 
             childFragment.showMarkers(filteredOrderByGroup)
         }
@@ -1084,6 +1225,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  orders.filter { it.dateVisit ==dateText }
              }
 
+             filteredOrders=filteredOrderByDate
 
              childFragment.showMarkers(filteredOrderByDate)
          }
@@ -1105,6 +1247,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
              }
 
+             filteredOrders=filteredOrderByState
 
              childFragment.showMarkers(filteredOrderByState)
          }

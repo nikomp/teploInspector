@@ -72,8 +72,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     private lateinit var currentOrder: Orders
     lateinit var root: View
-    var orders: List<Orders> = listOf()
-    //var filteredOrdersOrderFragment: List<Orders> = listOf()
 
 
     override fun onCreateView(
@@ -93,8 +91,22 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val btnMap=root.findViewById<Button>(R.id.btnMap)
         btnMap.setOnClickListener(this)
 
+        // инициализируем контейнер SwipeRefreshLayout
+        val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
 
-        Timber.d("root=$root")
+        // указываем слушатель свайпов пользователя
+        swipeRefreshLayout.setOnRefreshListener {
+            Timber.d("swipeRefreshLayout.setOnRefreshListener")
+            loginPresenter.attachView(this)
+            loginPresenter.syncDB()
+            swipeRefreshLayout.isRefreshing = false
+            (activity as MainActivity).isDefaultFilter=false
+        }
+
+        Timber.d("filteredOrders=${(requireContext() as MainActivity).filteredOrders}")
+        if ((requireContext() as MainActivity).filteredOrders.isNotEmpty()) {
+            showFilterOrders((requireContext() as MainActivity).filteredOrders)
+        }
 
         return root
     }
@@ -171,14 +183,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             doAuthorization()
         } else {
             Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
-            orderPresenter.attachView(this)
-            orderPresenter.loadOrders()
-
+            Timber.d("MainActivity_orders=${(requireContext() as MainActivity).orders}")
+            if ((requireContext() as MainActivity).orders.isEmpty()) {
+                orderPresenter.attachView(this)
+                orderPresenter.loadOrders()
+            }
         }
-
-
-       /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
-       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
    }
 
     private fun requestGPSPermission() {
@@ -247,7 +257,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun showOrders() {
-        Timber.d("showOrders")
+        Timber.d("showOrders1")
         orderPresenter.attachView(this)
         //orderPresenter.importData()
         orderPresenter.loadOrders()
@@ -357,11 +367,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         sharedPref.saveUser(user)
     }
 
-    /*override fun startLocationService() {
-        // Стартуем фоновый сервис для отслеживания пользователя
-        activity?.startService(Intent(activity, UserLocationService::class.java))
-    }*/
-
     override fun startNotificationService(token: String) {
         // Старутем сервис отслеживания уведомлений
         Timber.d("tokenToWS_OrdeFragment=$token")
@@ -373,40 +378,73 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         (activity as MainActivity).checkMessageId()
     }
 
+    override fun getAllMessage() {
+        // Получим все уведомления с сервера
+        mainPresenter.attachView(requireActivity() as MainActivity)
+        mainPresenter.getAllMessage()
+    }
+
+    private fun showFilterOrders(orders: List<Orders>) {
+        longInfo("showFilterOrders=${orders}")
+
+        val pb=root.findViewById<ProgressBar>(R.id.progressBar)
+        pb.visibility= View.INVISIBLE
+
+        //this.orders=orders
+        (activity as MainActivity).filteredOrders=orders
+
+
+        val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
+
+        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
+        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
+        ordersRecyclerView.adapter = adapter
+
+    }
+
     override fun showOrders(orders: List<Orders>) {
         longInfo("showOrdersVV=${orders}")
 
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
 
-        this.orders=orders
+        //this.orders=orders
         (activity as MainActivity).orders=orders
+        (activity as MainActivity).filteredOrders=orders
 
-        // инициализируем контейнер SwipeRefreshLayout
+        /*// инициализируем контейнер SwipeRefreshLayout
         val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
 
         // указываем слушатель свайпов пользователя
         swipeRefreshLayout.setOnRefreshListener {
+            Timber.d("swipeRefreshLayout.setOnRefreshListener")
             loginPresenter.attachView(this)
             loginPresenter.syncDB()
             swipeRefreshLayout.isRefreshing = false
-        }
+            (activity as MainActivity).isDefaultFilter=false
+        }*/
 
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
-        val adapter=
-
+        /*val adapter=
         if ((activity as MainActivity).filteredOrders.isEmpty()) {
             OrderListAdapter(orders,this, this, userLocationNative.userLocation)
         } else {
             OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
-        }
-
+        }*/
+        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
+        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
         ordersRecyclerView.adapter = adapter
 
         //По-умолчанию показываем все кроме выполненных и отмененных
-        (activity as MainActivity).filterOrderByState("all_without_Done_and_Cancel")
-        (activity as MainActivity).filterOrderByGroup()
+        Timber.d("isDefaultFilter=${(activity as MainActivity).isDefaultFilter}")
+        if (!(activity as MainActivity).isDefaultFilter) {
+            (activity as MainActivity).isDefaultFilter=true // Фильтр срабатывает только при первой загрузке, дальше данные берутся из filteredOrders
+            (activity as MainActivity).filterOrderByState("all_without_Done_and_Cancel")
+            (activity as MainActivity).filterOrderByGroup()
+        }
+
     }
 
     //#Android_Studio #длинный_лог
@@ -425,7 +463,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     fun filteredOrderByGroup(filterGroupList: List<String>) {
         Timber.d("filteredOrderByGroup")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
+        val filteredOrderByGroup=(requireContext() as MainActivity).orders.filter { it.groupOrder in filterGroupList }
+        (requireContext() as MainActivity).filteredOrders=filteredOrderByGroup
 
         val adapter = OrderListAdapter(filteredOrderByGroup,this, this, userLocationNative.userLocation)
         rcv.adapter = adapter
@@ -437,11 +476,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         Timber.d("filteredOrderByDate")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         val filteredOrderByDate = if (strDate=="all") {
-            orders.filter { it.dateVisit !=null }
+            (requireContext() as MainActivity).orders.filter { it.dateVisit !=null }
         } else {
-            orders.filter { it.dateVisit ==strDate }
+            (requireContext() as MainActivity).orders.filter { it.dateVisit ==strDate }
         }
+        (requireContext() as MainActivity).filteredOrders=filteredOrderByDate
 
+        Timber.d("MainActivity_orders_filteredOrderByDate=${(requireContext() as MainActivity).orders}")
 
         val adapter = OrderListAdapter(filteredOrderByDate,this, this, userLocationNative.userLocation)
         rcv.adapter = adapter
@@ -454,14 +495,15 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         val filteredOrderByState: List<Orders>
         if (filter=="all") {
-            filteredOrderByState=orders.filter { it.status !=null }
+            filteredOrderByState=(requireContext() as MainActivity).orders.filter { it.status !=null }
         } else {
-            filteredOrderByState=orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
+            filteredOrderByState=(requireContext() as MainActivity).orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
             if ((root.context as MainActivity).isDialogFilterStateOrderInit()) {
                 val rbWithoutDone=(root.context as MainActivity).dialogFilterStateOrder.findViewById<RadioButton>(R.id.rbWithoutDone)
                 rbWithoutDone.isChecked=true
             }
         }
+        (requireContext() as MainActivity).filteredOrders=filteredOrderByState
 
 
         val adapter = OrderListAdapter(filteredOrderByState,this, this, userLocationNative.userLocation)
@@ -505,6 +547,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
+        Timber.d("MainActivity_orders_recyclerViewListClicked=${(requireContext() as MainActivity).orders}")
 
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         currentOrder = if (rcv.adapter!=null) {
@@ -543,7 +586,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     if (rcv.adapter!=null) {
                         (this.requireActivity() as MainActivity).filteredOrders=(rcv.adapter as OrderListAdapter).ordersFilterList
                     } else {
-                        (this.requireActivity() as MainActivity).filteredOrders= listOf()
+                        //(this.requireActivity() as MainActivity).filteredOrders= listOf()
+                        (this.requireActivity() as MainActivity).filteredOrders=(this.requireActivity() as MainActivity).orders
                     }
 
                     (this.requireActivity() as MainActivity).navController.navigate(R.id.nav_slideshow)

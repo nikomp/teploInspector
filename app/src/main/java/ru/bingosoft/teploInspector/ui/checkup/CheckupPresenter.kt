@@ -179,10 +179,11 @@ class CheckupPresenter @Inject constructor(
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnError {throwable ->
-                Timber.d("FFF")
                 throwable.printStackTrace()
             }
             .subscribe ({ techParams ->
+                Timber.d("techParams_size=${techParams.size}")
+                Timber.d("techParams_loaded=$techParams")
                 view?.techParamsLoaded(techParams)
                 disposable.dispose()
             },{ throwable ->

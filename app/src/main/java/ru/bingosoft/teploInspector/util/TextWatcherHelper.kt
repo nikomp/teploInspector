@@ -10,7 +10,12 @@ class TextWatcherHelper(private val control: Models.TemplateControl, val view: V
     override fun afterTextChanged(s: Editable?) {
         control.answered = s.toString().isNotEmpty()
         if (control.type=="numeric") {
-            control.resvalue=s?.toString()?.replace(',', '.')
+            if (s.toString().isNotEmpty()) {
+                control.resvalue=s?.toString()?.replace(',', '.')
+            } else {
+                control.resvalue=null
+            }
+
         } else {
             control.resvalue=s.toString()
         }
