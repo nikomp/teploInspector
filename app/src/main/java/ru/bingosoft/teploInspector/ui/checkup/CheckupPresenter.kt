@@ -22,6 +22,7 @@ class CheckupPresenter @Inject constructor(
     var view: CheckupContractView? = null
 
     private lateinit var disposable: Disposable
+    private lateinit var disposableTH: Disposable
 
     fun attachView(view: CheckupContractView) {
         this.view=view
@@ -172,23 +173,26 @@ class CheckupPresenter @Inject constructor(
     }
 
     fun getTechParams(idOrder: Long) {
+        Timber.d("getTechParams")
         Timber.d("techParams=$idOrder")
-        disposable=Single.fromCallable {
+        disposableTH=Single.fromCallable {
             db.techParamsDao().getTechParamsOrder(idOrder)
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnError {throwable ->
+                Timber.d("th_error0 $throwable")
                 throwable.printStackTrace()
             }
             .subscribe ({ techParams ->
                 Timber.d("techParams_size=${techParams.size}")
                 Timber.d("techParams_loaded=$techParams")
                 view?.techParamsLoaded(techParams)
-                disposable.dispose()
+                disposableTH.dispose()
             },{ throwable ->
+                Timber.d("th_error $throwable")
                 throwable.printStackTrace()
-                disposable.dispose()
+                disposableTH.dispose()
             })
     }
 }

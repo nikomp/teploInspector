@@ -124,6 +124,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         ivExpand.visibility=View.VISIBLE
 
         val stepsRecyclerView = rootView.findViewById(R.id.steps_recycler_view) as RecyclerView
+        //(stepsRecyclerView.itemAnimator as SimpleItemAnimator).supportsChangeAnimations=false
         stepsRecyclerView.layoutManager = LinearLayoutManager(this.activity)
         val adapter=StepsAdapter(checkupSteps,this)
         stepsRecyclerView.adapter = adapter
@@ -148,6 +149,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     private fun setTechParams(idOrder: Long) {
+        Timber.d("setTechParams")
         checkupPresenter.getTechParams(idOrder)
     }
 

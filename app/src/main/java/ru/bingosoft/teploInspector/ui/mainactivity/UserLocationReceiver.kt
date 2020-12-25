@@ -11,8 +11,6 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.HttpException
-import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.User.TrackingUserLocation
@@ -23,7 +21,6 @@ import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.ENABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
-import java.net.UnknownHostException
 import java.util.*
 import javax.inject.Inject
 
@@ -32,6 +29,7 @@ class UserLocationReceiver @Inject constructor(
     private val db: AppDatabase
 ): BroadcastReceiver() {
     private lateinit var disposable: Disposable
+    private lateinit var disposableRoute: Disposable
     lateinit var lastKnownLocation: Location
     @Inject
     lateinit var toaster: Toaster
@@ -149,7 +147,6 @@ class UserLocationReceiver @Inject constructor(
                     disposable.dispose()
                 },
                 {
-                    Timber.d("ошибка!!!")
                     Timber.d(it.printStackTrace().toString())
                     ctx.sendBroadcast(Intent("unauthorized"))
                     disposable.dispose()
@@ -160,7 +157,7 @@ class UserLocationReceiver @Inject constructor(
 
     private fun sendUserRoute() {
         Timber.d("sendUserRoute_from_UserLocationReceiver")
-        disposable=db.trackingUserDao()
+        disposableRoute=db.trackingUserDao()
             .getTrackingForCurrentDay()
             .subscribeOn(Schedulers.io())
             .map{trackingUserLocation ->
@@ -186,12 +183,12 @@ class UserLocationReceiver @Inject constructor(
             .subscribe(
                 { response ->
                     Timber.d(response.toString())
-                    disposable.dispose()
+                    disposableRoute.dispose()
 
                 }, { throwable ->
-                    disposable.dispose()
+                    disposableRoute.dispose()
                     throwable.printStackTrace()
-                    when (throwable) {
+                    /*when (throwable) {
                         is HttpException -> {
                             Timber.d("throwable.code()=${throwable.code()}")
                             when (throwable.code()) {
@@ -210,7 +207,7 @@ class UserLocationReceiver @Inject constructor(
                         else -> {
                             toaster.showToast("Ошибка! ${throwable.message}")
                         }
-                    }
+                    }*/
 
                 }
             )

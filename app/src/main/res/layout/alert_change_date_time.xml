@@ -12,7 +12,7 @@
         android:layout_marginTop="8dp"
         android:autofillHints=""
         android:ems="10"
-        android:hint="Дата"
+        android:hint="@string/alert_change_date_date"
         android:inputType="date"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -26,13 +26,13 @@
         android:layout_marginEnd="8dp"
         android:autofillHints=""
         android:ems="10"
-        android:hint="Время"
+        android:hint="@string/alert_change_date_time"
         android:inputType="time"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/newDate"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
+    <!--<Button
         android:id="@+id/btnOk"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -40,5 +40,24 @@
         android:text="ОК"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/newDate" />
+        app:layout_constraintTop_toBottomOf="@+id/newDate" />-->
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnOk"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@color/buttonBackground"
+
+        android:enabled="true"
+        android:fontFamily="@font/roboto_medium"
+        android:text="@string/alert_change_date_ok"
+
+        app:backgroundTint="@color/buttonBackground"
+        app:cornerRadius="22dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/newDate"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

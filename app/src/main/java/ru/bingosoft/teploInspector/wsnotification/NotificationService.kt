@@ -47,11 +47,11 @@ class NotificationService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Timber.d("СЕРВИС_Уведомлений_СТАРТОВАЛ")
 
         //Получим токен пользователя
-        val token=intent.getStringExtra("Token")
+        val token=intent?.getStringExtra("Token")
         if (token.isNullOrEmpty()) {
             Timber.d("ТокенПустой")
         } else {

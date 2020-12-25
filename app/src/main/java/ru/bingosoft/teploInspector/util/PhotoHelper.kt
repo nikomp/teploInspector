@@ -62,7 +62,7 @@ class PhotoHelper {
         // Создадим имя для файла с картинкой
         val timeStamp = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale("ru","RU")) .format(Date())
 
-        val imageFileName = "JPEG_ $timeStamp" + "_"
+        val imageFileName = "JPEG_$timeStamp" + "_"
         val storageDir = File(DCIM_DIR, stDir)
 
         if (!storageDir.exists()) {

@@ -40,15 +40,6 @@
             app:backgroundTint="@color/colorCardItem" />
     </LinearLayout>
 
-    <!--<androidx.appcompat.widget.SearchView
-        android:id="@+id/country_search"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
-        android:textCursorDrawable="@null"
-        app:iconifiedByDefault="false"
-        app:queryBackground="@null" />-->
-
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/srl_container"
         android:layout_width="0dp"

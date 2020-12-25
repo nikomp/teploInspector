@@ -167,7 +167,7 @@ class UserLocationService: Service() {
                 intent.putExtra("provider","GPS_PROVIDER")
             }
             intent.putExtra("status",status)
-            if (location != null) {
+            /*if (location != null) {
                 intent.putExtra("lat",location.latitude)
                 intent.putExtra("lon",location.longitude)
             }
@@ -178,7 +178,7 @@ class UserLocationService: Service() {
             if (diffTimeMinute>=3) {
                 intent.putExtra("sendRouteToServer",true)
                 ctx.startTimeService=currentTime
-            }
+            }*/
 
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
         }

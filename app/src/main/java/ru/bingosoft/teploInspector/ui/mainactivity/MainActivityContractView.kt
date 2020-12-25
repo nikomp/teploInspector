@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
 import ru.bingosoft.teploInspector.models.Models
+import java.io.File
 
 interface MainActivityContractView {
     fun showMainActivityMsg(resID: Int)
@@ -9,6 +10,7 @@ interface MainActivityContractView {
     fun dataNotSync(idOrder: Long, throwable: Throwable)
     //fun updDataOK()
     fun filesSend(countFiles: Int, indexCurrentFile: Int)
+    fun renameSyncedFiles(files: Array<File>?)
     fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
     fun saveToken(token: String)
     fun startNotificationService(token: String)

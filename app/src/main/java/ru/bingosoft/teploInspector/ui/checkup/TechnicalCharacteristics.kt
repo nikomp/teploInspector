@@ -65,7 +65,7 @@ class TechnicalCharacteristics(private val lists: List<TechParams>, private val 
             templateStep.findViewById<TextView>(R.id.question).text=name
 
             val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
-            val llGroup=templateStep.findViewById<LinearLayout>(R.id.container)
+            val llGroup=templateStep.findViewById<LinearLayout>(R.id.containerTh)
             llGroup.tag="$name$node" // Сохраним имя группы
             val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 

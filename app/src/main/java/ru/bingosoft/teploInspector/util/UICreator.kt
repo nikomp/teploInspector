@@ -214,6 +214,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     Timber.d("_it=$it")
                     if (it.replicated_on!=null) {
                         Timber.d("it.replicated_on=${it.replicated_on}")
+                        // Тиражирование по ИТП
                         if (it.node_itp!=null) {
                             Timber.d("it.node_itp=${it.node_itp}")
                             llGroup=createGroup(
@@ -222,7 +223,16 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                                 it.node_itp
                             )
                         }
+                        // Тиражирование по Номеру объекта
+                        if (it.number_object!=null) {
+                            Timber.d("it.number_object=${it.number_object}")
+                            llGroup=createGroup(
+                                "Номер объекта ${it.number_object}",
+                                llGroup
+                            )
+                        }
                     }
+
 
                     when (it.type) {
                         "combobox" -> createCombobox(it, llGroup)
@@ -295,7 +305,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         }
 
         // Заполним spinner
-        materialSpinner.setAdapter(spinnerArrayAdapter)
+        parentFragment.requireActivity().runOnUiThread{
+            materialSpinner.setAdapter(spinnerArrayAdapter)
+        }
+
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
@@ -317,6 +330,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         templateStep.id=it.id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
+        //Покажем норматив
+        val tvRegulation=templateStep.findViewById<TextView>(R.id.tvRegulation)
+        if (!it.regulation.isNullOrEmpty()) {
+            tvRegulation.visibility=View.VISIBLE
+            tvRegulation.text = parentFragment.getString(R.string.regulation_text,it.question,it.regulation)
+        }else {
+            tvRegulation.visibility=View.GONE
+        }
+
         setQuestionColor(it, templateStep)
 
 
@@ -348,6 +370,17 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         templateStep.id = it.id
         templateStep.findViewById<TextView>(R.id.question).text = it.question
+
+        //Покажем норматив
+        val tvRegulation=templateStep.findViewById<TextView>(R.id.tvRegulation)
+        if (!it.regulation.isNullOrEmpty()) {
+            Timber.d("it_regulation=${it.regulation}")
+            tvRegulation.visibility=View.VISIBLE
+            tvRegulation.text = parentFragment.getString(R.string.regulation_text,it.question,it.regulation)
+        }else {
+            tvRegulation.visibility=View.GONE
+        }
+
         setQuestionColor(it, templateStep)
 
         val textInputLayout = templateStep.findViewById<TextInputLayout>(R.id.til)
@@ -557,10 +590,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 )
 
             OtherUtil().getFilesFromDir("$storageDir")
+            //listOf()
 
         } else {
             listOf()
         }
+        Timber.d("images=$images")
 
         val leftBtn = templateStep.findViewById(R.id.left_nav) as ImageButton
         val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
@@ -855,13 +890,25 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
      * Метод, в котором осуществляется привязка дочернего View к родительскому
      */
     private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
-        if (mainView is LinearLayout) {
+        parentFragment.requireActivity().runOnUiThread{
+            if (mainView is LinearLayout) {
+                if (index!=null) {
+                    mainView.addView(v, index)
+                } else {
+                    mainView.addView(v)
+                }
+            }
+        }
+
+
+
+        /*if (mainView is LinearLayout) {
             if (index!=null) {
                 mainView.addView(v, index)
             } else {
                 mainView.addView(v)
             }
-        }
+        }*/
     }
 
 

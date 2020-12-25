@@ -9,15 +9,24 @@ import java.util.*
 class TextWatcherHelper(private val control: Models.TemplateControl, val view: View): TextWatcher {
     override fun afterTextChanged(s: Editable?) {
         control.answered = s.toString().isNotEmpty()
-        if (control.type=="numeric") {
-            if (s.toString().isNotEmpty()) {
-                control.resvalue=s?.toString()?.replace(',', '.')
-            } else {
-                control.resvalue=null
+        when (control.type) {
+            "numeric"-> {
+                if (s.toString().isNotEmpty()) {
+                    control.resvalue=s?.toString()?.replace(',', '.')
+                } else {
+                    control.resvalue=null
+                }
             }
-
-        } else {
-            control.resvalue=s.toString()
+            "combobox" -> {
+                if (s.toString().isNotEmpty() && s.toString().contains("\n")) {
+                    control.resvalue=s?.toString()?.replace("\n", "")
+                } else {
+                    control.resvalue=s.toString()
+                }
+            }
+            else -> {
+                control.resvalue=s.toString()
+            }
         }
 
         control.datetime= Date().time

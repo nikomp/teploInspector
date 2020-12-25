@@ -20,7 +20,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
+    <!--<Button
         android:id="@+id/buttonInetOK"
         style="@style/Base.Widget.AppCompat.Button.Borderless.Colored"
         android:layout_width="76dp"
@@ -31,9 +31,30 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/stNotInternet" />-->
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonInetOK"
+
+        android:layout_width="76dp"
+        android:layout_height="47dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/buttonBackground"
+        android:enabled="true"
+
+        android:fontFamily="@font/roboto_medium"
+        android:text="@string/yes"
+        app:backgroundTint="@color/buttonBackground"
+
+        app:cornerRadius="22dp"
+        app:layout_constraintEnd_toStartOf="@+id/buttonInetNo"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/stNotInternet" />
 
-    <Button
+    <!--<Button
         android:id="@+id/buttonInetNo"
         style="@style/Base.Widget.AppCompat.Button.Borderless.Colored"
         android:layout_width="wrap_content"
@@ -41,6 +62,26 @@
         android:layout_marginLeft="8dp"
         android:layout_marginTop="20dp"
         android:text="@string/no"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/buttonInetOK"
+        app:layout_constraintTop_toBottomOf="@+id/stNotInternet" />-->
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonInetNo"
+
+        android:layout_width="wrap_content"
+        android:layout_height="47dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="20dp"
+
+        android:background="@color/buttonBackground"
+        android:enabled="true"
+        android:fontFamily="@font/roboto_medium"
+        android:text="@string/no"
+        app:backgroundTint="@color/buttonBackground"
+
+        app:cornerRadius="22dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/buttonInetOK"

@@ -11,6 +11,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
@@ -21,6 +23,7 @@ import ru.bingosoft.teploInspector.util.ThrowHelper
 import ru.bingosoft.teploInspector.util.UserLocationNative
 import timber.log.Timber
 import java.io.File
+import java.io.FilenameFilter
 import java.util.*
 import javax.inject.Inject
 
@@ -35,10 +38,13 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     private lateinit var disposable: Disposable
     private lateinit var disposableFiles: Disposable
+    private lateinit var disposableFiles0: Disposable
     private lateinit var disposableAuth: Disposable
     private lateinit var disposableSendGi: Disposable
     private lateinit var disposableAllMessage: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
+
+    private var filesToSync: Array<File>? = arrayOf()
 
 
     fun attachView(view: MainActivityContractView) {
@@ -285,6 +291,21 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 )
     }
 
+    //#Проверка_JSON
+    private fun checkJsonValid(src: String): Boolean {
+        Timber.d("checkJsonValid")
+
+        // см. подробнее тут https://stackoverflow.com/questions/10174898/how-to-check-whether-a-given-string-is-valid-json-in-java
+        // https://jsonlint.com/ OnLine JSON Validator
+        try {
+            JSONArray(src)
+        } catch (e: JSONException) {
+            e.printStackTrace()
+            return false
+        }
+        return true
+    }
+
     fun sendData3(idOrder: Long, syncView: View? = null) {
         Timber.d("sendData3_$idOrder")
         disposable =
@@ -293,11 +314,16 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .subscribeOn(Schedulers.io())
                 .takeWhile { listResult ->
                     Timber.d("listResult=$listResult")
+                    Timber.d("listResult=${listResult.size}")
                     if (listResult.isEmpty()) {
-                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
+                        throw ThrowHelper("Нет данных для передачи на сервер")
                     } else {
+                        if (!checkJsonValid(listResult[0].controls)) {
+                            throw ThrowHelper("Некорректные данные по заявке ID: $idOrder")
+                        }
                         listResult.isNotEmpty()
                     }
+
                 }
                 .flatMap { results ->
                     // Конвертируем строку controls в JsonArray
@@ -343,13 +369,12 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .subscribe(
                     {response: List<Models.DataFile> ->
                         disposable.dispose()
+                        view?.showMainActivityMsg(R.string.msgDataSendOk)
                         if (response.isNotEmpty()) {
                             Timber.d("response=${response[0].id}")
                             sendFile(response)
                         } else {
-
                             view?.dataSyncOK(idOrder)
-                            view?.showMainActivityMsg(R.string.msgDataSendOk)
                             if (syncView!=null) {
                                 syncView.visibility=View.GONE
                             }
@@ -358,6 +383,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     }, { throwable ->
                         Timber.d("MainActivityPresenter_throwable")
                         throwable.printStackTrace()
+                        view?.errorReceived(throwable)
                         view?.dataNotSync(idOrder,throwable)
                         //disposable.dispose()
                     }
@@ -372,9 +398,21 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             val filesBody= mutableListOf<MultipartBody.Part>()
             val filesBody2= mutableListOf<MultipartBody.Part>()
             if (directory.exists()) {
-                val files = directory.listFiles()
 
-                files?.forEach {
+                // На сервер отправляем только несинхронизированные файлы
+                val notSyncFileFilter= FilenameFilter { _, name -> name?.contains("_synced")==false }
+
+                filesToSync = if (!directory.listFiles(notSyncFileFilter).isNullOrEmpty()) {
+                    Timber.d("files_exist")
+                    directory.listFiles(notSyncFileFilter)
+                } else {
+                    arrayOf()
+                }
+
+                Timber.d("filesToSync.size=${filesToSync?.size}")
+
+
+                filesToSync?.forEach {
                     val part = MultipartBody.Part.createFormData(
                         "attr_2614_[]", it.name, it.asRequestBody("multipart/form-data".toMediaType())
                     )
@@ -387,38 +425,43 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 }
             }
 
-            disposable=apiService.sendFiles(datafile.id, 2518, filesBody)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    {response ->
-                        Timber.d("sendingFiles_$response")
-                        disposable.dispose()
-                        // Фотографии сохраним еще и для заявки
-                        disposableFiles=apiService.sendFiles(datafile.idOrder, 2380, filesBody2)
-                            .subscribeOn(Schedulers.io())
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe(
-                                {
-                                    Timber.d("sendingFiles_OK")
-                                    view?.filesSend(dataFileArray.size,index+1)
-                                    disposableFiles.dispose()
-                                },
-                                {throwable ->
-                                    disposableFiles.dispose()
-                                    Timber.d("sendingFiles_throwable")
-                                    view?.errorReceived(throwable)
-                                    throwable.printStackTrace()
-                                }
-                            )
-                    },
-                    {throwable ->
-                        Timber.d("sendingFiles_throwable2")
-                        view?.errorReceived(throwable)
-                        throwable.printStackTrace()
-                        disposable.dispose()
-                    }
-                )
+            if (filesBody.isNotEmpty() && filesBody2.isNotEmpty()) {
+                Timber.d("disposableFiles0")
+                disposableFiles0=apiService.sendFiles(datafile.id, 2518, filesBody)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(
+                        {response ->
+                            Timber.d("sendingFiles_$response")
+                            disposableFiles0.dispose()
+                            // Фотографии сохраним еще и для заявки
+                            disposableFiles=apiService.sendFiles(datafile.idOrder, 2380, filesBody2)
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(
+                                    {
+                                        Timber.d("sendingFiles_OK")
+                                        view?.filesSend(dataFileArray.size,index+1)
+                                        view?.renameSyncedFiles(filesToSync)
+                                        disposableFiles.dispose()
+                                    },
+                                    {throwable ->
+                                        disposableFiles.dispose()
+                                        Timber.d("sendingFiles_throwable")
+                                        view?.errorReceived(throwable)
+                                        throwable.printStackTrace()
+                                    }
+                                )
+                        },
+                        {throwable ->
+                            Timber.d("sendingFiles_throwable2")
+                            view?.errorReceived(throwable)
+                            throwable.printStackTrace()
+                            disposableFiles0.dispose()
+                        }
+                    )
+            }
+
 
         }
     }

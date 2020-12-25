@@ -341,9 +341,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         dialogView.buttonInetOK.setOnClickListener{
             Timber.d("dialogView.buttonInetOK")
             //TODO возможно тут потребуется вывести окно авторизации
-            showMessageLogin(R.string.auth_ok)
+            showMessageLogin(R.string.working_offline)
             alertDialogNotInternet.dismiss()
 
+            /*textfailure.visibility=View.INVISIBLE
+            Navigation.findNavController(root).navigate(R.id.nav_home)*/
         }
 
         dialogView.buttonInetNo.setOnClickListener{

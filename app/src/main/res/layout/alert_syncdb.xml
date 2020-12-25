@@ -21,7 +21,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonOK"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@color/buttonBackground"
+        android:enabled="true"
+        android:fontFamily="@font/roboto_medium"
+        app:backgroundTint="@color/buttonBackground"
+
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/yes"
+
+        app:cornerRadius="22dp"
+        app:layout_constraintEnd_toStartOf="@+id/buttonNo"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert" />
+
+    <!--<Button
         android:id="@+id/buttonOK"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -32,9 +53,30 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert"/>
+        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert"/>-->
 
-    <Button
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonNo"
+
+        android:layout_width="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@color/buttonBackground"
+        android:enabled="true"
+        android:fontFamily="@font/roboto_medium"
+        android:onClick="onClick"
+
+        android:layout_height="47dp"
+        app:backgroundTint="@color/buttonBackground"
+        android:layout_marginTop="20dp"
+        android:text="@string/no"
+
+        app:cornerRadius="22dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/buttonOK"
+        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert" />
+
+    <!--<Button
         android:id="@+id/buttonNo"
         android:layout_width="wrap_content"
         android:layout_height="47dp"
@@ -44,5 +86,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/buttonOK"
-        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert" />
+        app:layout_constraintTop_toBottomOf="@+id/stMsgAlert" />-->
 </androidx.constraintlayout.widget.ConstraintLayout>

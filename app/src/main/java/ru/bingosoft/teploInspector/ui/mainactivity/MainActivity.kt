@@ -58,6 +58,7 @@ import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
+import java.io.File
 import java.net.UnknownHostException
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -140,10 +141,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             doAuthorization() // Сразу пробуем авторизоваться
         }
 
-
-        // Запросим разрешение на геолокацию, нужны для сервиса
-        requestPermission()
-
+        requestPermission() // Запросим разрешение на геолокацию, нужны для сервиса
         checkIntent() // Возможно Activity открыта из уведомления
 
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -153,10 +151,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             buildAlertMessageNoGps()
         }
 
-
-        // Регистрируем широковещательный слушатель для получения данных от фонового сервиса MapkitLocationService
-        //LocalBroadcastManager.getInstance(this).registerReceiver(userLocationReceiver, IntentFilter("userLocationUpdates"))
-        //LocalBroadcastManager.getInstance(this).registerReceiver(unauthorizedReceiver,IntentFilter("unauthorized"))
 
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
 
@@ -281,13 +275,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private fun requestPermission() {
         // Проверим разрешения
         Timber.d("requestPermission")
-        if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
-            Timber.d("requestPermission1")
+        if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_BACKGROUND_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
-                Timber.d("requestPermission2")
                 requestPermissions(
                     arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
                     ),
                     Const.RequestCodes.PERMISSION
                 )
@@ -794,7 +788,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun filesSend(countFiles: Int, indexCurrentFile: Int) {
         if (countFiles==indexCurrentFile) {
             mainPresenter.updData()
-            toaster.showToast(R.string.data_and_files_sends)
+            //toaster.showToast(R.string.data_and_files_sends) // Убрал т.к. есть задержка с появлением сообщения из-за передачи файлов
+        }
+    }
+
+    override fun renameSyncedFiles(files: Array<File>?) {
+        Timber.d("renameSyncedFiles ${files?.size}")
+        files?.forEach {
+            it.renameTo(File(it.parentFile,"${it.nameWithoutExtension}_synced.${it.extension}"))
         }
     }
 

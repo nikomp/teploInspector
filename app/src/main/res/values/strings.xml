@@ -59,7 +59,7 @@
     <string name="select_here">Выберите тип объекта</string>
     <string name="object_name">Название объекта</string>
     <string name="btnSave">Сохранить</string>
-    <string name="notInet">Сервер не доступен. Хотите работать в режиме офлайн</string>
+    <string name="notInet">Проблемы с сетью либо сервер недоступен. Хотите работать в режиме офлайн?</string>
     <string name="btmSheetSaveInvalid">Заполните все данные об объекте</string>
     <string name="unknown_requestCode">Неизвестный requestCode</string>
     <string name="not_result_checklist">Нет заполненных чеклистов</string>
@@ -81,6 +81,7 @@
     <string name="driveway">Проезд</string>
     <string name="btnDeleteAllPhoto">Удалить все</string>
     <string name="btnDeletePhoto">Удалить фото</string>
+    <string name="working_offline">Работа продолжена в оффлайн режиме</string>
 
     <string name="network_error_message">Яндекс.Карты: Ошибка сети</string>
     <string name="remote_error_message">Яндекс.Карты: Ошибка удаленного сервера</string>
@@ -187,6 +188,10 @@
     <string name="notification_title">Новых уведомлений: %1$d</string>
     <string name="notifications_read">Все уведомления прочитаны</string>
 
+    <string name="regulation_text">%1$s (%2$s)</string>
+    <string name="alert_change_date_ok">ОК</string>
+    <string name="alert_change_date_date">Дата</string>
+    <string name="alert_change_date_time">Время</string>
 
 
 </resources>

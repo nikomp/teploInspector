@@ -88,6 +88,8 @@ class Models {
         @Expose @SerializedName("replicated_on") val replicated_on: Int?=null,
         @Expose @SerializedName("node_itp") val node_itp: String?=null,
         @Expose @SerializedName("archival_records") val archival_records: Int?=null,
+        @Expose @SerializedName("regulation") val regulation: String?="",
+        @Expose @SerializedName("number_object") val number_object: String?=null,
 
 
         @Expose @SerializedName("answered") var answered: Boolean = false,

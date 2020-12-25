@@ -209,7 +209,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         val adapter: ArrayAdapter<String> = ArrayAdapter(
             parentFragment.requireContext(),
-            R.layout.template_multiline_spinner_item, //android.R.layout.simple_dropdown_item_1line,
+            R.layout.template_multiline_spinner_item,
             Const.TypeTransportation.list
         )
         holder.typeTransportation.setAdapter(adapter)
@@ -265,7 +265,6 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         } else {
             holder.ivSync.visibility=View.GONE
         }
-
 
         holder.listener=itemListener
 

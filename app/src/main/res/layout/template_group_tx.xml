@@ -20,6 +20,8 @@
             android:id="@+id/colorLine"
             android:layout_width="4dp"
             android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
             android:background="#297BE7"
             android:visibility="visible" />
 
@@ -63,8 +65,8 @@
                 android:id="@+id/titleGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:layout_marginLeft="2dp">
+                android:layout_marginStart="10dp"
+                android:layout_marginLeft="10dp">
 
                 <TextView
                     android:id="@+id/question"
@@ -91,13 +93,12 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout
-                android:id="@+id/container"
+                android:id="@+id/containerTh"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginLeft="8dp"
+                android:layout_marginStart="14dp"
                 android:orientation="vertical"
-                android:visibility="gone"></LinearLayout>
+                android:visibility="gone" />
 
 
         </LinearLayout>

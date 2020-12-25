@@ -133,11 +133,12 @@ class LoginPresenter @Inject constructor(
     }
 
     fun syncDB() {
-        Timber.d("syncDB")
+        Timber.d("syncDB_x")
         disposable = syncOrder()
             .subscribeOn(Schedulers.io())
             .subscribe({},{
                 it.printStackTrace()
+                //view?.showFailureTextView()
             })
 
     }
