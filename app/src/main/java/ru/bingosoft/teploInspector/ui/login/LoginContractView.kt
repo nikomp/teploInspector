@@ -23,4 +23,6 @@ interface LoginContractView {
 
     fun registerReceiverMainActivity()
 
+    fun sendMessageUserLogged()
+
 }

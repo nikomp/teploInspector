@@ -76,19 +76,31 @@ class OtherUtil {
     }
 
     fun getFilesFromDir(dir: String): List<String> {
-        Timber.d("getFilesFromDir")
+        Timber.d("getFilesFromDir=${dir}")
         val list = mutableListOf<String>()
         val directory = File(dir)
-        val files = directory.listFiles()
-        files?.forEach {
-            if (it.length() != 0L) {
-                list.add("$dir/${it.name}")
-            } else {
-                it.delete()
+        if (directory.exists()) {
+            val files = directory.listFiles()
+            files?.forEach {
+                if (it.length() != 0L) {
+                    list.add("$dir/${it.name}")
+                } else {
+                    it.delete()
+                }
             }
         }
-
         return list
+    }
+
+    fun deleteDir(dir: String) {
+        val directory = File(dir)
+        if (directory.exists()) {
+            val files = directory.listFiles()
+            files?.forEach {
+                deleteDir(it.path)
+            }
+            directory.delete()
+        }
     }
 
     fun getDifferenceTime(startTime: Long, endTime: Long): Long {

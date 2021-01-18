@@ -88,7 +88,7 @@ class CheckupPresenter @Inject constructor(
             })
     }
 
-    fun saveCheckup(uiCreator: UICreator) {
+    fun saveCheckup(uiCreator: UICreator, send:Boolean=true) {
         Timber.d("Сохраняем данные чеклиста")
 
         val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
@@ -110,13 +110,43 @@ class CheckupPresenter @Inject constructor(
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe({
-            view?.showCheckupMessage(R.string.msgSaveCheckup)
+            if (send) {
+                view?.showCheckupMessage(R.string.msgSaveCheckup)
+            }
             updateAnsweredCount(uiCreator)
         },{error ->
             error.printStackTrace()
             view?.errorReceived(error)
         })
     }
+
+    /*fun updateCheckup(uiCreator: UICreator) {
+        val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
+
+        // Исключаем ненужные поля
+        val gson= GsonBuilder()
+            .excludeFieldsWithoutExposeAnnotation()
+            .create()
+        val resCheckup= gson.toJsonTree(uiCreator.controlList, listType)
+
+        Timber.d("resCheckup=$resCheckup")
+        uiCreator.checkup.textResult=resCheckup as JsonArray
+
+
+        disposable=Single.fromCallable{
+            Timber.d("uiCreator.checkup11=${uiCreator.checkup}")
+            db.checkupDao().update(uiCreator.checkup)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                updateAnsweredCount(uiCreator)
+                Timber.d("Обновили_данные_после очищения_папки_с_фото")
+            },{error ->
+                error.printStackTrace()
+                view?.errorReceived(error)
+            })
+    }*/
 
     private fun updateAnsweredCount(uiCreator: UICreator) {
         // Отфильтруем только вопросы у которых answered=true
@@ -143,28 +173,6 @@ class CheckupPresenter @Inject constructor(
 
     }
 
-    /*private fun updateTechParamsCount(uiCreator: UICreator) {
-        // Отфильтруем только вопросы у которых answered=true
-        val filterControls = uiCreator.controlList.filter { it.answered }
-
-        Timber.d("filterControls=${filterControls.size}")
-
-
-        disposable = Single.fromCallable {
-            db.ordersDao().updateAnsweredCount(uiCreator.checkup.idOrder, filterControls.size)
-        }
-            .subscribeOn(Schedulers.io())
-            .subscribe({
-                view?.setAnsweredCount(filterControls.size)
-                disposable.dispose()
-            },{throwable ->
-                throwable.printStackTrace()
-                disposable.dispose()
-            })
-
-
-    }*/
-
     fun onDestroy() {
         this.view = null
         if (this::disposable.isInitialized) {
@@ -180,19 +188,14 @@ class CheckupPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnError {throwable ->
-                Timber.d("th_error0 $throwable")
-                throwable.printStackTrace()
-            }
             .subscribe ({ techParams ->
-                Timber.d("techParams_size=${techParams.size}")
-                Timber.d("techParams_loaded=$techParams")
-                view?.techParamsLoaded(techParams)
                 disposableTH.dispose()
+                view?.techParamsLoaded(techParams)
             },{ throwable ->
                 Timber.d("th_error $throwable")
                 throwable.printStackTrace()
                 disposableTH.dispose()
+                view?.errorReceived(throwable)
             })
     }
 }

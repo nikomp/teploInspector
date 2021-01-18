@@ -65,7 +65,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun afterTextChanged(s: Editable?) {
                 Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
                 Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
-                if (!(parentFragment.activity as MainActivity).isBackPressed &&
+                /*if (!(parentFragment.activity as MainActivity).isBackPressed &&
                     !(parentFragment.activity as MainActivity).isSearchView) {
 
                     // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
@@ -98,19 +98,50 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
                     //Фильтруем по статусу
                     if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
-                        Timber.d("filtering_State")
                         parentFragment.filteredOrderByState("all_without_Done_and_Cancel")
                     }
+                } else {
+                    Timber.d("orderStateListener_isBackPressed")
+                }*/
+
+                // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
+                    parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
+                    holder.orderState.removeTextChangedListener(this)
+                    holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT))
+                    holder.orderState.addTextChangedListener(this)
+                    return
+                }
+
+                if (s.toString().toUpperCase(Locale.ROOT) != ordersFilterList[position].status?.toUpperCase(
+                        Locale.ROOT
+                    )
+                ) {
+                    ordersFilterList[position].status=s.toString().toLowerCase(Locale.ROOT)
+                        .capitalize()
+                    changeColorMBSState(holder.orderState, ordersFilterList[position].status)
+                    try {
+                        parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+                    } catch (e: Throwable) {
+                        parentFragment.errorReceived(e)
+                    }
+
+                }
+
+
+                holder.orderState.removeTextChangedListener(this)
+                holder.orderState.setText(s.toString().toUpperCase(Locale.ROOT))
+                holder.orderState.addTextChangedListener(this)
+
+                //Фильтруем по статусу
+                if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
+                    parentFragment.filteredOrderByState("all_without_Done_and_Cancel")
                 }
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         }
 
@@ -142,13 +173,9 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         }
 
@@ -197,13 +224,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.typeTransportation.text=orders[position].typeTransportation
         }*/
 
-
-        Timber.d("position=${ordersFilterList[position].typeTransportation}")
         if (!ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
-            Timber.d("position=$position")
-            Timber.d("position=${ordersFilterList[position]}")
-            //holder.typeTransportation.removeTextChangedListener(typeTransportationTextWatcher)
-            Timber.d("position=${ordersFilterList}")
             holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
         }
 

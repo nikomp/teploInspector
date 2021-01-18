@@ -38,7 +38,7 @@ class TechnicalCharacteristics(private val lists: List<TechParams>, private val 
         ) as LinearLayout
 
         templateStep.findViewById<TextView>(R.id.gi_name).text=th.technical_characteristic
-        templateStep.findViewById<TextView>(R.id.gi_value_edit).setText(th.value)
+        templateStep.findViewById<TextView>(R.id.gi_value_edit).text = th.value
 
         val layoutParams= LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,

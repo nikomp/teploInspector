@@ -59,6 +59,7 @@
                     android:layout_marginEnd="8dp"
                     android:layout_marginRight="8dp"
                     android:scaleType="centerCrop"
+                    android:contentDescription="@string/image_description_photo"
                     app:srcCompat="@drawable/placeholder" />
 
                 <androidx.viewpager.widget.ViewPager
@@ -84,6 +85,7 @@
                     android:background="#80ffffff"
                     android:padding="5dp"
                     android:scaleType="centerInside"
+                    android:contentDescription="@string/forward"
                     app:srcCompat="@drawable/arrow_right" />
 
                 <ImageButton
@@ -97,6 +99,7 @@
                     android:background="#80ffffff"
                     android:padding="5dp"
                     android:scaleType="centerInside"
+                    android:contentDescription="@string/back"
                     app:srcCompat="@drawable/arrow_left" />
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -123,26 +126,62 @@
                 android:layout_marginEnd="8dp"
                 android:layout_marginRight="8dp">
 
-                <ImageView
+
+                <!--<ImageView
                     android:id="@+id/imageView3"
-                    android:layout_width="22dp"
-                    android:layout_height="18dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:contentDescription="@string/icon_photo"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_photo" />
-
-                <TextView
-                    android:id="@+id/photoCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/imageView3"
-                    app:layout_constraintTop_toTopOf="parent"
-                    tools:text="0" />
+                    app:srcCompat="@drawable/photo_add2" />-->
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPhoto"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@color/buttonBackgroundLightGray"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:padding="0dp"
+                    app:backgroundTint="@color/buttonBackgroundLightGray"
+                    app:icon="@drawable/photo_add"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="#0082E5"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.Button.Circle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeletePhoto"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@color/buttonBackgroundLightGray"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:padding="0dp"
+                    app:backgroundTint="@color/buttonBackgroundLightGray"
+                    app:icon="@drawable/ic_photo_delete"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="#949FA8"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.Button.Circle" />
+
+                <!--<com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPhoto"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -157,9 +196,21 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/photoCount"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0" />
+                    app:layout_constraintVertical_bias="0.0" />-->
 
-                <com.google.android.material.button.MaterialButton
+
+                <TextView
+                    android:id="@+id/photoCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/btnPhoto"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.448"
+                    tools:text="0" />
+
+                <!--<com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDeletePhoto"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -174,25 +225,16 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0" />
+                    app:layout_constraintVertical_bias="0.0" />-->
 
-                <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/fabCheck"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:backgroundTint="@color/colorAccent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:fabCustomSize="32dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:srcCompat="@drawable/ic_check_black_8dp" />-->
+
+
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <TextView
                 android:id="@+id/errorPhoto"
                 android:layout_width="279dp"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
                 android:layout_gravity="center|left"
                 android:layout_weight="1"
                 android:text="@string/not_dir_with_photo"

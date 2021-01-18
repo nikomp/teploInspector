@@ -307,13 +307,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         // Заполним spinner
         parentFragment.requireActivity().runOnUiThread{
             materialSpinner.setAdapter(spinnerArrayAdapter)
+
+            // Если шаг чеклиста был ранее сохранен восстановим значение
+            if (!it.resvalue.isNullOrEmpty()){
+                materialSpinner.setText(it.resvalue)
+            }
         }
 
 
-        // Если шаг чеклиста был ранее сохранен восстановим значение
-        if (!it.resvalue.isNullOrEmpty()){
-            materialSpinner.setText(it.resvalue)
-        }
+
         // Вешаем обработчик на spinner последним, иначе сбрасывается цвет шага
         materialSpinner.addTextChangedListener(TextWatcherHelper(it, templateStep))
         enabledControls.add(materialSpinner)
@@ -354,7 +356,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            textInputEditText.setText(it.resvalue)
+            parentFragment.requireActivity().runOnUiThread{
+                textInputEditText.setText(it.resvalue)
+            }
+
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
         textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
@@ -393,7 +398,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()) {
-            textInputEditText.setText(it.resvalue)
+            parentFragment.requireActivity().runOnUiThread{
+                textInputEditText.setText(it.resvalue)
+            }
+
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
         textInputEditText.addTextChangedListener(
@@ -429,7 +437,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            textInputEditText.setText(it.resvalue)
+            parentFragment.requireActivity().runOnUiThread{
+                textInputEditText.setText(it.resvalue)
+            }
+
         }
 
         //#Проверка_формата_даты
@@ -486,7 +497,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            textInputEditText.setText(it.resvalue)
+            parentFragment.requireActivity().runOnUiThread{
+                textInputEditText.setText(it.resvalue)
+            }
+
         }
 
         textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
@@ -508,16 +522,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         doAssociateParent(templateStep, parent)
 
-        // Если шаг чеклиста был ранее сохранен восстановим значение
-        Timber.d("Фото11 ${it.resvalue}")
-        /*if (it.resvalue.isNotEmpty()){
-            Timber.d("Фото ${it.resvalue}")
-            templateStep.findViewById<TextView>(R.id.photoResult).text=parentFragment.getString(R.string.photoResult,"DCIM\\PhotoForApp\\${it.resvalue}")
-        }*/
-
         // Обработчик для кнопки "Добавить фото"
         val btnPhoto=templateStep.findViewById<MaterialButton>(R.id.btnPhoto)
-        btnPhoto.isEnabled = enabled
+        parentFragment.requireActivity().runOnUiThread{
+            btnPhoto.isEnabled = enabled
+        }
         val stepCheckup=it
         btnPhoto.tag=templateStep
         btnPhoto.setOnClickListener{
@@ -530,6 +539,9 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         }
 
         val btnDeletePhoto = templateStep.findViewById<MaterialButton>(R.id.btnDeletePhoto)
+        parentFragment.requireActivity().runOnUiThread{
+            btnDeletePhoto.isEnabled = enabled
+        }
         btnDeletePhoto.tag=templateStep
         btnDeletePhoto.setOnClickListener {
             Timber.d("Удалим фото")
@@ -564,12 +576,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${stepCheckup.guid}")) {
                         Timber.d("Папка есть, она не пуста")
                     } else {
-                        Timber.d("Удалчем_папку")
+                        Timber.d("Удаляем_папку")
                         // Удалим папку, очистим photoStep?.resvalue
                         val dir=File("$DCIM_DIR/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}")
                         dir.delete()
                         tc.answered=false
                         tc.resvalue=null
+                        parentFragment.checkupPresenter.saveCheckup(this, send = false)
                         (parentFragment.activity as MainActivity).photoDir=""
                     }
                 }
@@ -581,21 +594,29 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Timber.d("Фото_${it.resvalue}")
             // Обновим список с фото
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
-            val stDir = "PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
-            val storageDir =
-                File(
-                    //Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-                    DCIM_DIR,
-                    stDir
-                )
-
-            OtherUtil().getFilesFromDir("$storageDir")
-            //listOf()
+            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
+            OtherUtil().getFilesFromDir(stDir)
 
         } else {
             listOf()
         }
+
         Timber.d("images=$images")
+
+        // Проверим, если resvalue пусто, а папка с фото есть и содержит старые фото, тогда удалим папку
+        Timber.d("it.resvalue=${it.resvalue}")
+        if (it.resvalue.isNullOrEmpty()) {
+            Timber.d("it.resvalue.isNullOrEmpty()")
+            val curOrder=(parentFragment.activity as MainActivity).currentOrder
+            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
+
+            val listPhoto=OtherUtil().getFilesFromDir(stDir)
+            Timber.d("listPhoto=${listPhoto}")
+            if (File(stDir).exists() && listPhoto.isNotEmpty()) {
+                Timber.d("папка_есть")
+                OtherUtil().deleteDir(stDir)
+            }
+        }
 
         val leftBtn = templateStep.findViewById(R.id.left_nav) as ImageButton
         val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
@@ -850,7 +871,9 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Timber.d("Color.BLUE")
             questionColor=Color.BLUE
         }
-        templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
+        parentFragment.requireActivity().runOnUiThread {
+            templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
+        }
     }
 
     fun refresh() {

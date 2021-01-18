@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.location.Location
+import android.location.LocationManager
 import com.google.gson.Gson
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -30,7 +31,8 @@ class UserLocationReceiver @Inject constructor(
 ): BroadcastReceiver() {
     private lateinit var disposable: Disposable
     private lateinit var disposableRoute: Disposable
-    lateinit var lastKnownLocation: Location
+    //lateinit var lastKnownLocation: Location
+    var lastKnownLocation=Location(LocationManager.GPS_PROVIDER)
     @Inject
     lateinit var toaster: Toaster
 
@@ -74,7 +76,8 @@ class UserLocationReceiver @Inject constructor(
     }
 
     fun isInitLocation() :Boolean {
-        return ::lastKnownLocation.isInitialized
+        //return ::lastKnownLocation.isInitialized
+        return true
     }
 
     private fun saveLocation(lat: Double?, lon: Double?, provider: String, status: String) {

@@ -23,6 +23,11 @@
                 android:icon="@drawable/ic_send_data"
                 android:orderInCategory="1"
                 android:title="@string/send_data"/>
+
+            <item
+                android:id="@+id/exit"
+                android:orderInCategory="1"
+                android:title="@string/exit"/>
         </menu>
     </item>
 

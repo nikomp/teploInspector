@@ -28,4 +28,10 @@ interface MainActivityContractView {
     fun refreshRecyclerView()
 
     fun registerReceiver()
+    fun enabledSaveButton()
+
+    fun sendMessageUserLogged()
+
+
+
 }

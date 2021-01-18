@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.Navigation
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
@@ -245,11 +246,15 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         val order=(mapObject.userData as Models.CustomMarker).order
         val tvMarker=(mapObject.userData as Models.CustomMarker).markerView
 
-        val listOrders=
+        // #Unchecked_cast
+        val listOrders =
         if (tvMarker.tag!=null) {
-            Timber.d("tvMarker_tag=${(tvMarker.tag as List<*>).size}")
-            tvMarker.tag as List<Orders>
-
+            if (tvMarker.tag is List<*>) {
+                (tvMarker.tag as List<*>).filterIsInstance<Orders>()
+            } else {
+                listOf(order)
+            }
+            //tvMarker.tag as List<Orders>
         } else {
              listOf(order)
         }
@@ -456,7 +461,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     }
 
     override fun onBackPressed(): Boolean {
-        Timber.d("MapFragment onBackPressed")
+        Timber.d("MapFragment_onBackPressed")
         return true
     }
 
@@ -487,7 +492,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                     v.isEnabled=false
                     (v.parent as View).findViewById<Button>(R.id.btnMap).isEnabled=true
 
-                    this.requireActivity().onBackPressed()
+                    //this.requireActivity().onBackPressed()
+                    Navigation.findNavController(fragment.requireView()).navigate(R.id.nav_home)
+
 
                     (this.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
                     (this.requireActivity() as MainActivity).filteredOrders=this.orders

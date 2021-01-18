@@ -5,10 +5,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Context.LOCATION_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.view.*
@@ -38,7 +36,9 @@ import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
+import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
@@ -67,8 +67,11 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     @Inject
     lateinit var otherUtil: OtherUtil
 
+    /*@Inject
+    lateinit var userLocationNative: UserLocationNative*/
+
     @Inject
-    lateinit var userLocationNative: UserLocationNative
+    lateinit var userLocationReceiver: UserLocationReceiver
 
     private lateinit var currentOrder: Orders
     lateinit var root: View
@@ -78,9 +81,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-
-        Timber.d("OrderFragment.onCreateView")
+    ): View {
 
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
@@ -225,8 +226,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 ) {
                     // Разрешения выданы
                     Timber.d("startService_Permission")
-                    val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
+                    /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
 
                     activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
                     activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))
@@ -288,8 +289,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
      */
     override fun alertRepeatSync() {
         Timber.d("doSync")
-        val pb=progressBar
-        pb.visibility= View.INVISIBLE
+        /*val pb=progressBar
+        pb.visibility= View.INVISIBLE*/
 
         val dbFile = this.requireContext().getDatabasePath("mydatabase.db")
         lateinit var alertDialog: AlertDialog
@@ -308,6 +309,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
             dialogView.buttonOK.setOnClickListener{
                 Timber.d("dialogView.buttonOK")
+
                 loginPresenter.syncDB()
                 alertDialog.dismiss()
 
@@ -315,7 +317,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
             dialogView.buttonNo.setOnClickListener{
                 showMessageLogin(R.string.auth_ok)
-                orderPresenter.loadOrders() // Грузим данные из локальной БД
+                //orderPresenter.loadOrders() // Грузим данные из локальной БД
+                showOrders()
                 alertDialog.dismiss()
             }
 
@@ -400,7 +403,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
 
         Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
-        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
+        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationReceiver.lastKnownLocation)
         ordersRecyclerView.adapter = adapter
 
     }
@@ -415,18 +418,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         (activity as MainActivity).orders=orders
         (activity as MainActivity).filteredOrders=orders
 
-        /*// инициализируем контейнер SwipeRefreshLayout
-        val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
-
-        // указываем слушатель свайпов пользователя
-        swipeRefreshLayout.setOnRefreshListener {
-            Timber.d("swipeRefreshLayout.setOnRefreshListener")
-            loginPresenter.attachView(this)
-            loginPresenter.syncDB()
-            swipeRefreshLayout.isRefreshing = false
-            (activity as MainActivity).isDefaultFilter=false
-        }*/
-
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
         /*val adapter=
@@ -436,7 +427,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
         }*/
         Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
-        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationNative.userLocation)
+        val adapter=OrderListAdapter((activity as MainActivity).filteredOrders,this, this, userLocationReceiver.lastKnownLocation)
         ordersRecyclerView.adapter = adapter
 
         //По-умолчанию показываем все кроме выполненных и отмененных
@@ -453,14 +444,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     // Функция для вывода длинных строк в лог. Использовать вместо Timber.d
     private fun longInfo(str: String) {
         if (str.length > 3000) {
-            Timber.d( str.substring(0, 3000))
+            Timber.d(str.substring(0, 3000))
             longInfo(str.substring(3000))
         } else Timber.d(str)
     }
 
-    override fun showMessageOrders(msg: String) {
-        //TODO реализую позже
-    }
+    override fun showMessageOrders(msg: String) {}
 
     fun filteredOrderByGroup(filterGroupList: List<String>) {
         Timber.d("filteredOrderByGroup")
@@ -468,7 +457,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val filteredOrderByGroup=(requireContext() as MainActivity).orders.filter { it.groupOrder in filterGroupList }
         (requireContext() as MainActivity).filteredOrders=filteredOrderByGroup
 
-        val adapter = OrderListAdapter(filteredOrderByGroup,this, this, userLocationNative.userLocation)
+        val adapter = OrderListAdapter(filteredOrderByGroup,this, this, userLocationReceiver.lastKnownLocation)
         rcv.adapter = adapter
 
         adapter.ordersFilterList=filteredOrderByGroup
@@ -486,7 +475,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         Timber.d("MainActivity_orders_filteredOrderByDate=${(requireContext() as MainActivity).orders}")
 
-        val adapter = OrderListAdapter(filteredOrderByDate,this, this, userLocationNative.userLocation)
+        val adapter = OrderListAdapter(filteredOrderByDate,this, this, userLocationReceiver.lastKnownLocation)
         rcv.adapter = adapter
 
         adapter.ordersFilterList=filteredOrderByDate
@@ -508,7 +497,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         (requireContext() as MainActivity).filteredOrders=filteredOrderByState
 
 
-        val adapter = OrderListAdapter(filteredOrderByState,this, this, userLocationNative.userLocation)
+        val adapter = OrderListAdapter(filteredOrderByState,this, this, userLocationReceiver.lastKnownLocation)
         rcv.adapter = adapter
 
         adapter.ordersFilterList=filteredOrderByState
@@ -544,6 +533,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun registerReceiverMainActivity() {
         (activity as MainActivity).registerReceiver()
+    }
+
+    override fun sendMessageUserLogged() {
+        mainPresenter.sendMessageToAdmin(USER_LOGIN)
     }
 
 
@@ -588,7 +581,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     if (rcv.adapter!=null) {
                         (this.requireActivity() as MainActivity).filteredOrders=(rcv.adapter as OrderListAdapter).ordersFilterList
                     } else {
-                        //(this.requireActivity() as MainActivity).filteredOrders= listOf()
                         (this.requireActivity() as MainActivity).filteredOrders=(this.requireActivity() as MainActivity).orders
                     }
 

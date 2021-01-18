@@ -72,6 +72,7 @@ class LoginPresenter @Inject constructor(
                         view?.checkMessageId() // Уведомление прочитано
                         Timber.d("LoginPresenter_getAllMessage")
                         view?.getAllMessage()
+                        view?.sendMessageUserLogged()
 
                         val v = view
                         if (v != null) {
@@ -209,20 +210,17 @@ class LoginPresenter @Inject constructor(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }*/
-
-
-                    //#Группировка_List
-                    val groupTechParams=response.groupBy { it.idOrder }
-                    groupTechParams.forEach{
-                        db.ordersDao().updateTechParamsCount(it.key,it.value.size)
-                    }
-
                 }
 
             }
                 .subscribeOn(Schedulers.io())
                 .subscribe ({
                     Timber.d("Сохранили тех характеристики в БД")
+                    //#Группировка_List
+                    val groupTechParams=response.groupBy { it.idOrder }
+                    groupTechParams.forEach{
+                        db.ordersDao().updateTechParamsCount(it.key,it.value.size)
+                    }
                 },{throwable ->
                     throwable.printStackTrace()
                 })
@@ -272,7 +270,6 @@ class LoginPresenter @Inject constructor(
                         view?.showOrders()
 
                     }, {error ->
-                        Timber.d("error")
                         error.printStackTrace()
                         disposable.dispose()
                     })

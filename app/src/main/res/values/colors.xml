@@ -11,6 +11,7 @@
     <color name="colorCardSelect">#E4E6E7</color>
     <color name="colorTitle">#ffffff</color>
     <color name="buttonBackgroundLight">#E6F3FD</color>
+    <color name="buttonBackgroundLightGray">#EEF0F2</color>
     <color name="buttonBackground">#297BE7</color>
     <color name="inactive_text">#7C838B</color>
 

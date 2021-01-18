@@ -1,11 +1,9 @@
 package ru.bingosoft.teploInspector.ui.map_bottom
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.LocationManager
 import android.net.Uri
@@ -18,7 +16,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -28,12 +25,13 @@ import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.Toaster
-import ru.bingosoft.teploInspector.util.UserLocationNative
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -54,11 +52,14 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
     lateinit var otherUtil: OtherUtil
 
     @Inject
-    lateinit var userLocationNative: UserLocationNative
+    lateinit var userLocationReceiver: UserLocationReceiver
 
-    var order: Orders?=null
-    var rcv: RecyclerView?=null
-    var cv: CardView?=null
+    /*@Inject
+    lateinit var userLocationNative: UserLocationNative*/
+
+    private var currentOrder: Orders?=null
+    private var rcv: RecyclerView?=null
+    private var cv: CardView?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidSupportInjection.inject(this)
@@ -66,7 +67,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
 
         val locationManager=this.requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         // Проверим разрешения на геолокацию, если нет выдаем сообщение
-        if (ActivityCompat.checkSelfPermission(
+        /*if (ActivityCompat.checkSelfPermission(
                 parentFragment.requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
@@ -78,7 +79,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
             toaster.showToast(R.string.not_gps_permission)
         } else {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
-        }
+        }*/
 
     }
 
@@ -95,8 +96,6 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
         rcv?.layoutManager = LinearLayoutManager(this.activity)
         cv=rootView.findViewById(R.id.cv) as CardView
         if (orders.size>1) {
-            Timber.d("orders_size=${orders.size}")
-            Timber.d("orders=$orders")
             cv?.visibility=View.GONE
             rcv?.visibility=View.VISIBLE
             val adapter = MapBottomOrdersListAdapter(orders,this)
@@ -106,6 +105,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
             cv?.visibility=View.VISIBLE
             rcv?.visibility=View.GONE
             fillOrderData(orders.last())
+            currentOrder=orders.last()
         }
     }
 
@@ -145,21 +145,27 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                 if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
                     order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
                     changeColorMBSState(mbsOrderState, order.status)
-                    orderPresenter.addHistoryState(order)
+                    try {
+                        orderPresenter.addHistoryState(order)
+                    } catch (e: Throwable) {
+                        (activity as MainActivity).errorReceived(e)
+                    }
                 }
 
                 mbsOrderState.removeTextChangedListener(this)
                 mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
                 mbsOrderState.addTextChangedListener(this)
+
+                //Фильтруем по статусу
+                if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
+                    (activity as MainActivity).filteredOrders=(activity as MainActivity).filteredOrders.filter {it.id!=currentOrder?.id }
+                    Timber.d("фильтранули=${(activity as MainActivity).filteredOrders}")
+                }
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         })
 
@@ -193,8 +199,8 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
 
         val btnRoute=rootView.findViewById<Button>(R.id.btnRoute)
 
-        if (userLocationNative.userLocation.latitude!=0.0 && userLocationNative.userLocation.longitude!=0.0) {
-            val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
+        if (userLocationReceiver.lastKnownLocation.latitude!=0.0 && userLocationReceiver.lastKnownLocation.longitude!=0.0) {
+            val distance=otherUtil.getDistance(userLocationReceiver.lastKnownLocation, order)
             btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
         } else {
             btnRoute.text=rootView.context.getString(R.string.route)
@@ -243,13 +249,9 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                 }
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                //TODO("Not yet implemented")
-            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         })
     }
@@ -296,6 +298,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
         cv?.visibility=View.VISIBLE
         rcv?.visibility=View.GONE
         fillOrderData(orders[position])
+        currentOrder=orders[position]
     }
 
 }

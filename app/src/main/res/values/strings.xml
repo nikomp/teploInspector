@@ -48,6 +48,7 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="exit">Выход</string>
     <string name="send_data">Отправить данные</string>
     <string name="send_data2">Отправить</string>
     <string name="syncdb">Последняя синхронизация данных была %1$s. Повторить синхронизацию?</string>
@@ -192,6 +193,14 @@
     <string name="alert_change_date_ok">ОК</string>
     <string name="alert_change_date_date">Дата</string>
     <string name="alert_change_date_time">Время</string>
+
+    <string name="image_description_photo">Фон для фото</string>
+    <string name="forward">Вперед</string>
+    <string name="back">Назад</string>
+    <string name="icon_photo">Иконка фото</string>
+
+    <string name="alert_exit">Вы точно собираетесь выйти?</string>
+    <string name="alert_gps_off">Датчик GPS выключен, включить?</string>
 
 
 </resources>

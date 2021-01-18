@@ -143,6 +143,7 @@ class OrderPresenter @Inject constructor(
             .subscribe {
                 Timber.d("Данные_получили_из_БД")
                 Timber.d(it.toString())
+                Timber.d("view=$view")
                 view?.showOrders(it)
                 disposable.dispose()
             }

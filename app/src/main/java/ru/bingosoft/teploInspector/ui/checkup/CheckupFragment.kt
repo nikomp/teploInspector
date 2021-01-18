@@ -27,12 +27,14 @@ import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_change_date_time.view.*
+import kotlinx.android.synthetic.main.fragment_gallery2.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
@@ -63,8 +65,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     @Inject
     lateinit var otherUtil: OtherUtil
 
+    /*@Inject
+    lateinit var userLocationNative: UserLocationNative*/
+
     @Inject
-    lateinit var userLocationNative: UserLocationNative
+    lateinit var userLocationReceiver: UserLocationReceiver
 
     @Inject
     lateinit var photoHelper: PhotoHelper
@@ -83,7 +88,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         AndroidSupportInjection.inject(this)
         Timber.d("CheckupFragment.onCreateView")
         Timber.d("MainActivity_orders_CheckupFragment=${(requireContext() as MainActivity).orders}")
@@ -235,9 +240,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     mbsOrderState.removeTextChangedListener(this)
                     mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
-                    return
                 }
-
 
                 if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
                     order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
@@ -263,6 +266,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     checkStateOrder(order)
                 }
 
+                //Фильтруем по статусу
+                if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
+                    (activity as MainActivity).filteredOrders=(activity as MainActivity).filteredOrders.filter {it.id!=currentOrder.id }
+                    Timber.d("фильтранули=${(activity as MainActivity).filteredOrders}")
+                }
 
             }
 
@@ -312,11 +320,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         val btnRoute=rootView.findViewById<Button>(R.id.btnRoute)
 
-        val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
-        btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"
+        /*val distance=otherUtil.getDistance(userLocationNative.userLocation, order)
+        btnRoute.text=rootView.context.getString(R.string.distance, distance.toString())//"Маршрут 3.2 км"*/
 
-        if (userLocationNative.userLocation.latitude!=0.0 && userLocationNative.userLocation.longitude!=0.0) {
-            val distanceRoute=otherUtil.getDistance(userLocationNative.userLocation, order)
+        if (userLocationReceiver.lastKnownLocation.latitude!=0.0 && userLocationReceiver.lastKnownLocation.longitude!=0.0) {
+            val distanceRoute=otherUtil.getDistance(userLocationReceiver.lastKnownLocation, order)
             btnRoute.text=rootView.context.getString(R.string.distance, distanceRoute.toString())//"Маршрут 3.2 км"
         } else {
             btnRoute.text=rootView.context.getString(R.string.route)
@@ -487,6 +495,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
                     Timber.d("mbSaveCheckup")
+                    mbSaveCheckup.isEnabled=false // Блокируем кнопку пока данные не уйдут
                     // Всегда сохраняем основные данные по заявке
                     if (errorControls.isEmpty()) {
                         checkupPresenter.saveGeneralInformationOrder(currentOrder)
@@ -596,6 +605,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     fun refreshPhotoViewer(v: View, images: List<String>, ctx: Context) {
+        Timber.d("refreshPhotoViewer__")
         val pager = v.findViewById(R.id.pager) as ViewPager
         val myList = v.findViewById(R.id.recyclerviewFrag) as RecyclerView
         val photoCount = v.findViewById(R.id.photoCount) as TextView
@@ -664,6 +674,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 checkupPresenter.saveCheckup(uiCreator!!)
             } else {
                 toaster.showToast(R.string.checklist_not_changed)
+                (parentFragment?.requireActivity() as MainActivity).enabledSaveButton()
             }
 
         } else {

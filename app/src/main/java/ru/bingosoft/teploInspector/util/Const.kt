@@ -64,6 +64,8 @@ class Const {
         const val REPEATEDLY_REFUSED=2 //пользователь повторно отказался включить GPS
         const val DISABLE_LOCATION=3 //GPS сигнал потерян или выключен
         const val ENABLE_LOCATION=4 //GPS сигнал восстановлен
+        const val USER_LOGOUT=5
+        const val USER_LOGIN=6
     }
 
     object Location {

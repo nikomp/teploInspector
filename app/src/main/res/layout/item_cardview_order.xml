@@ -95,7 +95,8 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/fio"
                     app:met_floatingLabel="none"
-                    app:met_hideUnderline="true" />
+                    app:met_hideUnderline="true"
+                    tools:ignore="SmallSp" />
 
 
             </LinearLayout>

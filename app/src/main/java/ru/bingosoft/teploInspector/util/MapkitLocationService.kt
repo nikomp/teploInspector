@@ -25,7 +25,7 @@ import java.util.*
 class MapkitLocationService: Service() {
     var startTimeService: Long = 0L
     private lateinit var locationManager: LocationManager
-    private val locationInterval = 30000L // 2000L минимальное время (в миллисекундах) между получением данных.
+    private val locationInterval = 60000L // 2000L минимальное время (в миллисекундах) между получением данных.
     private val locationDistance = 0.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
 
     private val locationListener=UserLocationListener(this)

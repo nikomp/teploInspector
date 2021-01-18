@@ -38,6 +38,8 @@ import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.navigation.NavigationView
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
+import kotlinx.android.synthetic.main.alert_syncdb.view.*
+import kotlinx.android.synthetic.main.fragment_gallery2.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
@@ -54,6 +56,8 @@ import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
+import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
+import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGOUT
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
@@ -246,7 +250,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     private fun buildAlertMessageNoGps() {
-        val builder= AlertDialog.Builder(this)
+        /*val builder= AlertDialog.Builder(this)
         builder.setMessage("Датчик GPS выключен, включить?").setCancelable(false)
             .setPositiveButton(
                 "Да"
@@ -269,7 +273,30 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             params.leftMargin=20
             posButton.layoutParams=params
         }
-        alert.show()
+        alert.show()*/
+
+        lateinit var alertDialog: AlertDialog
+        val layoutInflater = LayoutInflater.from(this)
+        val dialogView: View =
+            layoutInflater.inflate(R.layout.alert_gps_off, null, false)
+
+        val builder = AlertDialog.Builder(this)
+
+        dialogView.buttonOK.setOnClickListener{
+            startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            alertDialog.dismiss()
+        }
+
+        dialogView.buttonNo.setOnClickListener{
+            Timber.d("Сообщение администратору")
+            mainPresenter.sendMessageToAdmin(REPEATEDLY_REFUSED)
+            alertDialog.dismiss()
+        }
+
+        builder.setView(dialogView)
+        builder.setCancelable(true)
+        alertDialog=builder.create()
+        alertDialog.show()
     }
 
     private fun requestPermission() {
@@ -581,6 +608,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         super.onDestroy()
         stopService(Intent(this, UserLocationService::class.java))
         stopService(Intent(this, MapkitLocationService::class.java))
+        stopService(Intent(this, NotificationService::class.java))
         mainPresenter.onDestroy()
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
@@ -596,9 +624,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     override fun onBackPressed() {
-        super.onBackPressed()
+        //super.onBackPressed()
         isBackPressed=true
-        doubleBackToExitCounter += 1
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
         Timber.d("fragments.size=${supportFragmentManager.fragments.size}")
@@ -613,8 +640,15 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
         }
 
+        if (currentFragmentClassName==getString(R.string.map_fragment_className)) {
+            Timber.d("уходим_с_карты")
+            super.onBackPressed()
+            return
+        }
+
         if (currentFragmentClassName==getString(R.string.checkup_fragment_className)) {
-            Timber.d("navController_navigate_nav_home1")
+            Timber.d("navController_navigate_nav_1home")
+            super.onBackPressed()
             return
         }
 
@@ -632,7 +666,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             findViewById<Button>(R.id.btnList)?.isEnabled=false
             findViewById<Button>(R.id.btnMap)?.isEnabled=true
 
-            Timber.d("navController_navigate_nav_home2")
             navController.navigate(R.id.nav_home)
             if (isBackPressed) {
                 isBackPressed=false
@@ -642,17 +675,48 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
 
             // Выходим из приложения при повторном клике на кнопку Назад
+            /*doubleBackToExitCounter += 1
             Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
-            if (doubleBackToExitCounter==2) {
+            if (doubleBackToExitCounter==1) {
+                Timber.d("tosater=$toaster")
                 toaster.showToast(R.string.double_back)
                 Handler().postDelayed({ doubleBackToExitCounter = 0 }, 3500)
             }
-            if (doubleBackToExitCounter==3) {
+            if (doubleBackToExitCounter==2) {
                 Timber.d("finish")
                 finish()
+            }*/
+            doubleBackToExitCounter += 1
+            Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
+            if (doubleBackToExitCounter>1) {
+                alertExit()
             }
-
         }
+    }
+
+    private fun alertExit() {
+        lateinit var alertDialog: AlertDialog
+        val layoutInflater = LayoutInflater.from(this)
+        val dialogView: View =
+            layoutInflater.inflate(R.layout.alert_exit, null, false)
+
+        val builder = AlertDialog.Builder(this)
+
+        dialogView.buttonOK.setOnClickListener{
+            Timber.d("alertExit_buttonOK")
+            alertDialog.dismiss()
+            mainPresenter.sendMessageToAdmin(USER_LOGOUT)
+            finish()
+        }
+
+        dialogView.buttonNo.setOnClickListener{
+            alertDialog.dismiss()
+        }
+
+        builder.setView(dialogView)
+        builder.setCancelable(true)
+        alertDialog=builder.create()
+        alertDialog.show()
     }
 
 
@@ -739,6 +803,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 Timber.d("ordersIdsNotSync_size=${ordersIdsNotSync.size}")
                 mainPresenter.repeatSendData()
 
+                true
+            }
+            R.id.exit -> {
+                Timber.d("Выход")
+                alertExit()
                 true
             }
             else -> {
@@ -964,7 +1033,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          )
      }
 
-    fun invalidateNavigationDrawer() {
+     override fun enabledSaveButton() {
+         Timber.d("enabledSaveButton=$mbSaveCheckup")
+         mbSaveCheckup.isEnabled=true
+     }
+
+     override fun sendMessageUserLogged() {
+         Timber.d("sendMessageUserLogged")
+         Timber.d("userLocationReceiver=${userLocationReceiver.lastKnownLocation}")
+         mainPresenter.sendMessageToAdmin(USER_LOGIN)
+     }
+
+     fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
         val user=sharedPref.getUser()
 

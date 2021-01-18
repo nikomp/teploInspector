@@ -20,7 +20,6 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
-import ru.bingosoft.teploInspector.util.UserLocationNative
 import timber.log.Timber
 import java.io.File
 import java.io.FilenameFilter
@@ -33,8 +32,11 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     @Inject
     lateinit var apiService: ApiService
 
+    /*@Inject
+    lateinit var userLocationNative: UserLocationNative*/
+
     @Inject
-    lateinit var userLocationNative: UserLocationNative
+    lateinit var userLocationReceiver: UserLocationReceiver
 
     private lateinit var disposable: Disposable
     private lateinit var disposableFiles: Disposable
@@ -84,6 +86,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         view?.showMainActivityMsg(msgId)
                         view?.checkMessageId()
                         view?.getAllMessage()
+                        view?.sendMessageUserLogged()
                     }, { throwable ->
                         throwable.printStackTrace()
                         view?.errorReceived(throwable)
@@ -378,6 +381,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                             if (syncView!=null) {
                                 syncView.visibility=View.GONE
                             }
+                            view?.enabledSaveButton()
 
                         }
                     }, { throwable ->
@@ -385,6 +389,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         throwable.printStackTrace()
                         view?.errorReceived(throwable)
                         view?.dataNotSync(idOrder,throwable)
+                        view?.enabledSaveButton()
                         //disposable.dispose()
                     }
                 )
@@ -441,14 +446,17 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                                 .subscribe(
                                     {
                                         Timber.d("sendingFiles_OK")
+                                        disposableFiles.dispose()
                                         view?.filesSend(dataFileArray.size,index+1)
                                         view?.renameSyncedFiles(filesToSync)
-                                        disposableFiles.dispose()
+                                        view?.enabledSaveButton()
+
                                     },
                                     {throwable ->
                                         disposableFiles.dispose()
                                         Timber.d("sendingFiles_throwable")
                                         view?.errorReceived(throwable)
+                                        view?.enabledSaveButton()
                                         throwable.printStackTrace()
                                     }
                                 )
@@ -456,10 +464,13 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         {throwable ->
                             Timber.d("sendingFiles_throwable2")
                             view?.errorReceived(throwable)
+                            view?.enabledSaveButton()
                             throwable.printStackTrace()
                             disposableFiles0.dispose()
                         }
                     )
+            } else {
+                view?.enabledSaveButton()
             }
 
 
@@ -492,6 +503,18 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 textMessage="Пользователь выключил GPS"
                 eventType=1 // Геолокация отключена
             }
+            /*4-> {
+                textMessage="Пользователь включил GPS"
+                eventType=3 // Геолокация включена
+            }*/
+            5-> {
+                textMessage="Пользователь вышел из приложения"
+                eventType=4 // Пользователь вышел из приложения
+            }
+            6-> {
+                textMessage="Пользователь вошел в приложение"
+                eventType=5 // Пользователь вошел в приложение
+            }
             else -> {
                 textMessage=""
                 eventType=0
@@ -503,8 +526,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             text = textMessage,
             date= Date().time,
             event_type = eventType,
-            lat = userLocationNative.userLocation.latitude,
-            lon = userLocationNative.userLocation.longitude
+            /*lat = userLocationNative.userLocation.latitude,
+            lon = userLocationNative.userLocation.longitude*/
+            lat = userLocationReceiver.lastKnownLocation.latitude,
+            lon = userLocationReceiver.lastKnownLocation.longitude
         )
 
         Timber.d("Данные4=${Gson().toJson(messageData)}")
@@ -562,9 +587,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 disposable.dispose()
             })
     }
-
-
-
 
     fun onDestroy() {
         this.view = null
