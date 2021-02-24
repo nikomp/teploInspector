@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
 import android.Manifest
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.app.*
 import android.content.*
 import android.content.pm.PackageManager
@@ -10,9 +11,12 @@ import android.location.Location
 import android.location.LocationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +31,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.FragmentNavigator
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
@@ -106,7 +111,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private lateinit var dialogFilterDateOrder: AlertDialog
     private lateinit var filterView: ConstraintLayout
 
-    var isMapFragmentShow=false
+    //var isMapFragmentShow=false
     //lateinit var orders: List<Orders>
     var orders= listOf<Orders>()
     var isBackPressed=false
@@ -129,6 +134,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        /*if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
+            val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+            val inWhiteList = powerManager.isIgnoringBatteryOptimizations("ru.bingosoft.teploInspector")
+            Timber.d("БЕЛЫЙ_СПИСОК=$inWhiteList")
+            if (!inWhiteList) {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
+        }*/
+
 
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
@@ -237,7 +253,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (messageId!=0) {
             mainPresenter.markMessageAsRead(messageId)
         }
-        val messageAll=intent.getBooleanExtra("allMessageRead",false)
+        val messageAll=intent.getBooleanExtra("allMessageRead", false)
         Timber.d("messageAll=$messageAll")
         if (messageAll) {
             mainPresenter.markAllMessageAsRead()
@@ -303,12 +319,19 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         // Проверим разрешения
         Timber.d("requestPermission")
         if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_BACKGROUND_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+            ContextCompat.checkSelfPermission(
+                this,
+                (Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            ) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, (Manifest.permission.READ_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, (WRITE_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
                 requestPermissions(
                     arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        WRITE_EXTERNAL_STORAGE
                     ),
                     Const.RequestCodes.PERMISSION
                 )
@@ -319,6 +342,18 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
             startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
             startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent()
+            val packageName = packageName
+            Timber.d(packageName)
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
         }
     }
 
@@ -503,8 +538,35 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                     Timber.d("_isSearchView=true")
 
+                    val currentFragmentClassName =
+                        (navController.currentDestination as FragmentNavigator.Destination).className
+                    Timber.d("CXCX=$currentFragmentClassName")
 
-                    if (!isMapFragmentShow) {
+                    if (currentFragmentClassName == getString(R.string.order_fragment_className)) {
+                        val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
+                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
+                    } else {
+                        Timber.d("Включена карта11 $newText")
+
+                        val filteredList = orders.filter {
+                            it.address != null && it.address!!.contains(
+                                newText!!,
+                                true
+                            )
+                        }
+
+                        Timber.d("Отфильтровано=${filteredList.size}")
+                        val currentNavHost =
+                            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                        /*val currentFragmentClassName =
+                            (navController.currentDestination as FragmentNavigator.Destination).className*/
+                        val mf = currentNavHost?.childFragmentManager?.fragments?.filterNotNull()
+                            ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
+                        mf.showMarkers(filteredList)
+                    }
+
+
+                    /*if (!isMapFragmentShow) {
                         val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
                     } else {
@@ -526,7 +588,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                             ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
                         mf.showMarkers(filteredList)
 
-                    }
+                    }*/
 
                     return true
                 }
@@ -557,14 +619,24 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
 
-                    /*val navHostFragment: NavHostFragment? =
+                    val login=if (data?.getStringExtra("login")==null) "" else data.getStringExtra("login")
+                    val password=if (data?.getStringExtra("password")==null) "" else data.getStringExtra("password")
+                    val url=if (data?.getStringExtra("url")==null) "" else data.getStringExtra("url")
+                    val enter_type=if (data?.getStringExtra("enter_type")==null) "" else data.getStringExtra("enter_type")
+
+                    val dataAuth=Models.RepeatAuthData(
+                       login,password,url,enter_type
+                    )
+
+
+                    val navHostFragment: NavHostFragment? =
                         supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
                     val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
-                    Timber.d("of_$of")
-                    of?.doAuthorization()
+                    of?.doAuthorization(data = dataAuth)
                     if (of==null) {
-                        doAuthorization()
-                    }*/
+                        doAuthorization(data = dataAuth)
+                    }
+
 
                 }
                 else -> {
@@ -574,7 +646,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    fun doAuthorization(msgId: Int = R.string.auth_ok) {
+    fun doAuthorization(msgId: Int = R.string.auth_ok, data:Models.RepeatAuthData?= null) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = this.getSharedPreferences(
@@ -586,18 +658,53 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             val login = this.sharedPref.getLogin()
             val password = this.sharedPref.getPassword()
 
-            //mainPresenter.attachView(this)
-            val url = if (this.sharedPref.getEnterType()=="directory_service") {
-                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+            // Для презентации
+            val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+
+                // Для презентации
+                if (this.sharedPref.getEnterType()=="directory_service") {
+                    "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                } else {
+                    "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                }
             } else {
-                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                if (this.sharedPref.getEnterType()=="directory_service") {
+                    "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                } else {
+                    "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                }
             }
+
+
             mainPresenter.authorization(url, login, password, msgId) // Проверим есть ли авторизация
         } else {
-            Timber.d("логин/пароль=ОТСУТСТВУЮТ")
-            // Запустим активити с настройками
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivityForResult(intent, AUTH)
+            Timber.d("логин/пароль=ОТСУТСТВУЮТ_в_настройках")
+            if (data!=null) {
+                // Для презентации
+                val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+
+                    // Для презентации
+                    if (data.enter_type=="directory_service") {
+                        "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                    } else {
+                        "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                    }
+                } else {
+                    if (data.enter_type=="directory_service") {
+                        "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                    } else {
+                        "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                    }
+                }
+                mainPresenter.authorization(url, data.login, data.password, msgId) // Проверим есть ли авторизация
+
+                //loginPresenter.authorization(url, data.login, data.password)
+            } else {
+                // Запустим активити с настройками
+                val intent = Intent(this, LoginActivity::class.java)
+                startActivityForResult(intent, AUTH)
+            }
+
         }
     }
 
@@ -631,6 +738,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("fragments.size=${supportFragmentManager.fragments.size}")
         Timber.d("MainActivity_orders_onBackPressed=${orders}")
 
+        // Сбросим текущую заявку
+        currentOrder= Orders(guid = "")
+        photoDir=""
+        photoStep=null
+        Timber.d("currentOrder_$currentOrder")
+
         val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
         Timber.d("currentFragmentClassName=$currentFragmentClassName")
         if (supportFragmentManager.fragments.size>1) {
@@ -642,6 +755,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         if (currentFragmentClassName==getString(R.string.map_fragment_className)) {
             Timber.d("уходим_с_карты")
+            //setMode(false) // Включены Заявки, а не карта
             super.onBackPressed()
             return
         }
@@ -655,13 +769,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (supportFragmentManager.backStackEntryCount==0 /*&& currentFragmentClassName==getString(R.string.order_fragment_className)*/){ //(supportFragmentManager.backStackEntryCount==0)
             Timber.d("onBackPressed_Заявки")
 
-            // Сбросим текущую заявку
-            currentOrder= Orders(guid = "")
-            photoDir=""
-            photoStep=null
-
             supportActionBar?.setTitle(R.string.menu_orders)
-            setMode(false) // Включены Заявки, а не карта
+
             // Выделим кнопку Список
             findViewById<Button>(R.id.btnList)?.isEnabled=false
             findViewById<Button>(R.id.btnMap)?.isEnabled=true
@@ -674,18 +783,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 isSearchView=false
             }
 
-            // Выходим из приложения при повторном клике на кнопку Назад
-            /*doubleBackToExitCounter += 1
-            Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
-            if (doubleBackToExitCounter==1) {
-                Timber.d("tosater=$toaster")
-                toaster.showToast(R.string.double_back)
-                Handler().postDelayed({ doubleBackToExitCounter = 0 }, 3500)
-            }
-            if (doubleBackToExitCounter==2) {
-                Timber.d("finish")
-                finish()
-            }*/
             doubleBackToExitCounter += 1
             Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
             if (doubleBackToExitCounter>1) {
@@ -726,11 +823,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         this.controlMapId=controlId
     }
 
-
-    override fun setMode(isMap: Boolean) {
+    /*override fun setMode(isMap: Boolean) {
         Timber.d("setMode=$isMap")
         isMapFragmentShow=isMap
-    }
+    }*/
 
 
 
@@ -790,12 +886,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         return when (item.itemId) {
             R.id.nav_home -> {
                 navController.navigate(R.id.nav_home)
-                setMode(false) //Включены заявки
+                //setMode(false) //Включены заявки
                 true
             }
             R.id.nav_slideshow -> {
                 navController.navigate(R.id.nav_slideshow)
-                setMode() //Включена карта
+                //setMode() //Включена карта
                 true
             }
             R.id.repeat_sync -> {
@@ -864,7 +960,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun renameSyncedFiles(files: Array<File>?) {
         Timber.d("renameSyncedFiles ${files?.size}")
         files?.forEach {
-            it.renameTo(File(it.parentFile,"${it.nameWithoutExtension}_synced.${it.extension}"))
+            it.renameTo(File(it.parentFile, "${it.nameWithoutExtension}_synced.${it.extension}"))
         }
     }
 
@@ -879,6 +975,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          sharedPref.sptoken=token
          sharedPref.saveToken(token)
 
+     }
+
+     override fun saveInfoUserToSharedPreference(user: Models.User) {
+         sharedPref.saveUser(user)
      }
 
      override fun startNotificationService(token: String) {
@@ -913,7 +1013,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          Timber.d("notificationContent=$notificationContent")
          val handler = Handler()
          handler.postDelayed({
-             createNotification(notificationContent,listNotification.size)
+             createNotification(notificationContent, listNotification.size)
          }, 8000)
      }
 
@@ -956,7 +1056,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          )
 
          val resultIntent= Intent(this, MainActivity::class.java).putExtra(
-             "allMessageRead",true
+             "allMessageRead", true
          )
          val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
              addNextIntentWithParentStack(resultIntent)
@@ -1044,9 +1144,24 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          mainPresenter.sendMessageToAdmin(USER_LOGIN)
      }
 
+     override fun repeatSync() {
+         val navHostFragment: NavHostFragment? =
+             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+         val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
+         of?.alertRepeatSync()
+     }
+
+     /*override fun sendRoute() {
+         Timber.d("test")
+         mainPresenter.sendRoute()
+
+     }*/
+
+
      fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
         val user=sharedPref.getUser()
+         Timber.d("user_$user")
 
         val navView: NavigationView = findViewById(R.id.nav_view)
 

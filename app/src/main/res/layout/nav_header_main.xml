@@ -38,7 +38,7 @@
             android:fontFamily="@font/roboto_medium"
             android:paddingTop="@dimen/nav_header_vertical_spacing"
             android:textColor="#2C2D35"
-            android:textSize="16sp"
+            android:textSize="14sp"
             tools:text="Android Studio" />
 
         <ImageButton
@@ -48,7 +48,8 @@
             android:layout_gravity="center"
             android:layout_weight="0.2"
             android:background="@null"
-            app:srcCompat="@drawable/ic_input_black_24dp" />
+            android:contentDescription="@string/img_auth_description"
+            app:srcCompat="@drawable/ic_auth" />
     </LinearLayout>
 
     <!--<TextView

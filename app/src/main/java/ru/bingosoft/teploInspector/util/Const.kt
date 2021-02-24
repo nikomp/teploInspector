@@ -56,7 +56,8 @@ class Const {
         const val NOT_AVAILABLE="NOT_AVAILABLE"
         const val LOCATION_UPDATED="LOCATION_UPDATED"
 
-        const val INTERVAL_SENDING_ROUTE=3 // в минутах, 0.5 - 30 секунд
+        const val INTERVAL_SENDING_ROUTE=3L // в минутах, 0.5 - 30 секунд
+        const val INTERVAL_SAVE_LOCATION=1L // в минутах, 0.5 - 30 секунд
     }
 
     object MessageCode {

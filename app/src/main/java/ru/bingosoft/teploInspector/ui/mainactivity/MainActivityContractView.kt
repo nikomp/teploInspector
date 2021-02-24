@@ -13,6 +13,7 @@ interface MainActivityContractView {
     fun renameSyncedFiles(files: Array<File>?)
     fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String)
     fun saveToken(token: String)
+    fun saveInfoUserToSharedPreference(user: Models.User)
     fun startNotificationService(token: String)
 
     fun checkMessageId()
@@ -31,6 +32,10 @@ interface MainActivityContractView {
     fun enabledSaveButton()
 
     fun sendMessageUserLogged()
+
+    fun repeatSync()
+
+    //fun sendRoute()
 
 
 

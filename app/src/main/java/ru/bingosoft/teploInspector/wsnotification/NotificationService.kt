@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import okhttp3.OkHttpClient
@@ -30,8 +31,16 @@ class NotificationService : Service() {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID_SERVICES,
                 "Сервис уведомлений",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             )
+
+            channel.enableLights(true)
+            channel.lightColor = Color.RED
+            channel.vibrationPattern = longArrayOf(0, 1000, 500, 1000)
+            channel.enableVibration(true)
+            notificationManager.createNotificationChannel(channel)
+
+
             notificationManager.createNotificationChannel(channel)
             val notification: Notification = Notification.Builder(
                 this,

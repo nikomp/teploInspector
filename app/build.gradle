@@ -10,7 +10,7 @@ apply plugin: 'com.google.gms.google-services'
 
 apply plugin: 'com.google.firebase.crashlytics'
 
-def versionNameDate() {
+static def versionNameDate() {
     return new Date().format("yyyyMMdd")
 }
 
@@ -39,27 +39,45 @@ android {
         multiDexEnabled true
     }
     buildTypes {
+        presentation {
+            resValue 'string', 'login', accent_login
+            resValue 'string', 'password', accent_password
+            // Наша тестовая система для показов
+            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
+            resValue 'string', 'url_socket', '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
+
+
+            buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+            buildConfigField "String", "url_socket", '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
+            buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
+
+            debuggable true
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
+        }
         debug {resValue 'string', 'login', accent_login
             resValue 'string', 'password', accent_password
-            //resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
-            //resValue 'string', 'url_socket', '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
+            // Наша тестовая система для показов
+            /*resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
+            resValue 'string', 'url_socket', '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'*/
             resValue 'string', 'url', '"http://mi.teploenergo-nn.ru/"' // Рабочий сервер сервер
             resValue 'string', 'url_socket', '"ws://mi.teploenergo-nn.ru/notificationservice/socket"'
 
-            buildConfigField "String", "urlServer", '"http://mi.teploenergo-nn.ru/"'
-            //buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+
+            /*buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+            buildConfigField "String", "url_socket", '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'*/
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
+            buildConfigField "String", "urlServer", '"http://mi.teploenergo-nn.ru/"'
             buildConfigField "String", "url_socket", '"ws://mi.teploenergo-nn.ru/notificationservice/socket"'
-            //buildConfigField "String", "url_socket", '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
+
         }
         release {
             resValue 'string', 'login', ""
             resValue 'string', 'password', ""
-            //resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"'
             resValue 'string', 'url', '"http://mi.teploenergo-nn.ru/"'
             resValue 'string', 'url_socket', '"ws://mi.teploenergo-nn.ru/notificationservice/socket"'
 
-            //buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "urlServer", '"http://mi.teploenergo-nn.ru/"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
             buildConfigField "String", "url_socket", '"ws://mi.teploenergo-nn.ru/notificationservice/socket"'

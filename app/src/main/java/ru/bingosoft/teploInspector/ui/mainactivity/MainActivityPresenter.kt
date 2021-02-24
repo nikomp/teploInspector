@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.view.View
 import com.google.gson.Gson
 import com.google.gson.JsonArray
+import io.reactivex.Flowable.interval
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -18,12 +19,14 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.ThrowHelper
 import timber.log.Timber
 import java.io.File
 import java.io.FilenameFilter
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
@@ -38,12 +41,15 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
 
+
     private lateinit var disposable: Disposable
+    private lateinit var disposableRouteInterval: Disposable
     private lateinit var disposableFiles: Disposable
     private lateinit var disposableFiles0: Disposable
     private lateinit var disposableAuth: Disposable
     private lateinit var disposableSendGi: Disposable
-    private lateinit var disposableAllMessage: Disposable
+    private lateinit var disposableGetAllMessage: Disposable
+    private lateinit var disposableMarkAllMessage: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
 
     private var filesToSync: Array<File>? = arrayOf()
@@ -77,16 +83,24 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { token ->
-                        Timber.d("авторизовались=${token.token}")
+                        Timber.d("авторизовалисьZZ=${token.token}")
+                        sendRoute()
                         disposableAuth.dispose()
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
+                        view?.saveInfoUserToSharedPreference(Models.User(fullname = token.name))
                         view?.registerReceiver()
                         view?.startNotificationService(token.token)
                         view?.showMainActivityMsg(msgId)
                         view?.checkMessageId()
                         view?.getAllMessage()
-                        view?.sendMessageUserLogged()
+                        // view?.sendMessageUserLogged() при автоматической авторизации не отправляем сообщение
+
+                        val v = view
+                        if (v != null) {
+                            Timber.d("startService_LoginPresenter")
+                            v.repeatSync()
+                        }
                     }, { throwable ->
                         throwable.printStackTrace()
                         view?.errorReceived(throwable)
@@ -100,7 +114,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun getAllMessage() {
         Timber.d("getAllMessage")
-        disposable=apiService.getAllMessages()
+        disposableGetAllMessage=apiService.getAllMessages()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({listNotifications ->
@@ -111,10 +125,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     Timber.d("view=$view")
                     view?.showUnreadNotification(unreadNotifications)
                 }
-                disposable.dispose()
+                disposableGetAllMessage.dispose()
             },{throwable ->
                 throwable.printStackTrace()
-                disposable.dispose()
+                disposableGetAllMessage.dispose()
             })
 
     }
@@ -141,14 +155,14 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun markAllMessageAsRead() {
         Timber.d("markAllMessageAsRead")
-        disposableAllMessage = apiService.markAllMessageAsRead()
+        disposableMarkAllMessage = apiService.markAllMessageAsRead()
             .subscribeOn(Schedulers.io())
             .subscribe(
                 {
-                    disposableAllMessage.dispose()
+                    disposableMarkAllMessage.dispose()
                 }, { throwable ->
                     throwable.printStackTrace()
-                    disposableAllMessage.dispose()
+                    disposableMarkAllMessage.dispose()
                 }
             )
     }
@@ -180,7 +194,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .takeWhile { listResult ->
                     Timber.d("listResult=$listResult")
                     if (listResult.isEmpty()) {
-                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
+                        throw ThrowHelper("Нет данных для передачи на сервер")
                     } else {
                         listResult.isNotEmpty()
                     }
@@ -588,10 +602,51 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             })
     }
 
+    //#RxJava #interval
+    private fun sendRoute() {
+        Timber.d("test_sendRoute")
+        disposableRouteInterval= interval(INTERVAL_SENDING_ROUTE,TimeUnit.MINUTES).map {
+            Timber.d("ДанныеМаршрутаПолучили_${Date()}")
+            db.trackingUserDao().getTrackingForCurrentDay()
+        }
+        .subscribe(
+            {trackingUserLocation ->
+                if (trackingUserLocation.isNotEmpty()) {
+                    Timber.d("ОтправляемМаршрут")
+                    val route=Models.FileRoute()
+                    val jsonStr=Gson().toJson(trackingUserLocation)
+                    route.fileRoute=jsonStr
+
+                    val jsonBody=Gson().toJson(route)
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+                    apiService.sendTrackingUserLocation(jsonBody).subscribe(
+                        {Timber.d("ОтправилиМаршрут")},
+                        {throwable ->
+                            throwable.printStackTrace()
+                            view?.errorReceived(throwable)
+                        }
+                    )
+                } else {
+                    Timber.d("Нет данных о маршруте")
+                }
+            },{throwable ->
+                throwable.printStackTrace()
+                view?.errorReceived(throwable)
+            }
+        )
+    }
+
+
+
     fun onDestroy() {
+        Timber.d("MainActivityPresenter_onDestroy")
         this.view = null
         if (this::disposable.isInitialized) {
             disposable.dispose()
+        }
+        if (this::disposableRouteInterval.isInitialized) {
+            disposableRouteInterval.dispose()
         }
     }
 

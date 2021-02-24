@@ -196,4 +196,11 @@ class Models {
         @SerializedName("message_id") val id: Int=0
     )
 
+    data class RepeatAuthData(
+        @SerializedName("login") val login: String="",
+        @SerializedName("password") val password: String="",
+        @SerializedName("url") val url: String="",
+        @SerializedName("enter_type") val enter_type: String=""
+    )
+
 }

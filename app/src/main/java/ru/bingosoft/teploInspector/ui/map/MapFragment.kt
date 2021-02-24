@@ -41,7 +41,6 @@ import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.map_bottom.MapBottomSheet
 import ru.bingosoft.teploInspector.ui.route_detail.RouteDetailFragment
@@ -98,6 +97,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         showMarkers((this.requireActivity() as MainActivity).filteredOrders)
 
         if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
+            Timber.d("isInitCurrentOrder_${(this.requireActivity() as MainActivity).currentOrder}")
             if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
                 showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
             }
@@ -123,13 +123,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                 removeRouter()
             }
 
-            if (prevMapObjectMarker!=null) {
-                // выключим предыдущий маркер
-                val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
-                prevTvMarker.isEnabled=!prevTvMarker.isEnabled
-                (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
-                prevMapObjectMarker=null
-            }
+            clearPreviousMarker()
         }
     }
 
@@ -144,14 +138,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         }
         lastCarRouter.clear()
-        /*lastCarRouterPolyline.forEach {
-            try {
-                map.mapObjects.remove(it)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }*/
-        //lastCarRouterPolyline.clear()
+
         if (!lastStopTransferMarkers.isNullOrEmpty()){
             lastStopTransferMarkers.forEach{
                 try {
@@ -214,6 +201,20 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         }
     }
 
+    fun clearPreviousMarker() {
+        if (prevMapObjectMarker!=null) {
+            // выключим предыдущий маркер
+            try {
+                val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
+                prevTvMarker.isEnabled=!prevTvMarker.isEnabled
+                (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
+                prevMapObjectMarker=null
+            } catch (e:Exception) {
+                e.printStackTrace()
+            }
+
+        }
+    }
 
     private val locationListener=object:LocationListener {
         var lastLocation: Location?=null
@@ -259,12 +260,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
              listOf(order)
         }
 
-        if (prevMapObjectMarker!=null) {
-            // выключим предыдущий маркер
-            val prevTvMarker=(prevMapObjectMarker!!.userData as Models.CustomMarker).markerView
-            prevTvMarker.isEnabled=!prevTvMarker.isEnabled
-            (prevMapObjectMarker as PlacemarkMapObject).setView(ViewProvider(prevTvMarker))
-        }
+        clearPreviousMarker()
 
         tvMarker.isEnabled=!tvMarker.isEnabled
         (mapObject as PlacemarkMapObject).setView(ViewProvider(tvMarker))
@@ -351,9 +347,8 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     override fun showMarkers(orders: List<Orders>) {
         Timber.d("showMarkers=$orders")
         this.orders=orders
-        /*(activity as MainActivity).orders=orders
-        (activity as MainActivity).filteredOrders=orders*/
 
+        prevMapObjectMarker=null // Очистим предыдущий маркер
         map.mapObjects.clear()
         orders.forEach{
             importOrdersOnMap(it)
@@ -496,7 +491,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
                     Navigation.findNavController(fragment.requireView()).navigate(R.id.nav_home)
 
 
-                    (this.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
+                    //(this.requireActivity() as FragmentsContractActivity).setMode(isMap = false)
                     (this.requireActivity() as MainActivity).filteredOrders=this.orders
 
                 }

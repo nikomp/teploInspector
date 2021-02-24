@@ -114,6 +114,7 @@ class StepsAdapter(
             //Генерируем тех характеристики
             if (parentFragment.techParams.isNotEmpty()) {
                 Timber.d("llMainTemp=${parentFragment.llMainUi}")
+                Timber.d("techParams_X=${parentFragment.techParams}")
                 val uiCreator=TechnicalCharacteristics(parentFragment.techParams, holder.details)
                 uiCreator.create()
             } else {

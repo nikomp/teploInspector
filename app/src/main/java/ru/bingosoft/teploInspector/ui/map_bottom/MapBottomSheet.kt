@@ -1,16 +1,17 @@
 package ru.bingosoft.teploInspector.ui.map_bottom
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.Dialog
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.TextView
@@ -23,6 +24,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
+import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
@@ -65,22 +67,6 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
         AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
-        val locationManager=this.requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        // Проверим разрешения на геолокацию, если нет выдаем сообщение
-        /*if (ActivityCompat.checkSelfPermission(
-                parentFragment.requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                parentFragment.requireContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-
-            toaster.showToast(R.string.not_gps_permission)
-        } else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)
-        }*/
-
     }
 
     @SuppressLint("RestrictedApi")
@@ -121,6 +107,50 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
         val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
         mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(mbsOrderState, order.status)
+
+        val btnChangeDateTime=rootView.findViewById<Button>(R.id.btnChangeDateTime)
+        btnChangeDateTime.setOnClickListener {
+            Timber.d("btnChangeDateTime_setOnClickListener")
+            lateinit var alertDialog: AlertDialog
+            val layoutInflater = LayoutInflater.from(parentFragment.requireContext())
+            val dialogView: View =
+                layoutInflater.inflate(R.layout.alert_change_date_time, (rootView as ViewGroup), false)
+
+            val builder = AlertDialog.Builder(parentFragment.requireContext())
+
+            dialogView.btnOk.setOnClickListener{
+                Timber.d("dialogView.buttonOK")
+                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+                val strDateTimeVisit="${newDate.text} ${newTime.text}"
+
+                Timber.d(strDateTimeVisit)
+                try {
+                    val date=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).parse(strDateTimeVisit)
+                    if (date!=null) {
+                        btnChangeDateTime.text=
+                            SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                        order.dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
+                        order.timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
+
+                        orderPresenter.saveDateTime(order)
+                        (parentFragment.requireActivity() as MainActivity).currentOrder=order
+
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+
+                alertDialog.dismiss()
+
+            }
+
+            builder.setView(dialogView)
+            builder.setCancelable(true)
+            alertDialog=builder.create()
+            alertDialog.show()
+        }
 
         val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             rootView.context,

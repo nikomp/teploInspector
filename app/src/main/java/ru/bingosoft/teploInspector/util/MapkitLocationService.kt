@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.DirectionsFactory
@@ -16,21 +17,37 @@ import com.yandex.mapkit.location.*
 import com.yandex.mapkit.transport.TransportFactory
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
-import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SAVE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.LOCATION_UPDATED
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID
 import timber.log.Timber
 import java.util.*
 
 class MapkitLocationService: Service() {
+    private lateinit var wakeLock: PowerManager.WakeLock
     var startTimeService: Long = 0L
     private lateinit var locationManager: LocationManager
     private val locationInterval = 60000L // 2000L минимальное время (в миллисекундах) между получением данных.
-    private val locationDistance = 0.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
+    private val locationDistance = 0.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров И прошло минимальное время locationInterval, то вам придут новые координаты
 
     private val locationListener=UserLocationListener(this)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
+            /*wakeLock =
+                (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                    newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
+                        acquire()
+                    }
+                }*/
+            val pm=(getSystemService(Context.POWER_SERVICE) as PowerManager)
+            wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag")
+            if (!wakeLock.isHeld) {
+                wakeLock.acquire(480*60*1000L /*480 minutes*/)
+            }
+        }
+
         startTimeService= Date().time
         Timber.d("MapkitLocationService_onStartCommand in time=$startTimeService")
         MapKitFactory.getInstance().onStart()
@@ -46,7 +63,7 @@ class MapkitLocationService: Service() {
             val channel = NotificationChannel(
                 Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES,
                 "Сервис геолокации",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
             val notification: Notification = Notification.Builder(
@@ -60,7 +77,11 @@ class MapkitLocationService: Service() {
 
             if (Build.VERSION.SDK_INT >= 29) {
                 Timber.d("FOREGROUND_SERVICE_TYPE_LOCATION")
-                startForeground(LOCATION_SERVICE_NOTIFICATION_ID, notification,FOREGROUND_SERVICE_TYPE_LOCATION)
+                startForeground(
+                    LOCATION_SERVICE_NOTIFICATION_ID,
+                    notification,
+                    FOREGROUND_SERVICE_TYPE_LOCATION
+                )
             } else {
                 startForeground(LOCATION_SERVICE_NOTIFICATION_ID, notification)
             }
@@ -81,7 +102,8 @@ class MapkitLocationService: Service() {
             locationInterval,
             locationDistance,
             true,
-            FilteringMode.ON,locationListener)
+            FilteringMode.ON, locationListener
+        )
     }
 
 
@@ -91,8 +113,10 @@ class MapkitLocationService: Service() {
     }
 
     override fun onDestroy() {
+        Timber.d("MapkitDestroy")
         super.onDestroy()
         MapKitFactory.getInstance().onStop()
+        wakeLock?.release()
     }
 
     class UserLocationListener(private val ctx: Context): LocationListener {
@@ -117,7 +141,7 @@ class MapkitLocationService: Service() {
         }
 
         override fun onLocationUpdated(location: Location) {
-            Timber.d("onLocationChanged $location")
+            Timber.d("onLocationChangedMapKit ${Date()} ")
             sendIntent(location, LOCATION_UPDATED)
             lastLocation=location
         }
@@ -125,25 +149,29 @@ class MapkitLocationService: Service() {
         private fun sendIntent(location: Location?, status: String) {
             val intent=Intent("userLocationUpdates")
 
-            intent.putExtra("provider","GPS_PROVIDER")
+            intent.putExtra("provider", "GPS_PROVIDER")
 
-            intent.putExtra("status",status)
+            intent.putExtra("status", status)
             if (location!=null) {
-                intent.putExtra("lat",location.position.latitude)
-                intent.putExtra("lon",location.position.longitude)
+                intent.putExtra("lat", location.position.latitude)
+                intent.putExtra("lon", location.position.longitude)
             }
 
 
             // Получим разницу времени старта слежения и текущего времении
+            // Данные сохраняем в БД раз в минуту, Mapkit делает это непонятно как
             val currentTime=Date().time
-            val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as MapkitLocationService).startTimeService, currentTime)
+            val diffTimeMinute=OtherUtil().getDifferenceTime(
+                (ctx as MapkitLocationService).startTimeService,
+                currentTime
+            )
             Timber.d("diffTimeMinute=$diffTimeMinute")
-            if (diffTimeMinute>=INTERVAL_SENDING_ROUTE) {
-                intent.putExtra("sendRouteToServer",true)
+            if (diffTimeMinute>= INTERVAL_SAVE_LOCATION) {
+                LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
                 ctx.startTimeService=currentTime
             }
 
-            LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
+
         }
 
 

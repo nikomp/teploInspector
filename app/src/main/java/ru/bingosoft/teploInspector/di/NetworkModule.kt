@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.di
 
+import android.os.Environment
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
@@ -14,7 +15,11 @@ import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import timber.log.Timber
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 @Module
 class NetworkModule {
@@ -22,18 +27,45 @@ class NetworkModule {
     @Provides
     fun providesApiService(sharedPrefSaver: SharedPrefSaver) : ApiService {
 
-        val interceptor = HttpLoggingInterceptor()
+        /*val interceptor = if (BuildConfig.DEBUG) {
+            Timber.d("DEBUG")
+             HttpLoggingInterceptor()
+        } else {
+            Timber.d("RELEASE")
+            val fileLogger=object:HttpLoggingInterceptor.Logger {
+                override fun log(message: String) {
+                    writeToFile(message)
+                }
+
+            }
+            HttpLoggingInterceptor(fileLogger)
+        }
+        interceptor.level= HttpLoggingInterceptor.Level.BODY*/
+
+        val fileLogger=object:HttpLoggingInterceptor.Logger {
+            override fun log(message: String) {
+                writeToFile(message)
+            }
+
+        }
+        val interceptorFile=HttpLoggingInterceptor(fileLogger)
+        interceptorFile.level=HttpLoggingInterceptor.Level.BODY
+
+        val interceptor=HttpLoggingInterceptor()
         interceptor.level= HttpLoggingInterceptor.Level.BODY
+
+
         val client = OkHttpClient.Builder()
+            .addInterceptor(interceptorFile)
             .addInterceptor(interceptor)
             .addInterceptor(object : Interceptor {
                 override fun intercept(chain: Interceptor.Chain): Response {
-                    var token=""
+                    var token = ""
                     if (sharedPrefSaver.sptoken.isEmpty()) {
                         token = sharedPrefSaver.getToken()
-                        sharedPrefSaver.sptoken=token
+                        sharedPrefSaver.sptoken = token
                     } else {
-                        token=sharedPrefSaver.sptoken
+                        token = sharedPrefSaver.sptoken
                     }
 
 
@@ -45,13 +77,13 @@ class NetworkModule {
 
                     Timber.d("newRequest=$newRequest")
 
-                    val response=chain.proceed(newRequest)
+                    val response = chain.proceed(newRequest)
                     if (response.code == 200) {
 
-                        val newToken=response.header("X-Auth-Token","")
-                        if (!newToken.isNullOrEmpty()){
+                        val newToken = response.header("X-Auth-Token", "")
+                        if (!newToken.isNullOrEmpty()) {
                             Timber.d("Обновили_токен")
-                            sharedPrefSaver.sptoken=newToken
+                            sharedPrefSaver.sptoken = newToken
                             sharedPrefSaver.saveToken(newToken)
                         }
 
@@ -60,9 +92,9 @@ class NetworkModule {
                     return response
                 }
             })
-            .connectTimeout(10, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .build()
 
         val gson = GsonBuilder()
@@ -78,6 +110,28 @@ class NetworkModule {
             .build()
 
         return retrofit.create(ApiService::class.java)
+
+    }
+
+    fun writeToFile(message:String) {
+        Timber.d("writeToFile")
+        val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
+        val dir = "TeploInspectorLogs/$date"
+
+        val storageDir = File("${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}",dir)
+        if (!storageDir.exists()) {
+            Timber.d("создадим_папку $storageDir")
+            storageDir.mkdirs() // Создадим сразу все необходимые каталоги
+            Timber.d("!storageDir.exists()=${storageDir.exists()}")
+        }
+
+        val file="Log.log"
+        val logFile=File("$storageDir/$file")
+        if (!logFile.exists()) {
+            Timber.d("vcvc=$storageDir/$file")
+            logFile.createNewFile()
+        }
+        logFile.appendText("$message\n")
 
     }
 }

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -13,6 +14,7 @@ import android.location.LocationProvider
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.NOT_AVAILABLE
@@ -24,9 +26,9 @@ import java.util.*
 
 class UserLocationService: Service() {
 
-    private var locationManager: LocationManager?=null
-    private val locationInterval = 2000L // минимальное время (в миллисекундах) между получением данных.
-    private val locationDistance = 3f //минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
+    var locationManager: LocationManager?=null
+    private val locationInterval = 60000L // минимальное время (в миллисекундах) между получением данных.
+    private val locationDistance = 5f //минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров, то вам придут новые координаты
 
     var startTimeService: Long = 0L
 
@@ -38,6 +40,15 @@ class UserLocationService: Service() {
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
+            val wakeLock =
+                (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                    newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
+                        acquire()
+                    }
+                }
+        }
+
         startTimeService=Date().time
         Timber.d("onStartCommand in time=$startTimeService")
         super.onStartCommand(intent, flags, startId)
@@ -66,7 +77,16 @@ class UserLocationService: Service() {
                 .build()
 
 
-            startForeground(Const.WebSocketConst.GPS_SERVICE_NOTIFICATION_ID, notification)
+            if (Build.VERSION.SDK_INT >= 29) {
+                Timber.d("FOREGROUND_SERVICE_TYPE_LOCATION_USERLOCATION")
+                startForeground(
+                    Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                )
+            } else {
+                startForeground(Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID, notification)
+            }
         }
 
 
@@ -133,7 +153,7 @@ class UserLocationService: Service() {
     class UserLocationListener(val provider: String, private val ctx: Context): LocationListener {
 
         override fun onLocationChanged(location: Location?) {
-            Timber.d("onLocationChanged $location")
+            Timber.d("USERLOCATION_onLocationChanged $location")
             // Изменение координат отслеживаем через MapkitLocationService
             /*sendIntent(location, AVAILABLE)
             lastLocation.set(location)*/
@@ -167,18 +187,6 @@ class UserLocationService: Service() {
                 intent.putExtra("provider","GPS_PROVIDER")
             }
             intent.putExtra("status",status)
-            /*if (location != null) {
-                intent.putExtra("lat",location.latitude)
-                intent.putExtra("lon",location.longitude)
-            }
-            // Получим разницу времени старта слежения и текущего времении
-            val currentTime=Date().time
-            val diffTimeMinute=OtherUtil().getDifferenceTime((ctx as UserLocationService).startTimeService, Date().time)
-            Timber.d("diffTimeMinute=$diffTimeMinute")
-            if (diffTimeMinute>=3) {
-                intent.putExtra("sendRouteToServer",true)
-                ctx.startTimeService=currentTime
-            }*/
 
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
         }

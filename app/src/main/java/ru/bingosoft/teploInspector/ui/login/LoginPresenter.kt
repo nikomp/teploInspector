@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.login
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.reactivex.Completable
+import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -10,10 +11,12 @@ import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.util.Const
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.ThrowHelper
 import ru.bingosoft.teploInspector.util.Toaster
@@ -21,6 +24,7 @@ import timber.log.Timber
 import java.lang.reflect.Type
 import java.net.UnknownHostException
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
@@ -35,6 +39,8 @@ class LoginPresenter @Inject constructor(
     private var stPassword: String = ""
 
     private lateinit var disposable: Disposable
+    private lateinit var disposableFCM: Disposable
+    private lateinit var disposableRouteInterval: Disposable
 
     fun attachView(view: LoginContractView) {
         this.view = view
@@ -62,12 +68,13 @@ class LoginPresenter @Inject constructor(
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { token ->
-
+                        sendRoute()
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.registerReceiverMainActivity()
                         view?.saveToken(token.token)
+                        view?.saveInfoUserToSharedPreference(Models.User(fullname = token.name))
                         view?.startNotificationService(token.token)
                         view?.checkMessageId() // Уведомление прочитано
                         Timber.d("LoginPresenter_getAllMessage")
@@ -85,7 +92,7 @@ class LoginPresenter @Inject constructor(
 
                     }, { throwable ->
                         throwable.printStackTrace()
-                        view?.showFailureTextView()
+                        view?.showAlertNotInternet()
                         disposable.dispose()
                     }
                 )
@@ -94,42 +101,61 @@ class LoginPresenter @Inject constructor(
 
     }
 
-    /*private fun getInfoCurrentUser()  {
-        Timber.d("getInfoCurrentUser")
-        disposable=apiService.getInfoAboutCurrentUser(action="getUserInfo")
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-                Timber.d("Получили информацию о пользователе")
-                Timber.d(it.fullname)
-                // сохраним данные в SharedPreference
-                view?.saveInfoUserToSharedPreference(it)
+    private fun sendRoute() {
+        Timber.d("test_sendRoute_LoginPresenter")
+        disposableRouteInterval= Flowable.interval(
+            Const.LocationStatus.INTERVAL_SENDING_ROUTE,
+            TimeUnit.MINUTES
+        ).map {
+            Timber.d("ДанныеМаршрутаПолучили_LP_${Date()}")
+            db.trackingUserDao().getTrackingForCurrentDay()
+        }
+            .subscribe(
+                {trackingUserLocation ->
+                    if (trackingUserLocation.isNotEmpty()) {
+                        Timber.d("ОтправляемМаршрут")
+                        val route=Models.FileRoute()
+                        val jsonStr=Gson().toJson(trackingUserLocation)
+                        route.fileRoute=jsonStr
 
-            },{
-                it.printStackTrace()
-            })
+                        val jsonBody=Gson().toJson(route)
+                            .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-    }*/
+                        apiService.sendTrackingUserLocation(jsonBody).subscribe(
+                            {Timber.d("ОтправилиМаршрут")},
+                            {throwable ->
+                                throwable.printStackTrace()
+                                if (view!=null) {
+                                    view?.errorReceived(throwable)
+                                } else {
+                                    errorHandler(throwable)
+                                }
+                            }
+                        )
+                    } else {
+                        Timber.d("Нет данных о маршруте")
+                    }
+                },{throwable ->
+                    throwable.printStackTrace()
+                    if (view!=null) {
+                        view?.errorReceived(throwable)
+                    } else {
+                        errorHandler(throwable)
+                    }
+                }
+            )
+    }
 
 
-    /**
-     * Метод для генерации ГУИДа, нужен для первичного формирования fingerprint
-     *
-     * @return - возвращается строка содержащая ГУИД
-     */
-    /*private fun random(): String {
-        var stF = UUID.randomUUID().toString()
-        stF = stF.replace("-".toRegex(), "")
-        stF = stF.substring(0, 32)
-        Log.d(LOGTAG, "random()=$stF")
-
-        return stF
-    }*/
 
     fun onDestroy() {
         this.view = null
         if (this::disposable.isInitialized) {
             disposable.dispose()
+        }
+        if (this::disposableRouteInterval.isInitialized) {
+            Timber.d("disposableRouteInterval_destroy")
+            disposableRouteInterval.dispose()
         }
     }
 
@@ -182,7 +208,9 @@ class LoginPresenter @Inject constructor(
             }
         }
         .doOnError { throwable ->
+            Timber.d("CXCX_$view")
             if (view!=null) {
+                view?.showFailureTextView("Нет заявок")
                 view?.errorReceived(throwable)
             } else {
                 errorHandler(throwable)
@@ -202,7 +230,6 @@ class LoginPresenter @Inject constructor(
             Single.fromCallable{
                 db.techParamsDao().clearTechParams() // Перед вставкой очистим таблицу
                 response.forEach{ techParams ->
-                    Timber.d("techParamsDao=${techParams}")
                     db.techParamsDao().insert(techParams)
                     // Если ставить ограничение TechParams.value not NULL, то лучше инсертить данные так
                     /*try {
@@ -237,8 +264,7 @@ class LoginPresenter @Inject constructor(
     private fun syncCheckups() :Completable=apiService.getCheckups()
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
-        .map{
-                checkups ->
+        .map{checkups ->
             Timber.d("Получили обследования")
             Timber.d("checkups=$checkups")
             if (checkups.isNullOrEmpty()) {
@@ -274,7 +300,9 @@ class LoginPresenter @Inject constructor(
                         disposable.dispose()
                     })
 
+                Timber.d("View123=$view")
                 if (view!=null) {
+                    Timber.d("ZXCXC")
                     view?.saveDateSyncToSharedPreference(Calendar.getInstance().time)
                     view?.showMessageLogin(R.string.order_refresh)
                 }
@@ -304,23 +332,35 @@ class LoginPresenter @Inject constructor(
                             val login = this.sharedPrefSaver.getLogin()
                             val password = this.sharedPrefSaver.getPassword()
 
-                            val url = if (this.sharedPrefSaver.getEnterType()=="directory_service") {
-                                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                            val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+                                // Для презентации
+                                if (this.sharedPrefSaver.getEnterType()=="directory_service") {
+                                    "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                                } else {
+                                    "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                                }
                             } else {
-                                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                                if (this.sharedPrefSaver.getEnterType()=="directory_service") {
+                                    "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                                } else {
+                                    "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                                }
                             }
+
 
                             authorization(url, login, password) // Проверим есть ли авторизация
                         }
                     }
-                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                    else -> {
+                        toaster.showErrorToast("Ошибка! ${throwable.message}")
+                    }
                 }
             }
             is UnknownHostException ->{
-                toaster.showToast(R.string.no_address_hostname)
+                toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("Ошибка! ${throwable.message}")
+                toaster.showErrorToast("Ошибка! ${throwable.message}")
             }
         }
 
@@ -338,17 +378,17 @@ class LoginPresenter @Inject constructor(
         val jsonBody = Gson().toJson(fcmToken)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        disposable=apiService.saveGCMToken(jsonBody)
+        disposableFCM=apiService.saveGCMToken(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
-                disposable.dispose()
+                disposableFCM.dispose()
             },{ throwable ->
                 Timber.d("ошибка!!!")
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
-                disposable.dispose()
+                disposableFCM.dispose()
             })
 
     }

@@ -115,21 +115,20 @@ class OrderPresenter @Inject constructor(
                 Timber.d("throwable.code()=${throwable.code()}")
                 when (throwable.code()) {
                     401 -> {
-                        //toaster.showToast(R.string.unauthorized)
                         if (view!=null) {
                             view?.errorReceived(throwable)
                         } else {
-                            toaster.showToast(R.string.unauthorized)
+                            toaster.showErrorToast(R.string.unauthorized)
                         }
                     }
-                    else -> toaster.showToast("Ошибка! ${throwable.message}")
+                    else -> toaster.showErrorToast("Ошибка! ${throwable.message}")
                 }
             }
             is UnknownHostException ->{
-                toaster.showToast(R.string.no_address_hostname)
+                toaster.showErrorToast(R.string.no_address_hostname)
             }
             else -> {
-                toaster.showToast("Ошибка! ${throwable.message}")
+                toaster.showErrorToast("Ошибка! ${throwable.message}")
             }
         }
 

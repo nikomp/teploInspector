@@ -28,9 +28,9 @@ data class TechParams (
     @SerializedName("val")
     var value: String? = "",
     @SerializedName("node")
-    var node: String? = null
-) {
-    override fun toString(): String {
-        return "TechParams(id=$id, guid='$guid', idOrder=$idOrder, technical_characteristic='$technical_characteristic', value='$value', node=$node)"
-    }
-}
+    var node: String? = null,
+    @SerializedName("long_group")
+    var long_group: String? = null,
+    @SerializedName("short_group")
+    var short_group: String? = null
+)

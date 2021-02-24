@@ -26,6 +26,7 @@ import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
 import kotlinx.android.synthetic.main.fragment_order.*
 import retrofit2.HttpException
+import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
@@ -33,7 +34,6 @@ import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginContractView
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
-import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
@@ -82,7 +82,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
+        Timber.d("BVBN")
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
@@ -119,7 +119,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         loginPresenter.onDestroy()
     }
 
-    private fun doAuthorization(factivity: FragmentActivity=this.requireActivity()) {
+    fun doAuthorization(factivity: FragmentActivity=this.requireActivity(),data:Models.RepeatAuthData?= null) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = factivity.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -128,19 +128,52 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             val login = this.sharedPref.getLogin()
             val password = this.sharedPref.getPassword()
 
-            val url = if (this.sharedPref.getEnterType()=="directory_service") {
-                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+            // Для презентации
+            val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+                // Для презентации
+                if (this.sharedPref.getEnterType()=="directory_service") {
+                    "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                } else {
+                    "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                }
             } else {
-                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                if (this.sharedPref.getEnterType()=="directory_service") {
+                    "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                } else {
+                    "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                }
             }
 
             loginPresenter.attachView(this)
             loginPresenter.authorization(url, login, password) // Проверим есть ли авторизация
         } else {
             Timber.d("логин/пароль=ОТСУТСТВУЮТ")
-            // Запустим активити с настройками
-            val intent = Intent(this.activity, LoginActivity::class.java)
-            startActivityForResult(intent, Const.RequestCodes.AUTH)
+            if (data!=null) {
+                // Для презентации
+                val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+
+                    // Для презентации
+                    if (data.enter_type=="directory_service") {
+                        "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                    } else {
+                        "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                    }
+                } else {
+                    if (data.enter_type=="directory_service") {
+                        "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                    } else {
+                        "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                    }
+                }
+                loginPresenter.attachView(this)
+                loginPresenter.authorization(url, data.login, data.password) // Проверим есть ли авторизация
+
+            } else {
+                // Запустим активити с настройками
+                val intent = Intent(this.activity, LoginActivity::class.java)
+                startActivityForResult(intent, Const.RequestCodes.AUTH)
+            }
+
         }
     }
 
@@ -156,10 +189,21 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                         val password = data.getStringExtra("password")
                         val enterType = data.getStringExtra(ENTER_TYPE)
 
-                        val url = if (enterType=="directory_service") {
-                            "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+
+                        // Для презентации
+                        val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+                            // Для презентации
+                            if (enterType=="directory_service") {
+                                "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                            } else {
+                                "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                            }
                         } else {
-                            "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                            if (enterType=="directory_service") {
+                                "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                            } else {
+                                "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                            }
                         }
 
                         loginPresenter.attachView(this)
@@ -275,11 +319,19 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         sharedPref.saveToken(token)
     }
 
-    override fun showFailureTextView() {
-        val tv=textfailure
-        tv.visibility=View.VISIBLE
-        val pb=progressBar
-        pb.visibility=View.INVISIBLE
+    override fun showFailureTextView(failureMessage: String) {
+        if (failureMessage.isNotEmpty()) {
+            textfailure.text=failureMessage
+        }
+        textfailure.visibility=View.VISIBLE
+        progressBar.visibility=View.INVISIBLE
+
+
+    }
+
+    override fun showAlertNotInternet() {
+        textfailure.visibility=View.VISIBLE
+        progressBar.visibility=View.INVISIBLE
         alertNotInternet()
     }
 
@@ -291,6 +343,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         Timber.d("doSync")
         /*val pb=progressBar
         pb.visibility= View.INVISIBLE*/
+        loginPresenter.attachView(this)
 
         val dbFile = this.requireContext().getDatabasePath("mydatabase.db")
         lateinit var alertDialog: AlertDialog
@@ -413,6 +466,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
+        textfailure.visibility=View.INVISIBLE
 
         //this.orders=orders
         (activity as MainActivity).orders=orders
@@ -526,6 +580,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             }
             else -> {
                 toaster.showErrorToast("Ошибка! ${throwable.message}")
+                progressBar.visibility=View.INVISIBLE
             }
         }
 
@@ -585,7 +640,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     }
 
                     (this.requireActivity() as MainActivity).navController.navigate(R.id.nav_slideshow)
-                    (this.requireActivity() as FragmentsContractActivity).setMode()
+                    //(this.requireActivity() as FragmentsContractActivity).setMode()
 
                 }
             }

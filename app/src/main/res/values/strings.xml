@@ -30,7 +30,7 @@
 
     <string name="not_permissions">Разрешения не выданы, приложение может работать неправильно</string>
     <string name="not_internet">Нет подключения к сети</string>
-    <string name="server_not_avaliable">Сервер не доступен</string>
+    <string name="server_not_avaliable">Нет подключения. Проверьте логин и пароль</string>
     <string name="textview">Текст вопроса</string>
     <string name="hint_spinner">Выберите значение из списка</string>
     <string name="hint">hint</string>
@@ -201,6 +201,7 @@
 
     <string name="alert_exit">Вы точно собираетесь выйти?</string>
     <string name="alert_gps_off">Датчик GPS выключен, включить?</string>
+    <string name="img_auth_description">К авторизации</string>
 
 
 </resources>

@@ -538,7 +538,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         Timber.d("CheckupFragment_onPause")
         super.onPause()
         pw?.dismiss()
-        (activity as MainActivity).currentOrder=currentOrder
+        //(activity as MainActivity).currentOrder=currentOrder включать нельзя иначе в onBackPressed не отрабатывает сброс currentOrder
     }
 
     override fun onDetach() {

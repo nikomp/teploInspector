@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.order
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.location.Location
@@ -17,6 +18,7 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import kotlinx.android.synthetic.main.item_cardview_order.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
@@ -65,44 +67,6 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun afterTextChanged(s: Editable?) {
                 Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
                 Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
-                /*if (!(parentFragment.activity as MainActivity).isBackPressed &&
-                    !(parentFragment.activity as MainActivity).isSearchView) {
-
-                    // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
-                    if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
-                        parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
-                        holder.orderState.removeTextChangedListener(this)
-                        holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(
-                            Locale.ROOT
-                        )
-                        )
-                        holder.orderState.addTextChangedListener(this)
-                        return
-                    }
-
-                    if (s.toString().toUpperCase(Locale.ROOT) != ordersFilterList[position].status?.toUpperCase(
-                            Locale.ROOT
-                        )
-                    ) {
-                        ordersFilterList[position].status=s.toString().toLowerCase(Locale.ROOT)
-                            .capitalize()
-                        changeColorMBSState(holder.orderState, ordersFilterList[position].status)
-                        Timber.d("addHistoryState_after_Back")
-                        parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
-                    }
-
-
-                    holder.orderState.removeTextChangedListener(this)
-                    holder.orderState.setText(s.toString().toUpperCase(Locale.ROOT))
-                    holder.orderState.addTextChangedListener(this)
-
-                    //Фильтруем по статусу
-                    if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
-                        parentFragment.filteredOrderByState("all_without_Done_and_Cancel")
-                    }
-                } else {
-                    Timber.d("orderStateListener_isBackPressed")
-                }*/
 
                 // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
                 if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
@@ -189,6 +153,50 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
 
+        holder.btnChangeDateTime.setOnClickListener {
+            Timber.d("btnChangeDateTime_setOnClickListener")
+            lateinit var alertDialog: AlertDialog
+            val layoutInflater = LayoutInflater.from(parentFragment.requireContext())
+            val dialogView: View =
+                layoutInflater.inflate(R.layout.alert_change_date_time, (parentFragment.root as ViewGroup), false)
+
+            val builder = AlertDialog.Builder(parentFragment.requireContext())
+
+            dialogView.btnOk.setOnClickListener{
+                Timber.d("dialogView.buttonOK")
+                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+                val strDateTimeVisit="${newDate.text} ${newTime.text}"
+
+                Timber.d(strDateTimeVisit)
+                try {
+                    val date=SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).parse(strDateTimeVisit)
+                    if (date!=null) {
+                        holder.btnChangeDateTime.text=
+                            SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                        ordersFilterList[position].dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
+                        ordersFilterList[position].timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
+
+                        parentFragment.orderPresenter.saveDateTime(ordersFilterList[position])
+                        (parentFragment.requireActivity() as MainActivity).currentOrder=ordersFilterList[position]
+
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+
+                alertDialog.dismiss()
+
+            }
+
+            builder.setView(dialogView)
+            builder.setCancelable(true)
+            alertDialog=builder.create()
+            alertDialog.show()
+        }
+
+
         val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
             parentFragment.requireContext(),
             R.layout.template_multiline_spinner_item_state_order,
@@ -205,14 +213,14 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             try {
                 val date=SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("ru","RU")).parse(strDateTimeVisit)
                 if (date!=null) {
-                    holder.orderDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
+                    holder.btnChangeDateTime.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("ru","RU")).format(date)
                 }
             } catch ( e:Exception) {
                 e.printStackTrace()
             }
 
         } else {
-            holder.orderDate.text=parentFragment.getString(R.string.not_date_visit)
+            holder.btnChangeDateTime.text=parentFragment.getString(R.string.not_date_visit)
         }
 
         holder.orderPurposeObject.text = ordersFilterList[position].purposeObject
@@ -328,7 +336,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         var orderNumber: TextView = itemView.number
         var orderType: TextView = itemView.order_type
         var orderState: MaterialBetterSpinner = itemView.order_state
-        var orderDate: Button = itemView.btnChangeDateTime
+        var btnChangeDateTime: Button = itemView.btnChangeDateTime
         var orderPurposeObject: TextView = itemView.name
         var orderadress: TextView = itemView.adress
         var fio: TextView = itemView.fio
@@ -388,9 +396,6 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     }
                     ordersFilterList=result
 
-                    //ordersFilterList= results.values as List<Orders>
-
-                    Timber.d("isMapFragmentShow=${(parentFragment.requireActivity() as MainActivity).isMapFragmentShow}")
                     (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
 
                 }

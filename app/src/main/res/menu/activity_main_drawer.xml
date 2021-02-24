@@ -27,6 +27,7 @@
             <item
                 android:id="@+id/exit"
                 android:orderInCategory="1"
+                android:icon="@drawable/ic_exit"
                 android:title="@string/exit"/>
         </menu>
     </item>
