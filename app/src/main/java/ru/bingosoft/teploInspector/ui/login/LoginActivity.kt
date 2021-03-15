@@ -24,6 +24,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     private var stUrl: String = ""
     private var stLogin: String = ""
     private var stPassword: String = ""
+    private var isEntering: Boolean = false
 
     @Inject
     lateinit var toaster: Toaster
@@ -51,12 +52,19 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         cbEnter.isChecked = sharedPref.getEnterType().isNotEmpty() && sharedPref.getEnterType()=="directory_service"
     }
 
+    override fun onBackPressed() {
+        if (isEntering) {
+            super.onBackPressed()
+        }
+    }
+
     override fun onClick(v: View?) {
         if (v != null) {
             when (v.id) {
                 R.id.btnGo -> {
                     if (isNetworkConnected()) {
                         Timber.d("LoginActivity_onClick")
+                        isEntering=true
 
                         stUrl = edUrl.text.toString()
                         stLogin = edLogin.text.toString()
@@ -69,14 +77,20 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                         sharedPref.saveEnterType(stEnterType)
 
                         // Авторизация
-                        val intent = Intent()
-                        intent.putExtra("login", stLogin)
-                        intent.putExtra("password", stPassword)
-                        intent.putExtra("url", stUrl)
-                        intent.putExtra("enter_type", stEnterType)
-                        setResult(Activity.RESULT_OK, intent)
+                        if (stUrl.isNotEmpty() && stLogin.isNotEmpty() && stPassword.isNotEmpty()) {
+                            val intent = Intent()
+                            intent.putExtra("login", stLogin)
+                            intent.putExtra("password", stPassword)
+                            intent.putExtra("url", stUrl)
+                            intent.putExtra("enter_type", stEnterType)
+                            setResult(Activity.RESULT_OK, intent)
 
-                        this.finish()
+                            this.finish()
+                        } else {
+                            toaster.showErrorToast("Заполните все поля")
+                        }
+
+
                     } else {
                         toaster.showToast(R.string.not_internet)
                     }

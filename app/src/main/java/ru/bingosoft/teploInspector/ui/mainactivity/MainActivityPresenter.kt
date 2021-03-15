@@ -21,6 +21,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.ThrowHelper
 import timber.log.Timber
 import java.io.File
@@ -35,14 +36,12 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     @Inject
     lateinit var apiService: ApiService
 
-    /*@Inject
-    lateinit var userLocationNative: UserLocationNative*/
-
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
 
 
     private lateinit var disposable: Disposable
+    private lateinit var disposableSendMsg: Disposable
     private lateinit var disposableRouteInterval: Disposable
     private lateinit var disposableFiles: Disposable
     private lateinit var disposableFiles0: Disposable
@@ -61,8 +60,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
 
     fun authorization(url:String, stLogin: String?, stPassword: String?, msgId: Int=R.string.auth_ok){
-        Timber.d("authorization1 $stLogin _ $stPassword")
-        if (stLogin!=null && stPassword!=null) {
+        Timber.d("authorization1_MainActPres $stLogin _ $stPassword")
+        if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
 
@@ -108,6 +107,9 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     }
                 )
 
+        } else {
+            view?.errorReceived(Throwable("Не заданы логин или пароль"))
+            OtherUtil().writeToFile("Ошибка! Не заданы логин или пароль ${Date()}")
         }
 
     }
@@ -216,9 +218,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
                         Timber.d("it.history_order_state=${it.history_order_state}")
                         if (it.history_order_state!=null) {
-                            /*val gson = Gson()
-                            val reader = JsonReader(StringReader(it.history_order_state))
-                            reader.setLenient(true)*/
                             result.history_order_state=Gson().fromJson(it.history_order_state?.trim(), JsonArray::class.java)
                         }
                         result.controls=Gson().fromJson(it.controls, JsonArray::class.java)
@@ -500,7 +499,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
 
 
-    fun sendMessageToAdmin(codeMsg: Int) {
+    fun sendMessageToAdmin(codeMsg: Int, currentVersion:String ="") {
         Timber.d("sendMessageToAdmin codeMsg=$codeMsg")
         val textMessage: String
         val eventType: Int
@@ -526,7 +525,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 eventType=4 // Пользователь вышел из приложения
             }
             6-> {
-                textMessage="Пользователь вошел в приложение"
+                textMessage="Пользователь вошел в приложение версия_$currentVersion"
                 eventType=5 // Пользователь вошел в приложение
             }
             else -> {
@@ -551,17 +550,17 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         val jsonBody = Gson().toJson(messageData)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        disposable=apiService.sendMessageToAdmin(jsonBody)
+        disposableSendMsg=apiService.sendMessageToAdmin(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
-                disposable.dispose()
+                disposableSendMsg.dispose()
             },{ throwable ->
                 Timber.d("ошибка!!!")
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
-                disposable.dispose()
+                disposableSendMsg.dispose()
             })
     }
 
@@ -629,6 +628,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     )
                 } else {
                     Timber.d("Нет данных о маршруте")
+                    OtherUtil().writeToFile("Logger_Нет данных о маршруте ${Date()}")
                 }
             },{throwable ->
                 throwable.printStackTrace()

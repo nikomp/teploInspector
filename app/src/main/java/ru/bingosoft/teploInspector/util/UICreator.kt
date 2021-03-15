@@ -330,7 +330,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         //attachListenerToFab(templateStep,it)
 
-        templateStep.id=it.id
+        templateStep.id=it.results_id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
         //Покажем норматив
         val tvRegulation=templateStep.findViewById<TextView>(R.id.tvRegulation)
@@ -373,7 +373,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         ) as LinearLayout
 
 
-        templateStep.id = it.id
+        templateStep.id = it.results_id
         templateStep.findViewById<TextView>(R.id.question).text = it.question
 
         //Покажем норматив
@@ -419,7 +419,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             R.layout.template_date, rootView.parent as ViewGroup?, false
         ) as LinearLayout
 
-        templateStep.id=it.id
+        templateStep.id=it.results_id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
         setQuestionColor(it, templateStep)
 
@@ -479,7 +479,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             R.layout.template_time, rootView.parent as ViewGroup?, false
         ) as LinearLayout
 
-        templateStep.id=it.id
+        templateStep.id=it.results_id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
         setQuestionColor(it, templateStep)
 
@@ -514,7 +514,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             R.layout.template_photo2, rootView.parent as ViewGroup?, false
         ) as LinearLayout
 
-        templateStep.id=it.id
+        templateStep.id=it.results_id
         templateStep.findViewById<TextView>(R.id.question).text=it.question
         setQuestionColor(it, templateStep)
 
@@ -534,7 +534,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             // Сбрасываем признак Checked
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
-            (parentFragment.requireActivity() as MainActivity).photoDir="${curOrder.guid}/${stepCheckup.guid}" // Сохраним id контрола для которого делаем фото
+            (parentFragment.requireActivity() as MainActivity).photoDir="${curOrder.guid}/${stepCheckup.results_guid}" // Сохраним id контрола для которого делаем фото
             photoHelper.createPhoto(curOrder.guid, stepCheckup)
         }
 
@@ -560,7 +560,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/${tc.resvalue}")
                 } else {
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
-                    val photoDirectory="${curOrder.guid}/${stepCheckup.guid}"
+                    val photoDirectory="${curOrder.guid}/${stepCheckup.results_guid}"
                     OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/$photoDirectory")
                 }
                 val photoForDelete=imagesPhoto[indexPhoto]
@@ -573,12 +573,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
                     // Проверим папку, может она пуста
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
-                    if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${stepCheckup.guid}")) {
+                    if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${stepCheckup.results_guid}")) {
                         Timber.d("Папка есть, она не пуста")
                     } else {
                         Timber.d("Удаляем_папку")
                         // Удалим папку, очистим photoStep?.resvalue
-                        val dir=File("$DCIM_DIR/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}")
+                        val dir=File("$DCIM_DIR/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}")
                         dir.delete()
                         tc.answered=false
                         tc.resvalue=null
@@ -594,7 +594,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Timber.d("Фото_${it.resvalue}")
             // Обновим список с фото
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
-            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
+            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
             OtherUtil().getFilesFromDir(stDir)
 
         } else {
@@ -608,7 +608,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         if (it.resvalue.isNullOrEmpty()) {
             Timber.d("it.resvalue.isNullOrEmpty()")
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
-            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.guid}"
+            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
 
             val listPhoto=OtherUtil().getFilesFromDir(stDir)
             Timber.d("listPhoto=${listPhoto}")
@@ -897,16 +897,22 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         Timber.d("enabledControls_size=${enabledControls.size}")
         Timber.d("enabled=${enabled}")
 
-        enabledControls.forEach {
-            if (it is MaterialBetterSpinner) {
-                if (enabled) {
-                    it.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
-                } else {
-                    it.dropDownHeight = 0
+        try {
+            enabledControls.forEach {
+                if (it is MaterialBetterSpinner) {
+                    if (enabled) {
+                        it.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
+                    } else {
+                        it.dropDownHeight = 0
+                    }
                 }
+                it.isEnabled=enabled
             }
-            it.isEnabled=enabled
+        } catch (e: Exception) {
+            Timber.d("Error55")
+            e.printStackTrace()
         }
+
     }
 
     /**

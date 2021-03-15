@@ -21,6 +21,9 @@ import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_not_internet.view.*
 import kotlinx.android.synthetic.main.alert_syncdb.view.*
@@ -38,12 +41,15 @@ import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_HOURS
+import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_MINUTES
 import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
 import java.net.UnknownHostException
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
@@ -75,6 +81,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     private lateinit var currentOrder: Orders
     lateinit var root: View
+    //lateinit var alertDialogRepeatSync: AlertDialog
 
 
     override fun onCreateView(
@@ -82,7 +89,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        Timber.d("BVBN")
+        Timber.d("OrderFragment_onCreateView")
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.menu_orders)
@@ -112,9 +119,18 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         return root
     }
 
+    /*override fun onPause() {
+        super.onPause()
+        if (this::alertDialogRepeatSync.isInitialized && alertDialogRepeatSync.isShowing) {
+            Timber.d("OrderFragment_alertDialogRepeatSync_dismiss")
+            toaster.showToast(R.string.close_alertdiaolog)
+        }
+    }*/
+
 
     override fun onDestroy() {
         super.onDestroy()
+        Timber.d("OrderFragment_onDestroy")
         orderPresenter.onDestroy()
         loginPresenter.onDestroy()
     }
@@ -250,8 +266,9 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 )
             }
         } else {
+            /*Timber.d("startService_OrderFragment1")
             activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
-            activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))
+            activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))*/
         }
     }
 
@@ -269,7 +286,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
                     // Разрешения выданы
-                    Timber.d("startService_Permission")
+                    Timber.d("startService_OrderFragment2")
                     /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
 
@@ -346,7 +363,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         loginPresenter.attachView(this)
 
         val dbFile = this.requireContext().getDatabasePath("mydatabase.db")
-        lateinit var alertDialog: AlertDialog
+        lateinit var alertDialogRepeatSync: AlertDialog
+
         if (dbFile.exists()) {
             val layoutInflater = LayoutInflater.from(this.requireContext())
             val dialogView: View =
@@ -362,9 +380,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
             dialogView.buttonOK.setOnClickListener{
                 Timber.d("dialogView.buttonOK")
-
+                alertDialogRepeatSync.dismiss()
                 loginPresenter.syncDB()
-                alertDialog.dismiss()
 
             }
 
@@ -372,13 +389,14 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 showMessageLogin(R.string.auth_ok)
                 //orderPresenter.loadOrders() // Грузим данные из локальной БД
                 showOrders()
-                alertDialog.dismiss()
+                alertDialogRepeatSync.dismiss()
             }
 
             builder.setView(dialogView)
-            builder.setCancelable(true)
-            alertDialog=builder.create()
-            alertDialog.show()
+            builder.setCancelable(false)
+            alertDialogRepeatSync=builder.create()
+            alertDialogRepeatSync.show()
+            (requireActivity() as MainActivity).alertDialogRepeatSync=alertDialogRepeatSync
         } else {
             loginPresenter.syncDB()
         }
@@ -409,7 +427,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         }
 
         builder.setView(dialogView)
-        builder.setCancelable(true)
+        builder.setCancelable(false)
         alertDialogNotInternet=builder.create()
         alertDialogNotInternet.show()
 
@@ -591,7 +609,40 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun sendMessageUserLogged() {
-        mainPresenter.sendMessageToAdmin(USER_LOGIN)
+        val pInfo=requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+        val currentVersion= pInfo.versionName
+        mainPresenter.sendMessageToAdmin(USER_LOGIN,currentVersion)
+
+
+    }
+
+    override fun saveAppVersionName() {
+        val pInfo=requireContext().packageManager.getPackageInfo(requireContext().packageName,0)
+        sharedPref.saveVersionName(pInfo.versionName)
+    }
+
+    override fun startFinishWorker() {
+        Timber.d("startFinishWorker")
+        val date=Calendar.getInstance()
+        val calendar = Calendar.getInstance()
+        calendar.set(date.get(Calendar.YEAR),date.get(Calendar.MONTH),date.get(Calendar.DATE),FINISH_HOURS,
+            FINISH_MINUTES,0)
+
+        Timber.d("duration=$calendar")
+        var duration =OtherUtil().getDifferenceTime(date.timeInMillis, calendar.timeInMillis)
+        // Если зашли после 18.00 приложение будет работать 4 часа
+        if (duration<0) {
+            duration=240 //
+        }
+        Timber.d("duration=$duration")
+        OtherUtil().writeToFile("Logger_startFinishWorker_$duration")
+
+
+        val finishAppWorkerRequest: WorkRequest =
+            OneTimeWorkRequestBuilder<FinishAppWorker>()
+                .setInitialDelay(duration, TimeUnit.MINUTES)
+                .build()
+        WorkManager.getInstance(requireContext()).enqueue(finishAppWorkerRequest)
     }
 
 

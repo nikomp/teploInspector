@@ -61,7 +61,6 @@ import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
-import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
 import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGOUT
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.AUTH
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PHOTO
@@ -93,6 +92,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
+
+    private val shutdownReceiver=ShutdownReceiver()
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var navController: NavController
@@ -128,6 +129,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private var messageId: Int=0
     var ordersIdsNotSync: MutableList<Long> = mutableListOf()
 
+    var alertDialogRepeatSync: AlertDialog?=null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
@@ -136,22 +139,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        /*if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
-            val powerManager = getSystemService(POWER_SERVICE) as PowerManager
-            val inWhiteList = powerManager.isIgnoringBatteryOptimizations("ru.bingosoft.teploInspector")
-            Timber.d("БЕЛЫЙ_СПИСОК=$inWhiteList")
-            if (!inWhiteList) {
-                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-            }
-        }*/
-
-
-
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
         mainPresenter.attachView(this)
         mainPresenter.getAllOrderNotSync()
+
+        requestPermission() // Запросим разрешения
+        // Проверим возможно приложение обновили
+        if (!checkUpdateApp()) {
+            return
+        }
 
 
         // Авторизуемся сразу при входе в приложение, чтоб уходили GPS данные
@@ -161,7 +159,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             doAuthorization() // Сразу пробуем авторизоваться
         }
 
-        requestPermission() // Запросим разрешение на геолокацию, нужны для сервиса
+
         checkIntent() // Возможно Activity открыта из уведомления
 
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -239,6 +237,91 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        OtherUtil().writeToFile("Logger_onNewIntent")
+        Timber.d("onNewIntent_${intent?.extras}")
+        Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT",false)}")
+        checkFinish(intent)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Timber.d("MainActivity_onPause")
+
+    }
+
+    private fun checkFinish(intent: Intent?) {
+        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+            if (intent?.extras != null) {
+                Timber.d("EXIT_${intent.extras!!.getBoolean("EXIT", false)}")
+                if (intent.extras!!.getBoolean("EXIT", false)) {
+                    Timber.d("sendMessageToAdmin_USER_LOGOUT")
+                    if (alertDialogRepeatSync?.isShowing == true) {
+                        Timber.d("OrderFragment_alertDialogRepeatSync_dismiss")
+                        alertDialogRepeatSync?.dismiss()
+                    }
+                    finish()
+                }
+            }
+        } else {
+            OtherUtil().writeToFile("Logger_checkFinish_login_${sharedPref.getLogin()}_password_${sharedPref.getPassword()}")
+            // Проверим логин и пароль после сворачивания приложения
+            if (sharedPref.getLogin().isEmpty() || sharedPref.getPassword().isEmpty()) {
+                // Запустим активити с настройками
+                val intent = Intent(this, LoginActivity::class.java)
+                startActivityForResult(intent, AUTH)
+            }
+        }
+
+    }
+
+    private fun checkUpdateApp(): Boolean {
+        val pInfo=packageManager.getPackageInfo(packageName, 0)
+        val currentVersion= pInfo.versionName
+        Timber.d("versionName_App$currentVersion")
+        val oldVersion=sharedPref.getVersionName()
+        Timber.d("oldVersion$oldVersion")
+        if (oldVersion.isNotEmpty()) {
+            if ( oldVersion != currentVersion) {
+                OtherUtil().writeToFile("Logger_Версии не совпадают старая_$oldVersion, новая $currentVersion")
+                buildAlertClearUserData()
+                return false
+            }
+        }
+        return true
+
+    }
+
+    private fun buildAlertClearUserData() {
+        lateinit var alertDialog: AlertDialog
+        val layoutInflater = LayoutInflater.from(this)
+        val dialogView: View =
+            layoutInflater.inflate(R.layout.alert_clear_userdata, null, false)
+
+        val builder = AlertDialog.Builder(this)
+
+        dialogView.buttonOK.setOnClickListener{
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                (getSystemService(ACTIVITY_SERVICE) as ActivityManager).clearApplicationUserData()
+            } else {
+                // Код работает, если что, можно использовать его в Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = Uri.fromParts("package", packageName, null)
+                intent.data = uri
+                startActivity(intent)
+            }
+
+
+            alertDialog.dismiss()
+        }
+
+        builder.setView(dialogView)
+        builder.setCancelable(false)
+        alertDialog=builder.create()
+        alertDialog.show()
+    }
+
     private val unauthorizedReceiver=object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Timber.d("unauthorizedReceiver_onReceive")
@@ -266,30 +349,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     private fun buildAlertMessageNoGps() {
-        /*val builder= AlertDialog.Builder(this)
-        builder.setMessage("Датчик GPS выключен, включить?").setCancelable(false)
-            .setPositiveButton(
-                "Да"
-            ) { _, _ -> startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
-            .setNegativeButton(
-                "Нет"
-            ) { dialog, _ ->
-                Timber.d("Сообщение администратору")
-                mainPresenter.sendMessageToAdmin(REPEATEDLY_REFUSED)
-                dialog?.cancel()
-            }
-        val alert=builder.create()
-
-        alert.setOnShowListener { dialog ->
-            val posButton=(dialog as AlertDialog).getButton(DialogInterface.BUTTON_POSITIVE)
-            val params=LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.leftMargin=20
-            posButton.layoutParams=params
-        }
-        alert.show()*/
 
         lateinit var alertDialog: AlertDialog
         val layoutInflater = LayoutInflater.from(this)
@@ -299,7 +358,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val builder = AlertDialog.Builder(this)
 
         dialogView.buttonOK.setOnClickListener{
-            startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             alertDialog.dismiss()
         }
 
@@ -310,7 +369,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
         builder.setView(dialogView)
-        builder.setCancelable(true)
+        builder.setCancelable(false)
         alertDialog=builder.create()
         alertDialog.show()
     }
@@ -337,7 +396,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 )
             }
         } else {
-            Timber.d("startService_MainActivity")
+            Timber.d("startService_MainActivity1")
             // Стартуем фоновый сервис для отслеживания пользователя
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
             startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
@@ -370,7 +429,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
                     // Разрешения выданы
-                    Timber.d("startService_Permission")
+                    Timber.d("startService_MainActivity2")
                     startService(Intent(this, UserLocationService::class.java))
                     startService(Intent(this, MapkitLocationService::class.java))
                 } else {
@@ -545,6 +604,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     if (currentFragmentClassName == getString(R.string.order_fragment_className)) {
                         val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
                         (rcv.adapter as OrderListAdapter).filter.filter(newText)
+
                     } else {
                         Timber.d("Включена карта11 $newText")
 
@@ -555,40 +615,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                             )
                         }
 
+                        filteredOrders = filteredList
+
                         Timber.d("Отфильтровано=${filteredList.size}")
                         val currentNavHost =
                             supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-                        /*val currentFragmentClassName =
-                            (navController.currentDestination as FragmentNavigator.Destination).className*/
+
                         val mf = currentNavHost?.childFragmentManager?.fragments?.filterNotNull()
                             ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
                         mf.showMarkers(filteredList)
                     }
 
-
-                    /*if (!isMapFragmentShow) {
-                        val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
-                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
-                    } else {
-                        Timber.d("Включена карта11 $newText")
-
-                        val filteredList = orders.filter {
-                            it.address != null && it.address!!.contains(
-                                newText!!,
-                                true
-                            )
-                        }
-
-                        Timber.d("Отфильтровано=${filteredList.size}")
-                        val currentNavHost =
-                            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-                        val currentFragmentClassName =
-                            (navController.currentDestination as FragmentNavigator.Destination).className
-                        val mf = currentNavHost?.childFragmentManager?.fragments?.filterNotNull()
-                            ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
-                        mf.showMarkers(filteredList)
-
-                    }*/
 
                     return true
                 }
@@ -618,22 +655,32 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 }
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
+                    OtherUtil().writeToFile("Авторизуемся_повторно")
 
-                    val login=if (data?.getStringExtra("login")==null) "" else data.getStringExtra("login")
-                    val password=if (data?.getStringExtra("password")==null) "" else data.getStringExtra("password")
-                    val url=if (data?.getStringExtra("url")==null) "" else data.getStringExtra("url")
-                    val enter_type=if (data?.getStringExtra("enter_type")==null) "" else data.getStringExtra("enter_type")
+                    val login =
+                        if (data?.getStringExtra("login") == null) "" else data.getStringExtra("login")
+                    val password =
+                        if (data?.getStringExtra("password") == null) "" else data.getStringExtra(
+                            "password"
+                        )
+                    val url =
+                        if (data?.getStringExtra("url") == null) "" else data.getStringExtra("url")
+                    val enter_type =
+                        if (data?.getStringExtra("enter_type") == null) "" else data.getStringExtra(
+                            "enter_type"
+                        )
 
-                    val dataAuth=Models.RepeatAuthData(
-                       login,password,url,enter_type
+                    val dataAuth = Models.RepeatAuthData(
+                        login, password, url, enter_type
                     )
 
 
-                    val navHostFragment: NavHostFragment? =
+                    val navHostFragment: NavHostFragment =
                         supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-                    val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
+                    val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
                     of?.doAuthorization(data = dataAuth)
-                    if (of==null) {
+                    if (of == null) {
+                        OtherUtil().writeToFile("XZXZXZ_W")
                         doAuthorization(data = dataAuth)
                     }
 
@@ -646,7 +693,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    fun doAuthorization(msgId: Int = R.string.auth_ok, data:Models.RepeatAuthData?= null) {
+    fun doAuthorization(msgId: Int = R.string.auth_ok, data: Models.RepeatAuthData? = null) {
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = this.getSharedPreferences(
@@ -713,6 +760,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun onDestroy() {
         Timber.d("MainAct_destroy")
         super.onDestroy()
+        mainPresenter.sendMessageToAdmin(USER_LOGOUT)
+
         stopService(Intent(this, UserLocationService::class.java))
         stopService(Intent(this, MapkitLocationService::class.java))
         stopService(Intent(this, NotificationService::class.java))
@@ -720,6 +769,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
             LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
+            //LocalBroadcastManager.getInstance(this).unregisterReceiver(shutdownReceiver)
+            unregisterReceiver(shutdownReceiver)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -731,43 +782,48 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
 
     override fun onBackPressed() {
-        //super.onBackPressed()
         isBackPressed=true
         Timber.d("onBackPressed")
         Timber.d("backStackEntryCount=${supportFragmentManager.backStackEntryCount}")
         Timber.d("fragments.size=${supportFragmentManager.fragments.size}")
         Timber.d("MainActivity_orders_onBackPressed=${orders}")
 
-        // Сбросим текущую заявку
-        currentOrder= Orders(guid = "")
-        photoDir=""
-        photoStep=null
-        Timber.d("currentOrder_$currentOrder")
+
 
         val currentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
         Timber.d("currentFragmentClassName=$currentFragmentClassName")
-        if (supportFragmentManager.fragments.size>1) {
+        /*if (supportFragmentManager.fragments.size>1) {
             if (currentFragmentClassName==getString(R.string.order_fragment_className)) {
                 Timber.d("navController_navigate_nav_home")
                 navController.navigate(R.id.nav_home)
             }
-        }
+        }*/
 
         if (currentFragmentClassName==getString(R.string.map_fragment_className)) {
             Timber.d("уходим_с_карты")
-            //setMode(false) // Включены Заявки, а не карта
+            doubleBackToExitCounter=0
             super.onBackPressed()
-            return
+            //return
         }
 
         if (currentFragmentClassName==getString(R.string.checkup_fragment_className)) {
             Timber.d("navController_navigate_nav_1home")
+            doubleBackToExitCounter=0
             super.onBackPressed()
-            return
+            //return
         }
 
-        if (supportFragmentManager.backStackEntryCount==0 /*&& currentFragmentClassName==getString(R.string.order_fragment_className)*/){ //(supportFragmentManager.backStackEntryCount==0)
+
+        val newCurrentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
+        Timber.d("VVV_$newCurrentFragmentClassName}")
+        // Если попали на экран Заявки
+        if (newCurrentFragmentClassName==getString(R.string.order_fragment_className)){ //(supportFragmentManager.backStackEntryCount==0)
             Timber.d("onBackPressed_Заявки")
+
+            // Сбросим текущую заявку, только когда переходим к Списку
+            currentOrder= Orders(guid = "")
+            photoDir=""
+            photoStep=null
 
             supportActionBar?.setTitle(R.string.menu_orders)
 
@@ -775,7 +831,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             findViewById<Button>(R.id.btnList)?.isEnabled=false
             findViewById<Button>(R.id.btnMap)?.isEnabled=true
 
-            navController.navigate(R.id.nav_home)
+            //navController.navigate(R.id.nav_home)
             if (isBackPressed) {
                 isBackPressed=false
             }
@@ -783,11 +839,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 isSearchView=false
             }
 
+
             doubleBackToExitCounter += 1
             Timber.d("doubleBackToExitCounter=$doubleBackToExitCounter")
             if (doubleBackToExitCounter>1) {
                 alertExit()
             }
+
+
         }
     }
 
@@ -802,7 +861,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         dialogView.buttonOK.setOnClickListener{
             Timber.d("alertExit_buttonOK")
             alertDialog.dismiss()
-            mainPresenter.sendMessageToAdmin(USER_LOGOUT)
             finish()
         }
 
@@ -866,7 +924,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
         if (childFragment is CheckupFragment) {
-            childFragment.setPhotoResult(photoStep?.id, photoDir)
+            childFragment.setPhotoResult(photoStep?.results_id, photoDir)
         }
 
 
@@ -1025,7 +1083,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
              val notificationChannel = NotificationChannel(
                  Const.WebSocketConst.NOTIFICATION_CHANNEL_ID,
-                 "Служебные уведомления",
+                 "Уведомления о получении заявок",
                  NotificationManager.IMPORTANCE_HIGH
              )
 
@@ -1131,6 +1189,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  "unauthorized"
              )
          )
+         /*LocalBroadcastManager.getInstance(this).registerReceiver(
+            shutdownReceiver,  IntentFilter("android.intent.action.ACTION_SHUTDOWN")
+         )*/
+         registerReceiver(shutdownReceiver, IntentFilter("android.intent.action.ACTION_SHUTDOWN"))
+
      }
 
      override fun enabledSaveButton() {
@@ -1139,24 +1202,24 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
      }
 
      override fun sendMessageUserLogged() {
-         Timber.d("sendMessageUserLogged")
+         // Метод не используется, после автоматичсекой авторизации не отправляем уведомление
+         /*Timber.d("sendMessageUserLogged")
          Timber.d("userLocationReceiver=${userLocationReceiver.lastKnownLocation}")
-         mainPresenter.sendMessageToAdmin(USER_LOGIN)
+         val pInfo=packageManager.getPackageInfo(packageName, 0)
+         val currentVersion= pInfo.versionName
+         mainPresenter.sendMessageToAdmin(USER_LOGIN,currentVersion)*/
      }
 
      override fun repeatSync() {
-         val navHostFragment: NavHostFragment? =
+         val navHostFragment: NavHostFragment =
              supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-         val of =navHostFragment!!.childFragmentManager.fragments[0] as? OrderFragment
+         val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
          of?.alertRepeatSync()
      }
 
-     /*override fun sendRoute() {
-         Timber.d("test")
-         mainPresenter.sendRoute()
-
-     }*/
-
+     override fun finishApp() {
+         finish()
+     }
 
      fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
@@ -1234,7 +1297,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbAll -> {
                 Timber.d("Фильтр_по_дате_Все")
-                //filteredOrders= listOf()
                 filteredOrders = orders
                 Timber.d("orders=$orders")
                 filterOrderByDate("all")
@@ -1302,7 +1364,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             }
             R.id.rbStateAll -> {
                 Timber.d("Фильтр_по_Статусу_Все")
-                //filteredOrders= listOf()
                 filteredOrders = orders
                 filterOrderByState("all")
                 if (::dialogFilterStateOrder.isInitialized) {
@@ -1382,7 +1443,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         filterView.findViewById<TextView>(R.id.badge_count).text=filterCount.toString()
         if (filterCount==4) {
-            //filteredOrders= listOf()
             filteredOrders=orders
         }
 

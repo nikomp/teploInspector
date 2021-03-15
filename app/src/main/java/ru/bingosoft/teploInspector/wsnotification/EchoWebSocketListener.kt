@@ -44,7 +44,7 @@ class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "Служебные уведомления",
+                "Уведомления о получении заявок",
                 NotificationManager.IMPORTANCE_HIGH
             )
 

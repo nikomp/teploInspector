@@ -62,6 +62,7 @@
             android:name="ru.bingosoft.teploInspector.ui.login.LoginActivity"
             android:label="@string/title_activity_login"
             android:screenOrientation="portrait"
+            android:launchMode="singleTask"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <uses-library
@@ -104,6 +105,15 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!--Ресивер, отслеживает выключение телефона, сохраняет лог-->
+        <!--<receiver android:name="ru.bingosoft.teploInspector.util.ShutdownReceiver"
+            android:enabled="true"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+            </intent-filter>
+        </receiver>-->
 
     </application>
 

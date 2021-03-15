@@ -1,6 +1,5 @@
 package ru.bingosoft.teploInspector.di
 
-import android.os.Environment
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
@@ -13,11 +12,9 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.api.ApiService
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import timber.log.Timber
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 
@@ -44,7 +41,7 @@ class NetworkModule {
 
         val fileLogger=object:HttpLoggingInterceptor.Logger {
             override fun log(message: String) {
-                writeToFile(message)
+                OtherUtil().writeToFile(message)
             }
 
         }
@@ -92,9 +89,9 @@ class NetworkModule {
                     return response
                 }
             })
-            .connectTimeout(30, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build()
 
         val gson = GsonBuilder()
@@ -113,25 +110,4 @@ class NetworkModule {
 
     }
 
-    fun writeToFile(message:String) {
-        Timber.d("writeToFile")
-        val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
-        val dir = "TeploInspectorLogs/$date"
-
-        val storageDir = File("${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}",dir)
-        if (!storageDir.exists()) {
-            Timber.d("создадим_папку $storageDir")
-            storageDir.mkdirs() // Создадим сразу все необходимые каталоги
-            Timber.d("!storageDir.exists()=${storageDir.exists()}")
-        }
-
-        val file="Log.log"
-        val logFile=File("$storageDir/$file")
-        if (!logFile.exists()) {
-            Timber.d("vcvc=$storageDir/$file")
-            logFile.createNewFile()
-        }
-        logFile.appendText("$message\n")
-
-    }
 }

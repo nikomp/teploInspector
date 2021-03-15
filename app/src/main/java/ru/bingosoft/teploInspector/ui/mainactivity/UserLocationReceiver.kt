@@ -25,6 +25,7 @@ import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.ENABLE_LOCATION
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.util.*
@@ -35,6 +36,7 @@ class UserLocationReceiver @Inject constructor(
     private val db: AppDatabase
 ): BroadcastReceiver() {
     private lateinit var disposable: Disposable
+    private lateinit var disposableSendMsg: Disposable
 
     /*private lateinit var disposableRoute: Disposable
     var locationManager: LocationManager?=null
@@ -54,46 +56,42 @@ class UserLocationReceiver @Inject constructor(
 
     override fun onReceive(context: Context?, intent: Intent?) {
         Timber.d("onReceive")
-        if (context != null) {
-            ctx=context
-        }
+        OtherUtil().writeToFile("Logger_UserLocationReceiver_onReceive_${Date()}")
+        if("userLocationUpdates" == intent?.action) {
+            if (context != null) {
+                ctx=context
+            }
 
-        userLocationListener =UserLocationListener(LocationManager.GPS_PROVIDER, ctx)
+            userLocationListener =UserLocationListener(LocationManager.GPS_PROVIDER, ctx)
 
+            val lat= intent.getDoubleExtra("lat",0.0)
+            val lon= intent.getDoubleExtra("lon",0.0)
+            val provider= intent.getStringExtra("provider")
 
+            lastKnownLocation=Location(provider)
+            if (lat!=null && lon!=null) {
+                lastKnownLocation.longitude=lon
+                lastKnownLocation.latitude=lat
+            }
 
-        val lat=intent?.getDoubleExtra("lat",0.0)
-        val lon=intent?.getDoubleExtra("lon",0.0)
-        val provider=intent?.getStringExtra("provider")
-        /*val sendRouteToServer=intent?.getBooleanExtra("sendRouteToServer",false)
-        if (sendRouteToServer!=null && sendRouteToServer==true) {
-            Timber.d("send_Route_old")
-            sendUserRoute()
-            getLocation()
-        }*/
-
-        lastKnownLocation=Location(provider)
-        if (lat!=null && lon!=null) {
-            lastKnownLocation.longitude=lon
-            lastKnownLocation.latitude=lat
-        }
-
-        val status=intent?.getStringExtra("status")
-        Timber.d("statusGPS=$status")
-        if (status==PROVIDER_DISABLED) {
-            Timber.d("PROVIDER_DISABLED")
-            sendMessageToAdmin(DISABLE_LOCATION)
-        }
-        if (status== PROVIDER_ENABLED) {
-            Timber.d("ENABLE_LOCATION")
-            sendMessageToAdmin(ENABLE_LOCATION)
-        }
-        Timber.d("UserLocationReceiver=$lat _ $lon")
-        if (lat != null && lon!=null) {
-            if (provider != null && status != null) {
+            val status= intent.getStringExtra("status")
+            Timber.d("statusGPS=$status")
+            if (status==PROVIDER_DISABLED) {
+                Timber.d("PROVIDER_DISABLED")
+                sendMessageToAdmin(DISABLE_LOCATION)
+            }
+            if (status== PROVIDER_ENABLED) {
+                Timber.d("ENABLE_LOCATION")
+                sendMessageToAdmin(ENABLE_LOCATION)
+            }
+            Timber.d("UserLocationReceiver=$lat _ $lon")
+            if (lat != null && lon!=null) {
+                if (provider != null && status != null) {
                     saveLocation(lat,lon,provider,status)
+                }
             }
         }
+
     }
 
     fun isInitLocation() :Boolean {
@@ -162,18 +160,18 @@ class UserLocationReceiver @Inject constructor(
         val jsonBody = Gson().toJson(messageData)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        disposable=apiService.sendMessageToAdmin(jsonBody)
+        disposableSendMsg=apiService.sendMessageToAdmin(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
                     Timber.d("Сообщение_отправлено")
-                    disposable.dispose()
+                    disposableSendMsg.dispose()
                 },
                 {
                     Timber.d(it.printStackTrace().toString())
                     ctx.sendBroadcast(Intent("unauthorized"))
-                    disposable.dispose()
+                    disposableSendMsg.dispose()
                 }
             )
 

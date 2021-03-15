@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.login
 
 import com.google.gson.Gson
+import com.google.gson.TypeAdapter
 import com.google.gson.reflect.TypeToken
 import io.reactivex.Completable
 import io.reactivex.Flowable
@@ -16,11 +17,9 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.util.Const
-import ru.bingosoft.teploInspector.util.SharedPrefSaver
-import ru.bingosoft.teploInspector.util.ThrowHelper
-import ru.bingosoft.teploInspector.util.Toaster
+import ru.bingosoft.teploInspector.util.*
 import timber.log.Timber
+import java.io.IOException
 import java.lang.reflect.Type
 import java.net.UnknownHostException
 import java.util.*
@@ -41,6 +40,7 @@ class LoginPresenter @Inject constructor(
     private lateinit var disposable: Disposable
     private lateinit var disposableFCM: Disposable
     private lateinit var disposableRouteInterval: Disposable
+    private lateinit var disposableClearOrdersFromDB: Disposable
 
     fun attachView(view: LoginContractView) {
         this.view = view
@@ -48,7 +48,7 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(url: String, stLogin: String?, stPassword: String?){
         Timber.d("authorization_LoginPresenter $stLogin _ $stPassword")
-        if (stLogin!=null && stPassword!=null) {
+        if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
 
@@ -72,6 +72,7 @@ class LoginPresenter @Inject constructor(
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
+                        view?.saveAppVersionName()
                         view?.registerReceiverMainActivity()
                         view?.saveToken(token.token)
                         view?.saveInfoUserToSharedPreference(Models.User(fullname = token.name))
@@ -80,6 +81,7 @@ class LoginPresenter @Inject constructor(
                         Timber.d("LoginPresenter_getAllMessage")
                         view?.getAllMessage()
                         view?.sendMessageUserLogged()
+                        view?.startFinishWorker()
 
                         val v = view
                         if (v != null) {
@@ -87,19 +89,41 @@ class LoginPresenter @Inject constructor(
                             v.alertRepeatSync()
                         }
 
-                        saveTokenGCM()
+                        saveTokenFCM()
+
                         disposable.dispose()
 
                     }, { throwable ->
                         throwable.printStackTrace()
-                        view?.showAlertNotInternet()
+                        Timber.d("throwable=${throwable.message}")
+                        //#throwable #response #error
+                        if (throwable is HttpException) {
+                            val body= throwable.response()?.errorBody()
+                            val gson = Gson()
+                            val adapter: TypeAdapter<Models.Error> = gson.getAdapter( Models.Error::class.java)
+                            try {
+                                val errorBody: Models.Error = adapter.fromJson(body?.string())
+                                if (errorBody.error=="user_not_found") {
+                                    view?.showFailureTextView("Неверный логин или пароль")
+                                }
+                             } catch (e: IOException) {
+                                Timber.d("error")
+                            }
+                        } else {
+                            view?.showAlertNotInternet()
+                        }
                         disposable.dispose()
                     }
                 )
 
+        } else {
+            view?.errorReceived(Throwable("Не заданы логин или пароль"))
+            OtherUtil().writeToFile("Ошибка! Не заданы логин или пароль ${Date()}")
         }
 
     }
+
+
 
     private fun sendRoute() {
         Timber.d("test_sendRoute_LoginPresenter")
@@ -134,6 +158,7 @@ class LoginPresenter @Inject constructor(
                         )
                     } else {
                         Timber.d("Нет данных о маршруте")
+                        OtherUtil().writeToFile("Logger_Нет данных о маршруте ${Date()}")
                     }
                 },{throwable ->
                     throwable.printStackTrace()
@@ -209,6 +234,9 @@ class LoginPresenter @Inject constructor(
         }
         .doOnError { throwable ->
             Timber.d("CXCX_$view")
+            if (throwable.message=="Нет заявок") {
+                clearOrders()
+            }
             if (view!=null) {
                 view?.showFailureTextView("Нет заявок")
                 view?.errorReceived(throwable)
@@ -219,6 +247,21 @@ class LoginPresenter @Inject constructor(
         .ignoreElement()
         .andThen(syncTechParams(sharedPrefSaver.getUserId()))
 
+    private fun clearOrders() {
+        disposableClearOrdersFromDB=Single.fromCallable{
+            db.ordersDao().clearOrders()
+        }
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe({
+            disposableClearOrdersFromDB.dispose()
+            view?.showOrders()
+
+        },{throwable ->
+            throwable.printStackTrace()
+            disposableClearOrdersFromDB.dispose()
+        })
+    }
 
     private fun syncTechParams(userId:Int) :Completable=apiService.getTechParams(user=userId)
         .subscribeOn(Schedulers.io())
@@ -366,7 +409,7 @@ class LoginPresenter @Inject constructor(
 
     }
 
-    private fun saveTokenGCM() {
+    private fun saveTokenFCM() {
         Timber.d("saveTokenGCM")
 
         val fcmToken=Models.FCMToken(

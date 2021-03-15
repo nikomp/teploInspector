@@ -65,10 +65,14 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         val orderStateListener=object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
-                Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
+
 
                 // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                Timber.d("ordersFilterList_size=${ordersFilterList.size}__position_$position")
+                if (position>ordersFilterList.size) {
+                    Timber.d("IOIO")
+                    return
+                }
                 if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
                     parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
                     holder.orderState.removeTextChangedListener(this)
@@ -112,6 +116,13 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         val typeTransportationTextWatcher=object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 Timber.d("typeTransportationTextWatcher")
+                Timber.d("ordersFilterList_size=${ordersFilterList.size}__position_$position")
+                if (position>ordersFilterList.size) {
+                    Timber.d("IOIO")
+                    return
+                }
+
+
                 holder.btnRoute.isEnabled = s.toString() != parentFragment.requireContext().getString(R.string.strTypeTransportationClient)
                 if (holder.btnRoute.isEnabled) {
                     holder.btnRoute.setTextColor(Color.parseColor("#2D3239"))
@@ -143,12 +154,16 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
         }
 
+        Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
+        Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
         if (!(parentFragment.activity as MainActivity).isBackPressed &&
             !(parentFragment.activity as MainActivity).isSearchView) {
             Timber.d("removeTextChangedListener_${(parentFragment.activity as MainActivity).isBackPressed}_${(parentFragment.activity as MainActivity).isSearchView}")
             holder.orderState.removeTextChangedListener(orderStateListener)
             holder.typeTransportation.removeTextChangedListener(typeTransportationTextWatcher)
         }
+
+
 
         holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
@@ -226,11 +241,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         holder.orderPurposeObject.text = ordersFilterList[position].purposeObject
         holder.orderadress.text = ordersFilterList[position].address
         holder.fio.text = ordersFilterList[position].contactFio
-        /*if (ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
-            holder.typeTransportation.text="Нет данных"
-        } else {
-            holder.typeTransportation.text=orders[position].typeTransportation
-        }*/
+
 
         if (!ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
             holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
@@ -396,6 +407,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                     }
                     ordersFilterList=result
 
+                    (parentFragment.requireContext() as MainActivity).filteredOrders=ordersFilterList
                     (parentFragment.requireContext() as FragmentsContractActivity).showMarkers(ordersFilterList)
 
                 }

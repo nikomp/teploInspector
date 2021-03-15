@@ -21,6 +21,7 @@ class Const {
         const val PASSWORD = "password"
         const val DATESYNC = "last_sync_date"
         const val USER_FULLNAME = "fullname"
+        const val VERSION_NAME = "version_name"
         const val USER_PHOTO_URL = "photo_url"
         const val FIREBASE_MESSAGE = "message_token"
         const val LOCATION_TRACKING= "location_tracking"
@@ -110,9 +111,15 @@ class Const {
         const val DIALOG_TIME=2
     }
 
+    object FinishTime {
+        const val FINISH_HOURS=18
+        const val FINISH_MINUTES=0
+    }
+
     object WebSocketConst{
         const val NORMAL_CLOSURE_STATUS = 1000
         const val NOTIFICATION_CHANNEL_ID_SERVICES = "TeploInspectorServices"
+        const val NOTIFICATION_CHANNEL_ID_GPS_SERVICES = "TeploInspectorGPSServices"
         const val NOTIFICATION_CHANNEL_ID = "TeploInspector"
         const val NOTIFICATION_SERVICE_NOTIFICATION_ID = 521
         const val LOCATION_SERVICE_NOTIFICATION_ID = 522

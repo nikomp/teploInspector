@@ -28,7 +28,7 @@ class PhotoHelper {
 
         val uri: Uri?
         try {
-            val photoFile=createImageFile("$dirName/${step.guid}")
+            val photoFile=createImageFile("$dirName/${step.results_guid}")
             Timber.d("photoFile=${photoFile.absolutePath}")
             (parentFragment.requireActivity() as MainActivity).lastKnownFilenamePhoto=photoFile.absolutePath
 

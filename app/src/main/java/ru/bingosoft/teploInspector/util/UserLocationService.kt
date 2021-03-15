@@ -40,6 +40,7 @@ class UserLocationService: Service() {
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        OtherUtil().writeToFile("Logger_UserLocationService_стартовал")
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
             val wakeLock =
                 (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
@@ -80,12 +81,12 @@ class UserLocationService: Service() {
             if (Build.VERSION.SDK_INT >= 29) {
                 Timber.d("FOREGROUND_SERVICE_TYPE_LOCATION_USERLOCATION")
                 startForeground(
-                    Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID,
+                    Const.WebSocketConst.GPS_SERVICE_NOTIFICATION_ID,
                     notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
                 )
             } else {
-                startForeground(Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID, notification)
+                startForeground(Const.WebSocketConst.GPS_SERVICE_NOTIFICATION_ID, notification)
             }
         }
 
@@ -187,6 +188,8 @@ class UserLocationService: Service() {
                 intent.putExtra("provider","GPS_PROVIDER")
             }
             intent.putExtra("status",status)
+
+            OtherUtil().writeToFile("Logger_sendIntent_GPS")
 
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
         }

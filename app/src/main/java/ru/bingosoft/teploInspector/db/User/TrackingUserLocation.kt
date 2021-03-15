@@ -9,11 +9,12 @@ import java.util.*
 @Entity(tableName = "TrackingUserLocation")
 @TypeConverters(DateConverter::class)
 data class TrackingUserLocation (
-    @PrimaryKey(autoGenerate = true)
-    var id: Long = 0,
+    //@PrimaryKey(autoGenerate = true)
+    //var id: Long = 0,
+    @PrimaryKey
+    var dateLocation: Date? = null,
     var lat: Double?,
     var lon: Double?,
     var provider: String="",
-    var status: String="",
-    var dateLocation: Date? = null
-    )
+    var status: String=""
+)

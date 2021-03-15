@@ -35,6 +35,8 @@ interface MainActivityContractView {
 
     fun repeatSync()
 
+    fun finishApp()
+
     //fun sendRoute()
 
 

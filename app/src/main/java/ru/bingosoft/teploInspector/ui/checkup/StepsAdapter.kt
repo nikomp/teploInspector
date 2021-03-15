@@ -55,6 +55,9 @@ class StepsAdapter(
                     "${parentFragment.currentOrder.techParamsCount}/${parentFragment.currentOrder.techParamsCount}"
             }
             2 -> {
+                Timber.d("Дополнительная нагрузка")
+            }
+            3 -> {
                 Timber.d("questionCount=${parentFragment.currentOrder.questionCount}")
                 holder.countQuestion.text =
                     "${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"

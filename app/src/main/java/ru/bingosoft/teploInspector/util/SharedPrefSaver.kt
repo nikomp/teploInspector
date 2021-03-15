@@ -16,6 +16,7 @@ import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.TOKEN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_FULLNAME
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_ID
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.USER_PHOTO_URL
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.VERSION_NAME
 import timber.log.Timber
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -160,6 +161,18 @@ class SharedPrefSaver(ctx: Context) {
     fun getTokenGCM() :String {
         return if (sharedPreference.contains(FIREBASE_MESSAGE)) {
             sharedPreference.getString(FIREBASE_MESSAGE, "") ?: ""
+        } else {
+            ""
+        }
+    }
+
+    fun saveVersionName(version: String) {
+        this.sharedPreference.edit().putString(VERSION_NAME, version).apply()
+    }
+
+    fun getVersionName() :String {
+        return if (sharedPreference.contains(VERSION_NAME)) {
+            sharedPreference.getString(VERSION_NAME, "") ?: ""
         } else {
             ""
         }

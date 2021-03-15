@@ -105,6 +105,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val checkupSteps: ArrayList<String> = ArrayList()
         checkupSteps.add("Общие сведения об абоненте")
         checkupSteps.add("Технические характеристики объекта")
+        checkupSteps.add("Дополнительная нагрузка")
 
         val typeOrderTag = arguments?.getString("typeOrder")
         if (typeOrderTag!=null) {
@@ -119,7 +120,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             setTechParams((requireActivity() as MainActivity).currentOrder.id)
             if ((requireActivity() as MainActivity).photoStep!=null &&
                 (requireActivity() as MainActivity).photoDir!="" ) {
-                setPhotoResult((requireActivity() as MainActivity).photoStep?.id,
+                setPhotoResult((requireActivity() as MainActivity).photoStep?.results_id,
                     (requireActivity() as MainActivity).photoDir)
             }
         }

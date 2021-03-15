@@ -2,6 +2,7 @@ package ru.bingosoft.teploInspector.util
 
 import android.location.Location
 import android.location.LocationManager
+import android.os.Environment
 import androidx.exifinterface.media.ExifInterface
 import com.google.gson.Gson
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
@@ -10,6 +11,8 @@ import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -106,6 +109,28 @@ class OtherUtil {
     fun getDifferenceTime(startTime: Long, endTime: Long): Long {
         val seconds=(endTime-startTime)/1000
         return seconds/60
+    }
+
+    fun writeToFile(message:String) {
+        Timber.d("writeToFile")
+        val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
+        val dir = "TeploInspectorLogs/$date"
+
+        val storageDir = File("${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}",dir)
+        if (!storageDir.exists()) {
+            Timber.d("создадим_папку $storageDir")
+            storageDir.mkdirs() // Создадим сразу все необходимые каталоги
+            Timber.d("!storageDir.exists()=${storageDir.exists()}")
+        }
+
+        val file="Log.log"
+        val logFile=File("$storageDir/$file")
+        if (!logFile.exists()) {
+            Timber.d("vcvc=$storageDir/$file")
+            logFile.createNewFile()
+        }
+        logFile.appendText("$message\n")
+
     }
 
 }

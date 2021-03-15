@@ -15,7 +15,6 @@ static def versionNameDate() {
 }
 
 android {
-
     signingConfigs {
         config {
             storeFile file('D:\\РАБОТА\\keystore2.jks')
@@ -24,6 +23,23 @@ android {
             keyPassword 'F8ORTl'
         }
     }
+
+    splits {
+        // Конфигурируем несколько APK на основе ABI (архитектура процессора)
+        abi {
+            enable true
+            /*По умолчанию все ABI включены, поэтому используйте reset() и include, чтобы указать, только нужные архитектуры*/
+            // Сбрасывает список ABI, для которых Gradle должен создавать APKS, на none
+            reset()
+            // Указывает список ABI, для которых Gradle должен создавать APK-файлы.
+            include 'armeabi-v7a'
+
+            // Указывает, что мы хотим(true)/не хотим(false) создать универсальный APK, который включает в себя все ABI.
+            universalApk true
+        }
+    }
+
+
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
     defaultConfig {
@@ -37,6 +53,11 @@ android {
         vectorDrawables.useSupportLibrary = true // Для использования VectorDrawable в Fab кнопке
 
         multiDexEnabled true
+
+        // Библиотеки Mapkit будут копироваться только для armeabi-v7a архитектуры проуецессора. Снижает размер APK
+        /*ndk {
+            abiFilters 'armeabi-v7a'
+        }*/
     }
     buildTypes {
         presentation {
@@ -82,7 +103,9 @@ android {
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
             buildConfigField "String", "url_socket", '"ws://mi.teploenergo-nn.ru/notificationservice/socket"'
 
-            minifyEnabled false
+
+            shrinkResources false // работает только в сочетании с minifyEnabled true
+            minifyEnabled false // minifyEnabled true сильно увеличивает время сборки, но уменьшает размер за счет обфускации
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.config
         }
@@ -179,8 +202,8 @@ dependencies {
     // Дополнительные модули MapKit.
     // Удалите зависимости если ваше приложение не использует их.
     implementation 'com.yandex.android:directions:3.5.0'
-    implementation 'com.yandex.android:places:3.5.0'
-    implementation 'com.yandex.android:search:3.5.0'
+    //implementation 'com.yandex.android:places:3.5.0'
+    //implementation 'com.yandex.android:search:3.5.0'
     implementation 'com.yandex.android:transport:3.5.0'
 
     //Получение локации пользователя
@@ -194,5 +217,14 @@ dependencies {
 
     // Для tooltip подсказок
     implementation 'com.nhaarman.supertooltips:library:3.0.0'
+
+    // Mockito
+    implementation 'org.mockito:mockito-core:2.28.2'
+    testImplementation 'org.mockito:mockito-inline:2.28.2'
+    androidTestImplementation 'org.mockito:mockito-inline:2.28.2'
+
+    // WorkManager
+    //implementation "android.arch.work:work-runtime:1.0.1"
+    implementation "androidx.work:work-runtime-ktx:2.5.0"
 
 }

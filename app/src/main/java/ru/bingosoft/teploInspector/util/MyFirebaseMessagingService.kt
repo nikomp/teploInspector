@@ -26,7 +26,7 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "FCM уведомление", NotificationManager.IMPORTANCE_HIGH)
 
-            notificationChannel.description = "Description"
+            notificationChannel.description = "Уведомления для пробуждения телефона"
             notificationChannel.enableLights(true)
             notificationChannel.lightColor = Color.RED
             notificationChannel.vibrationPattern = longArrayOf(0, 1000, 500, 1000)

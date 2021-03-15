@@ -26,4 +26,7 @@ interface LoginContractView {
 
     fun sendMessageUserLogged()
 
+    fun saveAppVersionName()
+    fun startFinishWorker()
+
 }

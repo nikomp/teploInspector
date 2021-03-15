@@ -14,6 +14,12 @@ class Models {
         @SerializedName("password") var password: String = ""
     )
 
+    data class Error(
+        @SerializedName("error") var error: String = "",
+        @SerializedName("message") var message: String = "",
+        @SerializedName("class") var class_path: String = ""
+    )
+
     data class Uuid(
         @SerializedName("uuid") var uuid: String = ""
     )
@@ -71,6 +77,7 @@ class Models {
     data class TemplateControl (
         @Expose @SerializedName("id_question") var id: Int = 0,
         @Expose @SerializedName("results_id") var results_id: Int = 0,
+        @Expose @SerializedName("results_guid") var results_guid: String = "",
         @Expose @SerializedName("node") val node: Int? = null,
         @Expose @SerializedName("question_guid") var guid: String = "",
         @Expose @SerializedName("type") var type: String = "",

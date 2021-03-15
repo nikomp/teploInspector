@@ -20,6 +20,7 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SAVE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.LOCATION_UPDATED
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.LOCATION_SERVICE_NOTIFICATION_ID
+import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_GPS_SERVICES
 import timber.log.Timber
 import java.util.*
 
@@ -33,14 +34,9 @@ class MapkitLocationService: Service() {
     private val locationListener=UserLocationListener(this)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        OtherUtil().writeToFile("Logger_MapkitLocationService_стартовал")
 
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
-            /*wakeLock =
-                (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-                    newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
-                        acquire()
-                    }
-                }*/
             val pm=(getSystemService(Context.POWER_SERVICE) as PowerManager)
             wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag")
             if (!wakeLock.isHeld) {
@@ -61,14 +57,14 @@ class MapkitLocationService: Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26) {
             val channel = NotificationChannel(
-                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES,
+                NOTIFICATION_CHANNEL_ID_GPS_SERVICES,
                 "Сервис геолокации",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
             val notification: Notification = Notification.Builder(
                 this,
-                Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_SERVICES
+                NOTIFICATION_CHANNEL_ID_GPS_SERVICES
             )
                 .setContentTitle(getText(R.string.location_service_title))
                 .setContentText(getText(R.string.location_service_content))
