@@ -31,13 +31,14 @@ interface MainActivityContractView {
     fun registerReceiver()
     fun enabledSaveButton()
 
-    fun sendMessageUserLogged()
 
     fun repeatSync()
 
-    fun finishApp()
+    //fun finishApp()
 
     //fun sendRoute()
+
+    fun clearAuthData()
 
 
 

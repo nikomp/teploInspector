@@ -134,6 +134,7 @@
 
     <string name="checklist_is_empty">Чеклист пуст</string>
     <string name="th_is_empty">Нет технических характеристик</string>
+    <string name="al_is_empty">Нет доп. нагрузок</string>
     <string name="checklist_not_loaded">Чеклист не загружен</string>
     <string name="checklist_not_changed">Отредактируйте чеклист перед сохранением</string>
     <string name="checklist_not_changed_status">Отредактируйте и сохраните чеклист</string>
@@ -207,5 +208,10 @@
 
     <string name="alert_clear_userdata">После обновления приложения необходимо очистить данные старой версии и перезапустить приложение</string>
 
+    <string name="code">Код</string>
+    <string name="affiliation">Принадлежность</string>
+    <string name="load">Нагрузка</string>
+    <string name="contractors">Контрагенты</string>
+    <string name="contractor">Контрагент</string>
 
 </resources>

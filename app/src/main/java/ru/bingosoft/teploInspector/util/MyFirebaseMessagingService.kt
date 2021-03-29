@@ -24,7 +24,11 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
         val NOTIFICATION_CHANNEL_ID = "TeploInspectorFCM"
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "FCM уведомление", NotificationManager.IMPORTANCE_HIGH)
+            val notificationChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "FCM уведомление",
+                NotificationManager.IMPORTANCE_HIGH
+            )
 
             notificationChannel.description = "Уведомления для пробуждения телефона"
             notificationChannel.enableLights(true)
@@ -66,8 +70,9 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
     override fun onNewToken(p0: String) {
         //super.onNewToken(p0)
         Timber.d("MyFirebaseMessagingService $p0")
-        getSharedPreferences("AppSettings",MODE_PRIVATE).edit().putString(FIREBASE_MESSAGE,p0).apply()
+        getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putString(FIREBASE_MESSAGE, p0).apply()
     }
+
 
 
 }

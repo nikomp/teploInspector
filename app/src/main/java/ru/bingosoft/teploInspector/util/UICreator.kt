@@ -569,7 +569,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     val imagesNew= mutableListOf<String>()
                     imagesNew.addAll(imagesPhoto)
                     imagesNew.removeAt(indexPhoto)
-                    parentFragment.refreshPhotoViewer(templateStep, imagesNew, rootView.context)
+
+                    parentFragment.requireActivity().runOnUiThread{
+                        parentFragment.refreshPhotoViewer(templateStep, imagesNew, rootView.context)
+                    }
+
 
                     // Проверим папку, может она пуста
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
@@ -622,7 +626,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
 
         // Обновим вьювер с фотками
-        parentFragment.refreshPhotoViewer(templateStep, images, rootView.context)
+        parentFragment.requireActivity().runOnUiThread{
+            parentFragment.refreshPhotoViewer(templateStep, images, rootView.context)
+        }
+
 
         val pager = templateStep.findViewById(R.id.pager) as ViewPager
         val myList = templateStep.findViewById(R.id.recyclerviewFrag) as RecyclerView

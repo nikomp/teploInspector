@@ -28,5 +28,6 @@ interface LoginContractView {
 
     fun saveAppVersionName()
     fun startFinishWorker()
+    fun finishAppDoubler()
 
 }

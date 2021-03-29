@@ -18,6 +18,7 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.*
+import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_CHECK_INTERVAL
 import timber.log.Timber
 import java.io.IOException
 import java.lang.reflect.Type
@@ -40,6 +41,7 @@ class LoginPresenter @Inject constructor(
     private lateinit var disposable: Disposable
     private lateinit var disposableFCM: Disposable
     private lateinit var disposableRouteInterval: Disposable
+    private lateinit var disposableFinishInterval: Disposable
     private lateinit var disposableClearOrdersFromDB: Disposable
 
     fun attachView(view: LoginContractView) {
@@ -48,6 +50,7 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(url: String, stLogin: String?, stPassword: String?){
         Timber.d("authorization_LoginPresenter $stLogin _ $stPassword")
+        OtherUtil().writeToFile("Logger_authorization_from_LoginPresenter")
         if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
@@ -69,19 +72,22 @@ class LoginPresenter @Inject constructor(
                 .subscribe(
                     { token ->
                         sendRoute()
+                        setAutoFinish()
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
-                        view?.saveAppVersionName()
-                        view?.registerReceiverMainActivity()
                         view?.saveToken(token.token)
+                        view?.saveAppVersionName()
+                        view?.sendMessageUserLogged()
+                        view?.startFinishWorker()
+                        view?.registerReceiverMainActivity()
                         view?.saveInfoUserToSharedPreference(Models.User(fullname = token.name))
                         view?.startNotificationService(token.token)
                         view?.checkMessageId() // Уведомление прочитано
-                        Timber.d("LoginPresenter_getAllMessage")
+
                         view?.getAllMessage()
-                        view?.sendMessageUserLogged()
-                        view?.startFinishWorker()
+
+
 
                         val v = view
                         if (v != null) {
@@ -103,11 +109,16 @@ class LoginPresenter @Inject constructor(
                             val adapter: TypeAdapter<Models.Error> = gson.getAdapter( Models.Error::class.java)
                             try {
                                 val errorBody: Models.Error = adapter.fromJson(body?.string())
+                                Timber.d("errorBody_${errorBody.error}")
                                 if (errorBody.error=="user_not_found") {
-                                    view?.showFailureTextView("Неверный логин или пароль")
+                                    view?.showFailureTextView("Неверный логин")
+                                }
+                                if (errorBody.error=="user_password_is_invalid") {
+                                    view?.showFailureTextView("Неверный пароль")
                                 }
                              } catch (e: IOException) {
-                                Timber.d("error")
+                                Timber.d("${e.printStackTrace()}")
+                                view?.showFailureTextView("Ошибка при авторизации")
                             }
                         } else {
                             view?.showAlertNotInternet()
@@ -118,11 +129,37 @@ class LoginPresenter @Inject constructor(
 
         } else {
             view?.errorReceived(Throwable("Не заданы логин или пароль"))
-            OtherUtil().writeToFile("Ошибка! Не заданы логин или пароль ${Date()}")
+            OtherUtil().writeToFile("Logger_Не заданы логин или пароль ${Date()}")
         }
 
     }
 
+    private fun setAutoFinish() {
+        // Срабатывает каждые полчаса
+        Timber.d("setAutoFinish_${Date()}")
+        OtherUtil().writeToFile("Logger_setAutoFinish_${Date()}")
+        disposableFinishInterval=Flowable.interval(
+            FINISH_CHECK_INTERVAL,
+            TimeUnit.MINUTES
+        ).subscribe({
+            Timber.d("setAutoFinish_trigger_${Date()}")
+            OtherUtil().writeToFile("Logger_setAutoFinish_trigger_${Date()}")
+            val date=Calendar.getInstance()
+            val calendar = Calendar.getInstance()
+            calendar.set(date.get(Calendar.YEAR),date.get(Calendar.MONTH),date.get(Calendar.DATE),
+                Const.FinishTime.FINISH_HOURS_DOUBLER,
+                Const.FinishTime.FINISH_MINUTES_DOUBLER,0)
+
+            if (System.currentTimeMillis()>calendar.timeInMillis) {
+                Timber.d("FINISH_APP")
+                view?.finishAppDoubler()
+
+            }
+        },
+        {throwable ->
+            throwable.printStackTrace()
+        })
+    }
 
 
     private fun sendRoute() {
@@ -181,6 +218,10 @@ class LoginPresenter @Inject constructor(
         if (this::disposableRouteInterval.isInitialized) {
             Timber.d("disposableRouteInterval_destroy")
             disposableRouteInterval.dispose()
+        }
+        if (this::disposableFinishInterval.isInitialized) {
+            Timber.d("disposableFinishInterval_destroy")
+            disposableFinishInterval.dispose()
         }
     }
 
@@ -289,7 +330,16 @@ class LoginPresenter @Inject constructor(
                     //#Группировка_List
                     val groupTechParams=response.groupBy { it.idOrder }
                     groupTechParams.forEach{
-                        db.ordersDao().updateTechParamsCount(it.key,it.value.size)
+                        Single.fromCallable{
+                            db.ordersDao().updateTechParamsCount(it.key,it.value.size)
+
+                        }
+                            .subscribeOn(Schedulers.io())
+                            .subscribe({
+                                Timber.d("Обновили_кол_во_ТХ")
+                            },{throwable ->
+                                throwable.printStackTrace()
+                            })
                     }
                 },{throwable ->
                     throwable.printStackTrace()
@@ -301,8 +351,54 @@ class LoginPresenter @Inject constructor(
             throwable.printStackTrace()
         }
         .ignoreElement()
-        .andThen(syncCheckups())
+        .andThen(syncAddLoad(sharedPrefSaver.getUserId()))
 
+
+    private fun syncAddLoad(userId:Int): Completable=apiService.getAddLoad(user=userId)
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .map{ response ->
+            Timber.d("Получили_доп_нагрузку")
+            Timber.d(response.toString())
+
+            Single.fromCallable{
+                db.addLoadDao().clearAddLoad() // Перед вставкой очистим таблицу
+                response.forEach{ addLoad ->
+                    db.addLoadDao().insert(addLoad)
+                }
+
+            }
+                .subscribeOn(Schedulers.io())
+                .subscribe ({
+                    Timber.d("Сохранили_доп_нагрузку")
+                    //#Группировка_List
+                    val groupAddLoad=response.groupBy { it.idOrder }
+                    groupAddLoad.forEach{
+
+                        Single.fromCallable{
+                            db.ordersDao().updateAddLoadCount(it.key,it.value.size)
+
+                        }
+                            .subscribeOn(Schedulers.io())
+                            .subscribe({
+                                Timber.d("Обновили_кол_во_доп_нагрузки")
+                            },{throwable ->
+                                throwable.printStackTrace()
+                            })
+
+                    }
+
+                },{throwable ->
+                    throwable.printStackTrace()
+                })
+
+        }
+        .doOnError { throwable ->
+            view?.errorReceived(throwable)
+            throwable.printStackTrace()
+        }
+        .ignoreElement()
+        .andThen(syncCheckups())
 
     private fun syncCheckups() :Completable=apiService.getCheckups()
         .subscribeOn(Schedulers.io())

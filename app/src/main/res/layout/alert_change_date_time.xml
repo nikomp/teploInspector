@@ -14,6 +14,8 @@
         android:ems="10"
         android:hint="@string/alert_change_date_date"
         android:inputType="date"
+        app:layout_constraintEnd_toStartOf="@+id/newTime"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -29,6 +31,7 @@
         android:hint="@string/alert_change_date_time"
         android:inputType="time"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/newDate"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -58,6 +61,6 @@
         app:cornerRadius="22dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/newDate"/>
+        app:layout_constraintTop_toBottomOf="@+id/newDate" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

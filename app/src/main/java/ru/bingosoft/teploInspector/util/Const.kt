@@ -15,7 +15,7 @@ class Const {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
         const val ENTER_TYPE = "enter_type"
-        const val TOKEN = "token"
+        const val TOKEN = "accent_token"
         const val USER_ID = "user_id"
         const val ROLE_ID = "role_id"
         const val PASSWORD = "password"
@@ -59,6 +59,7 @@ class Const {
 
         const val INTERVAL_SENDING_ROUTE=3L // в минутах, 0.5 - 30 секунд
         const val INTERVAL_SAVE_LOCATION=1L // в минутах, 0.5 - 30 секунд
+
     }
 
     object MessageCode {
@@ -114,6 +115,9 @@ class Const {
     object FinishTime {
         const val FINISH_HOURS=18
         const val FINISH_MINUTES=0
+        const val FINISH_HOURS_DOUBLER=18
+        const val FINISH_MINUTES_DOUBLER=0
+        const val FINISH_CHECK_INTERVAL=30L
     }
 
     object WebSocketConst{

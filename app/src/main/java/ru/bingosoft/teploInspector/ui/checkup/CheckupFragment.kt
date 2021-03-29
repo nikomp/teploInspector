@@ -30,6 +30,7 @@ import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import kotlinx.android.synthetic.main.fragment_gallery2.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
+import ru.bingosoft.teploInspector.db.AddLoad.AddLoad
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
@@ -81,6 +82,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var checkup: Checkup
     lateinit var currentOrder: Orders
     var techParams: List<TechParams> = listOf()
+    var addLoads: List<AddLoad> = listOf()
 
     var errorControls= mutableListOf<View>()
 
@@ -118,6 +120,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         if ((requireActivity() as MainActivity).isInitCurrentOrder()) {
             setCheckup((requireActivity() as MainActivity).currentOrder)
             setTechParams((requireActivity() as MainActivity).currentOrder.id)
+            setAddLoads((requireActivity() as MainActivity).currentOrder.id)
             if ((requireActivity() as MainActivity).photoStep!=null &&
                 (requireActivity() as MainActivity).photoDir!="" ) {
                 setPhotoResult((requireActivity() as MainActivity).photoStep?.results_id,
@@ -157,6 +160,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     private fun setTechParams(idOrder: Long) {
         Timber.d("setTechParams")
         checkupPresenter.getTechParams(idOrder)
+    }
+
+    private fun setAddLoads(idOrder: Long) {
+        Timber.d("setAddLoads")
+        checkupPresenter.getAddLoads(idOrder)
     }
 
 
@@ -488,6 +496,11 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     override fun techParamsLoaded(techParams: List<TechParams>) {
         Timber.d("techParamsLoaded $techParams")
         this.techParams=techParams
+    }
+
+    override fun addLoadsLoaded(addLoads: List<AddLoad>) {
+        Timber.d("addLoadsLoaded $addLoads")
+        this.addLoads=addLoads
     }
 
 

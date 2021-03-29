@@ -4,6 +4,7 @@ import io.reactivex.Single
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
+import ru.bingosoft.teploInspector.db.AddLoad.AddLoad
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
@@ -37,6 +38,11 @@ interface ApiService {
     fun getTechParams(
         @Query("user_id") user: Int
     ):Single<List<TechParams>>
+
+    @GET("datawarehouseservice/query/30")
+    fun getAddLoad(
+        @Query("user_id") user: Int
+    ):Single<List<AddLoad>>
 
     @GET("registryservice/plugins/execute/ReceiveCheckListQuery")
     fun getCheckups():Single<List<Checkup>>

@@ -51,11 +51,14 @@ class StepsAdapter(
             0 -> holder.countQuestion.text =
                 "${Const.GeneralInformation.list.size}/${Const.GeneralInformation.list.size}"
             1 -> {
+                Timber.d("VVV1_${parentFragment.currentOrder.techParamsCount}")
+                Timber.d("VVV1_${parentFragment.currentOrder}")
                 holder.countQuestion.text =
                     "${parentFragment.currentOrder.techParamsCount}/${parentFragment.currentOrder.techParamsCount}"
             }
             2 -> {
                 Timber.d("Дополнительная нагрузка")
+                holder.countQuestion.text ="${parentFragment.currentOrder.addLoadCount}/${parentFragment.currentOrder.addLoadCount}"
             }
             3 -> {
                 Timber.d("questionCount=${parentFragment.currentOrder.questionCount}")
@@ -94,7 +97,6 @@ class StepsAdapter(
         holder.details.removeAllViews()
         holder.details.visibility=View.GONE
         if (position==0 && isExpanded) {
-            //holder.details.removeAllViews()
             Timber.d("Общие_сведения")
             Timber.d("parentFragment.currentOrder=${parentFragment.currentOrder}")
 
@@ -113,11 +115,8 @@ class StepsAdapter(
             holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
         }
         if (position==1 && isExpanded) {
-            //holder.details.removeAllViews()
             //Генерируем тех характеристики
             if (parentFragment.techParams.isNotEmpty()) {
-                Timber.d("llMainTemp=${parentFragment.llMainUi}")
-                Timber.d("techParams_X=${parentFragment.techParams}")
                 val uiCreator=TechnicalCharacteristics(parentFragment.techParams, holder.details)
                 uiCreator.create()
             } else {
@@ -125,9 +124,18 @@ class StepsAdapter(
             }
             holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
         }
-
         if (position==2 && isExpanded){
-            //holder.details.removeAllViews()
+            //Генерируем доп. нагрузку
+            if (parentFragment.addLoads.isNotEmpty()) {
+                val uiCreator=AdditionalLoad(parentFragment.addLoads, holder.details)
+                uiCreator.create()
+            } else {
+                parentFragment.toaster.showToast(R.string.al_is_empty)
+            }
+            holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
+        }
+        if (position==3 && isExpanded){
             //Генерируем чеклист
             Timber.d("llMainTemp=${parentFragment.llMainUi}")
             if (parentFragment.llMainUi.isNotEmpty()) {
@@ -146,11 +154,6 @@ class StepsAdapter(
                 if (parentFragment.isCheckupInitialized() ) {
                     holder.pbStepLoad.visibility=View.VISIBLE
                     val uiCreator=UICreator(parentFragment, parentFragment.checkup)
-                    /*Handler(Looper.getMainLooper()).postDelayed({
-                        uiCreator.create(holder.details)
-                        holder.pbStepLoad.visibility=View.INVISIBLE
-                    }, 1000)*/
-
                     val r= Runnable {
                         uiCreator.create(holder.details)
                         parentFragment.requireActivity().runOnUiThread {
@@ -170,7 +173,7 @@ class StepsAdapter(
         }
 
         // Если чеклист сворачивается сохраним его текущее состояние
-        if (position==2 && !isExpanded) {
+        if (position==3 && !isExpanded) {
             parentFragment.uiCreator?.saveUI()
         }
 

@@ -95,6 +95,7 @@ data class Orders (
     var checked: Boolean=false,
     var questionCount: Int=0,
     var techParamsCount: Int=0,
+    var addLoadCount: Int=0,
     var answeredCount: Int=0
 ) {
     override fun toString(): String {

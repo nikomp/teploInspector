@@ -23,6 +23,7 @@ class CheckupPresenter @Inject constructor(
 
     private lateinit var disposable: Disposable
     private lateinit var disposableTH: Disposable
+    private lateinit var disposableAL: Disposable
 
     fun attachView(view: CheckupContractView) {
         this.view=view
@@ -195,6 +196,24 @@ class CheckupPresenter @Inject constructor(
                 Timber.d("th_error $throwable")
                 throwable.printStackTrace()
                 disposableTH.dispose()
+                view?.errorReceived(throwable)
+            })
+    }
+
+    fun getAddLoads(idOrder: Long) {
+        Timber.d("getAddLoads")
+        disposableAL=Single.fromCallable {
+            db.addLoadDao().getAddLoadOrder(idOrder)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe ({ addLoads ->
+                disposableAL.dispose()
+                view?.addLoadsLoaded(addLoads)
+            },{ throwable ->
+                Timber.d("al_error $throwable")
+                throwable.printStackTrace()
+                disposableAL.dispose()
                 view?.errorReceived(throwable)
             })
     }

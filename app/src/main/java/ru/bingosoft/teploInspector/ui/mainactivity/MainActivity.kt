@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
 
-    private val shutdownReceiver=ShutdownReceiver()
+    val shutdownReceiver=ShutdownReceiver()
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var navController: NavController
@@ -256,11 +256,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             if (intent?.extras != null) {
                 Timber.d("EXIT_${intent.extras!!.getBoolean("EXIT", false)}")
                 if (intent.extras!!.getBoolean("EXIT", false)) {
-                    Timber.d("sendMessageToAdmin_USER_LOGOUT")
-                    if (alertDialogRepeatSync?.isShowing == true) {
-                        Timber.d("OrderFragment_alertDialogRepeatSync_dismiss")
-                        alertDialogRepeatSync?.dismiss()
-                    }
                     finish()
                 }
             }
@@ -269,8 +264,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             // Проверим логин и пароль после сворачивания приложения
             if (sharedPref.getLogin().isEmpty() || sharedPref.getPassword().isEmpty()) {
                 // Запустим активити с настройками
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivityForResult(intent, AUTH)
+                val intent1 = Intent(this, LoginActivity::class.java)
+                startActivityForResult(intent1, AUTH)
             }
         }
 
@@ -759,8 +754,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onDestroy() {
         Timber.d("MainAct_destroy")
-        super.onDestroy()
-        mainPresenter.sendMessageToAdmin(USER_LOGOUT)
+        OtherUtil().writeToFile("Logger_MainAct_destroy_${Date()}")
+        if (alertDialogRepeatSync?.isShowing == true) {
+            alertDialogRepeatSync?.dismiss()
+        }
+
+        // Отправляем сообщение о выходе, только если был совершен вход
+        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+            mainPresenter.sendMessageToAdmin(USER_LOGOUT)
+        }
+        sharedPref.clearAuthData() // Очистим информацию об авторизации
+
 
         stopService(Intent(this, UserLocationService::class.java))
         stopService(Intent(this, MapkitLocationService::class.java))
@@ -769,14 +773,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
             LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
-            //LocalBroadcastManager.getInstance(this).unregisterReceiver(shutdownReceiver)
             unregisterReceiver(shutdownReceiver)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         userLocationReceiver.onDestroy()
-        sharedPref.clearAuthData() // Очистим информацию об авторизации
+
+        super.onDestroy()
 
     }
 
@@ -860,11 +864,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         dialogView.buttonOK.setOnClickListener{
             Timber.d("alertExit_buttonOK")
+            OtherUtil().writeToFile("Logger_Нажата_кнопка_Да_в_диалоге_выхода")
             alertDialog.dismiss()
             finish()
         }
 
         dialogView.buttonNo.setOnClickListener{
+            OtherUtil().writeToFile("Logger_Нажата_кнопка_Нет_в_диалоге_выхода")
             alertDialog.dismiss()
         }
 
@@ -1189,9 +1195,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  "unauthorized"
              )
          )
-         /*LocalBroadcastManager.getInstance(this).registerReceiver(
-            shutdownReceiver,  IntentFilter("android.intent.action.ACTION_SHUTDOWN")
-         )*/
          registerReceiver(shutdownReceiver, IntentFilter("android.intent.action.ACTION_SHUTDOWN"))
 
      }
@@ -1201,15 +1204,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          mbSaveCheckup.isEnabled=true
      }
 
-     override fun sendMessageUserLogged() {
-         // Метод не используется, после автоматичсекой авторизации не отправляем уведомление
-         /*Timber.d("sendMessageUserLogged")
-         Timber.d("userLocationReceiver=${userLocationReceiver.lastKnownLocation}")
-         val pInfo=packageManager.getPackageInfo(packageName, 0)
-         val currentVersion= pInfo.versionName
-         mainPresenter.sendMessageToAdmin(USER_LOGIN,currentVersion)*/
-     }
-
      override fun repeatSync() {
          val navHostFragment: NavHostFragment =
              supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
@@ -1217,9 +1211,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          of?.alertRepeatSync()
      }
 
-     override fun finishApp() {
-         finish()
+     override fun clearAuthData() {
+         Timber.d("clearAuthData_MainActivity")
+         sharedPref.clearAuthData()
      }
+
 
      fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")

@@ -112,7 +112,7 @@ class MapkitLocationService: Service() {
         Timber.d("MapkitDestroy")
         super.onDestroy()
         MapKitFactory.getInstance().onStop()
-        wakeLock?.release()
+        wakeLock.release()
     }
 
     class UserLocationListener(private val ctx: Context): LocationListener {

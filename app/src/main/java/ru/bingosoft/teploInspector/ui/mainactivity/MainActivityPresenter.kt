@@ -20,6 +20,11 @@ import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
+import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
+import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
+import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
+import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
+import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGOUT
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.ThrowHelper
@@ -61,6 +66,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun authorization(url:String, stLogin: String?, stPassword: String?, msgId: Int=R.string.auth_ok){
         Timber.d("authorization1_MainActPres $stLogin _ $stPassword")
+        OtherUtil().writeToFile("Logger_authorization_from_MainActivityPresenter")
         if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
@@ -93,7 +99,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         view?.showMainActivityMsg(msgId)
                         view?.checkMessageId()
                         view?.getAllMessage()
-                        // view?.sendMessageUserLogged() при автоматической авторизации не отправляем сообщение
 
                         val v = view
                         if (v != null) {
@@ -504,27 +509,28 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         val textMessage: String
         val eventType: Int
         when (codeMsg) {
-            1-> {
+            REFUSED_PERMISSION-> {
                 textMessage="Пользователь отказался выдать разрешение на Геолокацию"
                 eventType=1 // Геолокация отключена
             }
-            2-> {
+            REPEATEDLY_REFUSED-> {
                 textMessage="Пользователь повторно отказался включить GPS"
                 eventType=1 // Геолокация отключена
             }
-            3-> {
+            DISABLE_LOCATION-> {
                 textMessage="Пользователь выключил GPS"
                 eventType=1 // Геолокация отключена
             }
-            /*4-> {
+            /*ENABLE_LOCATION-> {
                 textMessage="Пользователь включил GPS"
                 eventType=3 // Геолокация включена
             }*/
-            5-> {
+            USER_LOGOUT-> {
                 textMessage="Пользователь вышел из приложения"
                 eventType=4 // Пользователь вышел из приложения
+                view?.clearAuthData()
             }
-            6-> {
+            USER_LOGIN-> {
                 textMessage="Пользователь вошел в приложение версия_$currentVersion"
                 eventType=5 // Пользователь вошел в приложение
             }
@@ -539,8 +545,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             text = textMessage,
             date= Date().time,
             event_type = eventType,
-            /*lat = userLocationNative.userLocation.latitude,
-            lon = userLocationNative.userLocation.longitude*/
             lat = userLocationReceiver.lastKnownLocation.latitude,
             lon = userLocationReceiver.lastKnownLocation.longitude
         )

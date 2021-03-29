@@ -11,6 +11,7 @@ import timber.log.Timber
 import java.util.*
 
 //#Автовыход #WorkManager
+// Есть дублирующая автовыход процедура, которая работает через Rx, см. LoginPresenter.setAutoFinish()
 class FinishAppWorker(appContext: Context, workerParams: WorkerParameters):
     Worker(appContext, workerParams) {
     val ctx=appContext
@@ -21,7 +22,6 @@ class FinishAppWorker(appContext: Context, workerParams: WorkerParameters):
 
         val sp=ctx.getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
         val login=sp.getString(LOGIN, "") ?: ""
-        Timber.d("ZZZZ_$login")
 
         if (login!="") {
             OtherUtil().writeToFile("Logger_FINISH_FROM_WORKER_${Date()}")
@@ -31,7 +31,6 @@ class FinishAppWorker(appContext: Context, workerParams: WorkerParameters):
             intent.putExtra("EXIT", true)
             ctx.startActivity(intent)
         }
-
 
         return Result.success()
     }

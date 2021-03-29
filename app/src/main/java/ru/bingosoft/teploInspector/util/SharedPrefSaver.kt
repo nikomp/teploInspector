@@ -108,9 +108,16 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun clearAuthData() {
+        Timber.d("clearAuthData")
         val editor: SharedPreferences.Editor = this.sharedPreference.edit()
-        editor.remove("login")
-        editor.remove("password")
+        editor.remove(LOGIN)
+        editor.remove(PASSWORD)
+        editor.remove(USER_FULLNAME)
+        editor.remove(TOKEN)
+        editor.remove(USER_ID)
+        editor.remove(ROLE_ID)
+        editor.remove(ENTER_TYPE)
+        editor.remove(USER_PHOTO_URL)
         editor.apply()
     }
 

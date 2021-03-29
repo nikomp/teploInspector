@@ -265,10 +265,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                     Const.RequestCodes.PERMISSION
                 )
             }
-        } else {
-            /*Timber.d("startService_OrderFragment1")
-            activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
-            activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))*/
         }
     }
 
@@ -382,14 +378,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 Timber.d("dialogView.buttonOK")
                 alertDialogRepeatSync.dismiss()
                 loginPresenter.syncDB()
-
             }
 
             dialogView.buttonNo.setOnClickListener{
-                showMessageLogin(R.string.auth_ok)
-                //orderPresenter.loadOrders() // Грузим данные из локальной БД
-                showOrders()
                 alertDialogRepeatSync.dismiss()
+                showMessageLogin(R.string.auth_ok)
+                showOrders()
             }
 
             builder.setView(dialogView)
@@ -455,9 +449,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun getAllMessage() {
+        Timber.d("OF_LoginPresenter_getAllMessage")
         // Получим все уведомления с сервера
-        mainPresenter.attachView(requireActivity() as MainActivity)
-        mainPresenter.getAllMessage()
+        /*mainPresenter.attachView(requireActivity() as MainActivity)
+        mainPresenter.getAllMessage()*/
+        (activity as MainActivity).getAllMessage()
+
     }
 
     private fun showFilterOrders(orders: List<Orders>) {
@@ -632,19 +629,33 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         var duration =OtherUtil().getDifferenceTime(date.timeInMillis, calendar.timeInMillis)
         // Если зашли после 18.00 приложение будет работать 4 часа
         if (duration<0) {
-            duration=240 //
+            duration=240
         }
         Timber.d("duration=$duration")
         OtherUtil().writeToFile("Logger_startFinishWorker_$duration")
 
-
         val finishAppWorkerRequest: WorkRequest =
             OneTimeWorkRequestBuilder<FinishAppWorker>()
+                .addTag("auto_finish")
                 .setInitialDelay(duration, TimeUnit.MINUTES)
                 .build()
         WorkManager.getInstance(requireContext()).enqueue(finishAppWorkerRequest)
     }
 
+    override fun finishAppDoubler() {
+        Timber.d("finishAppDoubler")
+        val sp=requireContext().getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
+        val login=sp.getString(Const.SharedPrefConst.LOGIN, "") ?: ""
+
+        if (login!="") {
+            OtherUtil().writeToFile("Logger_FINISH_FROM_finishAppDoubler_${Date()}")
+            val intent = Intent(requireContext(), MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.putExtra("EXIT", true)
+            requireContext().startActivity(intent)
+        }
+    }
 
     override fun recyclerViewListClicked(v: View?, position: Int) {
         Timber.d("recyclerViewListClicked")
