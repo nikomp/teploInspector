@@ -9,7 +9,6 @@ import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AppDatabase
-import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
@@ -70,7 +69,7 @@ class CheckupPresenter @Inject constructor(
 
     }
 
-    fun saveGeneralInformationOrder(orders: Orders) {
+    /*fun saveGeneralInformationOrder(orders: Orders) {
         Timber.d("saveGeneralInformationOrder")
 
         disposable=Single.fromCallable{
@@ -87,7 +86,7 @@ class CheckupPresenter @Inject constructor(
                 error.printStackTrace()
                 view?.errorReceived(error)
             })
-    }
+    }*/
 
     fun saveCheckup(uiCreator: UICreator, send:Boolean=true) {
         Timber.d("Сохраняем данные чеклиста")

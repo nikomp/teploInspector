@@ -214,4 +214,6 @@
     <string name="contractors">Контрагенты</string>
     <string name="contractor">Контрагент</string>
 
+    <string name="no_requests">Нет заявок</string>
+
 </resources>

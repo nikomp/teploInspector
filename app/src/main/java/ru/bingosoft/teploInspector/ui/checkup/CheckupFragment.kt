@@ -35,6 +35,7 @@ import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
@@ -61,13 +62,13 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     lateinit var orderPresenter: OrderPresenter
 
     @Inject
+    lateinit var mainPresenter: MainActivityPresenter
+
+    @Inject
     lateinit var toaster: Toaster
 
     @Inject
     lateinit var otherUtil: OtherUtil
-
-    /*@Inject
-    lateinit var userLocationNative: UserLocationNative*/
 
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
@@ -197,10 +198,18 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
             val builder = AlertDialog.Builder(requireContext())
 
+            val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+            newDate.setOnClickListener{
+                Timber.d("newDate_setOnClickListener")
+                (requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_DATE, newDate)
+            }
+            val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+            newTime.setOnClickListener{
+                (requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
+            }
+
             dialogView.btnOk.setOnClickListener{
                 Timber.d("dialogView.buttonOK")
-                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
-                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
 
                 Timber.d(strDateTimeVisit)
@@ -212,9 +221,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                         order.dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
                         order.timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
                         Timber.d("order=$order")
-                        orderPresenter.saveDateTime(order)
                         currentOrder=order
-
+                        mainPresenter.updateGiOrder(order)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -512,8 +520,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     mbSaveCheckup.isEnabled=false // Блокируем кнопку пока данные не уйдут
                     // Всегда сохраняем основные данные по заявке
                     if (errorControls.isEmpty()) {
-                        checkupPresenter.saveGeneralInformationOrder(currentOrder)
-                        //doSaveCheckup()
+                        //checkupPresenter.saveGeneralInformationOrder(currentOrder)
+                        mainPresenter.updateGiOrder(currentOrder)
+                        doSaveCheckup()
                     } else {
                         toaster.showErrorToast(R.string.error_checklist_contains)
                     }
@@ -526,7 +535,9 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     override fun onDestroy() {
         Timber.d("CheckupFragment_onDestroy")
         super.onDestroy()
-        checkupPresenter.onDestroy()
+        if (this::checkupPresenter.isInitialized) {
+            checkupPresenter.onDestroy()
+        }
     }
 
 
@@ -612,7 +623,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
             // Обновим список с фото
             if (linearLayout!=null) {
-                val images = OtherUtil().getFilesFromDir("$DCIM_DIR/PhotoForApp/$photoDir")
+                val images = otherUtil.getFilesFromDir("$DCIM_DIR/PhotoForApp/$photoDir")
                 refreshPhotoViewer(linearLayout, images, rootView.context)
             }
         }

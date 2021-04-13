@@ -22,6 +22,7 @@ import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import timber.log.Timber
 import java.util.*
+import javax.inject.Inject
 
 
 class UserLocationService: Service() {
@@ -32,7 +33,6 @@ class UserLocationService: Service() {
 
     var startTimeService: Long = 0L
 
-
     var userLocationListener =
         arrayOf(
             UserLocationListener(LocationManager.GPS_PROVIDER,this),
@@ -40,7 +40,6 @@ class UserLocationService: Service() {
         )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        OtherUtil().writeToFile("Logger_UserLocationService_стартовал")
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
             val wakeLock =
                 (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
@@ -152,6 +151,8 @@ class UserLocationService: Service() {
 
 
     class UserLocationListener(val provider: String, private val ctx: Context): LocationListener {
+        @Inject
+        lateinit var otherUtil: OtherUtil
 
         override fun onLocationChanged(location: Location?) {
             Timber.d("USERLOCATION_onLocationChanged $location")
@@ -189,7 +190,7 @@ class UserLocationService: Service() {
             }
             intent.putExtra("status",status)
 
-            OtherUtil().writeToFile("Logger_sendIntent_GPS")
+            otherUtil.writeToFile("Logger_sendIntent_GPS")
 
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
         }

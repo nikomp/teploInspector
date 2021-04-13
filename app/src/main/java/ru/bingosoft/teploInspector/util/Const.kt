@@ -115,9 +115,9 @@ class Const {
     object FinishTime {
         const val FINISH_HOURS=18
         const val FINISH_MINUTES=0
-        const val FINISH_HOURS_DOUBLER=18
-        const val FINISH_MINUTES_DOUBLER=0
-        const val FINISH_CHECK_INTERVAL=30L
+        const val FINISH_HOURS_DOUBLER=17 // Если ставить время больше, то приложение уходит в Doze т.к. будящее сообщение уже не приходят
+        const val FINISH_MINUTES_DOUBLER=15
+        const val FINISH_CHECK_INTERVAL=15L
     }
 
     object WebSocketConst{

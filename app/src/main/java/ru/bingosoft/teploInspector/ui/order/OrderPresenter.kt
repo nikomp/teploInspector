@@ -31,25 +31,8 @@ class OrderPresenter @Inject constructor(
     var view: OrderContractView? = null
 
     private lateinit var disposable: Disposable
-
     fun attachView(view: OrderContractView) {
         this.view=view
-    }
-
-    fun saveDateTime(order: Orders) {
-        disposable=Single.fromCallable {
-            db.ordersDao().update(order)
-        }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                disposable.dispose()
-                Timber.d("Обновили_дату_время")
-
-            },{throwable ->
-                disposable.dispose()
-                throwable.printStackTrace()
-            })
     }
 
     fun addHistoryState(order: Orders) {
@@ -143,7 +126,12 @@ class OrderPresenter @Inject constructor(
                 Timber.d("Данные_получили_из_БД")
                 Timber.d(it.toString())
                 Timber.d("view=$view")
-                view?.showOrders(it)
+                if (it.isNotEmpty()) {
+                    view?.showOrders(it)
+                } else {
+                    view?.showFailure(R.string.no_requests)
+                }
+
                 disposable.dispose()
             }
 

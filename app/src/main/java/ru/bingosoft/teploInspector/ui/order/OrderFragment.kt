@@ -13,6 +13,7 @@ import android.view.*
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.RadioButton
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -119,20 +120,15 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         return root
     }
 
-    /*override fun onPause() {
-        super.onPause()
-        if (this::alertDialogRepeatSync.isInitialized && alertDialogRepeatSync.isShowing) {
-            Timber.d("OrderFragment_alertDialogRepeatSync_dismiss")
-            toaster.showToast(R.string.close_alertdiaolog)
-        }
-    }*/
-
-
     override fun onDestroy() {
         super.onDestroy()
         Timber.d("OrderFragment_onDestroy")
-        orderPresenter.onDestroy()
-        loginPresenter.onDestroy()
+        if (this::orderPresenter.isInitialized) {
+            orderPresenter.onDestroy()
+        }
+        if (this::loginPresenter.isInitialized) {
+            loginPresenter.onDestroy()
+        }
     }
 
     fun doAuthorization(factivity: FragmentActivity=this.requireActivity(),data:Models.RepeatAuthData?= null) {
@@ -283,8 +279,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 ) {
                     // Разрешения выданы
                     Timber.d("startService_OrderFragment2")
-                    /*val locationManager=this.requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 10f, userLocationNative.locationListener)*/
+                    otherUtil.writeToFile("Logger_стартуем_сервисы_OrderFragment_UserLocationService_MapkitLocationService")
 
                     activity?.startService(Intent(this.requireContext(),UserLocationService::class.java))
                     activity?.startService(Intent(this.requireContext(),MapkitLocationService::class.java))
@@ -338,8 +333,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         }
         textfailure.visibility=View.VISIBLE
         progressBar.visibility=View.INVISIBLE
-
-
     }
 
     override fun showAlertNotInternet() {
@@ -481,7 +474,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
-        textfailure.visibility=View.INVISIBLE
+        val tf=root.findViewById<TextView>(R.id.textfailure)
+        tf.visibility=View.INVISIBLE
 
         //this.orders=orders
         (activity as MainActivity).orders=orders
@@ -601,6 +595,10 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     }
 
+    override fun showFailure(idMsg: Int) {
+        showFailureTextView(getString(idMsg))
+    }
+
     override fun registerReceiverMainActivity() {
         (activity as MainActivity).registerReceiver()
     }
@@ -626,13 +624,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             FINISH_MINUTES,0)
 
         Timber.d("duration=$calendar")
-        var duration =OtherUtil().getDifferenceTime(date.timeInMillis, calendar.timeInMillis)
+        var duration =otherUtil.getDifferenceTime(date.timeInMillis, calendar.timeInMillis)
         // Если зашли после 18.00 приложение будет работать 4 часа
         if (duration<0) {
             duration=240
         }
         Timber.d("duration=$duration")
-        OtherUtil().writeToFile("Logger_startFinishWorker_$duration")
+        otherUtil.writeToFile("Logger_startFinishWorker_$duration")
 
         val finishAppWorkerRequest: WorkRequest =
             OneTimeWorkRequestBuilder<FinishAppWorker>()
@@ -648,12 +646,9 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val login=sp.getString(Const.SharedPrefConst.LOGIN, "") ?: ""
 
         if (login!="") {
-            OtherUtil().writeToFile("Logger_FINISH_FROM_finishAppDoubler_${Date()}")
-            val intent = Intent(requireContext(), MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            intent.putExtra("EXIT", true)
-            requireContext().startActivity(intent)
+            otherUtil.writeToFile("Logger_FINISH_FROM_finishAppDoubler_${Date()}")
+            val intent = Intent("EXIT")
+            (requireContext() as MainActivity).checkFinish(intent)
         }
     }
 

@@ -18,8 +18,8 @@ interface TrackingUserLocationDao {
             "where datetime(round(dateLocation/1000), 'unixepoch')>datetime('now','-2 minutes')\n" +
             "and lat<>0 and lon<>0")*/
     @Query("SELECT * FROM TrackingUserLocation\n" +
-            "where datetime(round(dateLocation/1000), 'unixepoch')>datetime('now','-3 minutes')\n" +
-            "and lat<>0 and lon<>0")
+            "where datetime(dateLocation/1000, 'unixepoch')>datetime('now','-3 minutes')\n" +
+            "and lat<>0 and lon<>0 and synced=0")
     fun getTrackingForCurrentDay(): List<TrackingUserLocation>
 
     @Query("SELECT count(*) FROM TrackingUserLocation")
@@ -33,6 +33,9 @@ interface TrackingUserLocationDao {
 
     @Update
     fun update(userLocation: TrackingUserLocation)
+
+    @Query("UPDATE TrackingUserLocation set synced = :isTrue where dateLocation in (:ids)")
+    fun updateLocationSynced(ids: List<Long>, isTrue: Boolean =true)
 
     @Delete
     fun delete(userLocation: TrackingUserLocation)

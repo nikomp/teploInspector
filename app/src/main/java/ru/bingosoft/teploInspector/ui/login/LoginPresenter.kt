@@ -1,6 +1,7 @@
 package ru.bingosoft.teploInspector.ui.login
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
 import com.google.gson.reflect.TypeToken
 import io.reactivex.Completable
@@ -16,6 +17,7 @@ import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
+import ru.bingosoft.teploInspector.db.User.TrackingUserLocation
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_CHECK_INTERVAL
@@ -43,6 +45,10 @@ class LoginPresenter @Inject constructor(
     private lateinit var disposableRouteInterval: Disposable
     private lateinit var disposableFinishInterval: Disposable
     private lateinit var disposableClearOrdersFromDB: Disposable
+    private lateinit var disposableUpdateLocation: Disposable
+
+    @Inject
+    lateinit var otherUtil: OtherUtil
 
     fun attachView(view: LoginContractView) {
         this.view = view
@@ -50,7 +56,7 @@ class LoginPresenter @Inject constructor(
 
     fun authorization(url: String, stLogin: String?, stPassword: String?){
         Timber.d("authorization_LoginPresenter $stLogin _ $stPassword")
-        OtherUtil().writeToFile("Logger_authorization_from_LoginPresenter")
+        otherUtil.writeToFile("Logger_authorization_from_LoginPresenter")
         if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
@@ -129,21 +135,21 @@ class LoginPresenter @Inject constructor(
 
         } else {
             view?.errorReceived(Throwable("Не заданы логин или пароль"))
-            OtherUtil().writeToFile("Logger_Не заданы логин или пароль ${Date()}")
+            otherUtil.writeToFile("Logger_Не заданы логин или пароль ${Date()}")
         }
 
     }
 
     private fun setAutoFinish() {
-        // Срабатывает каждые полчаса
+        // Срабатывает периодически
         Timber.d("setAutoFinish_${Date()}")
-        OtherUtil().writeToFile("Logger_setAutoFinish_${Date()}")
+        otherUtil.writeToFile("Logger_setAutoFinish_${Date()}")
         disposableFinishInterval=Flowable.interval(
             FINISH_CHECK_INTERVAL,
             TimeUnit.MINUTES
         ).subscribe({
             Timber.d("setAutoFinish_trigger_${Date()}")
-            OtherUtil().writeToFile("Logger_setAutoFinish_trigger_${Date()}")
+            otherUtil.writeToFile("Logger_setAutoFinish_trigger_${Date()}")
             val date=Calendar.getInstance()
             val calendar = Calendar.getInstance()
             calendar.set(date.get(Calendar.YEAR),date.get(Calendar.MONTH),date.get(Calendar.DATE),
@@ -176,14 +182,20 @@ class LoginPresenter @Inject constructor(
                     if (trackingUserLocation.isNotEmpty()) {
                         Timber.d("ОтправляемМаршрут")
                         val route=Models.FileRoute()
-                        val jsonStr=Gson().toJson(trackingUserLocation)
+                        val gson=GsonBuilder().excludeFieldsWithoutExposeAnnotation().create()
+                        val jsonStr=gson.toJson(trackingUserLocation)
                         route.fileRoute=jsonStr
+                        Timber.d("jsonStr=${route.fileRoute}")
 
                         val jsonBody=Gson().toJson(route)
                             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
                         apiService.sendTrackingUserLocation(jsonBody).subscribe(
-                            {Timber.d("ОтправилиМаршрут")},
+                            {
+                                Timber.d("ОтправилиМаршрут")
+                                Timber.d("trackingUserLocation=${trackingUserLocation}")
+                                updateLocationPoints(trackingUserLocation)
+                            },
                             {throwable ->
                                 throwable.printStackTrace()
                                 if (view!=null) {
@@ -195,7 +207,7 @@ class LoginPresenter @Inject constructor(
                         )
                     } else {
                         Timber.d("Нет данных о маршруте")
-                        OtherUtil().writeToFile("Logger_Нет данных о маршруте ${Date()}")
+                        otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()}")
                     }
                 },{throwable ->
                     throwable.printStackTrace()
@@ -208,6 +220,23 @@ class LoginPresenter @Inject constructor(
             )
     }
 
+    private fun updateLocationPoints(location: List<TrackingUserLocation>) {
+        Timber.d("updateLocationPoints")
+        disposableUpdateLocation=Single.fromCallable{
+            val ids=location.map { it.dateLocation.time }
+            db.trackingUserDao().updateLocationSynced(ids)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                Timber.d("updateLocationPoints_OK")
+                disposableUpdateLocation.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposableUpdateLocation.dispose()
+            })
+
+    }
 
 
     fun onDestroy() {
@@ -245,7 +274,6 @@ class LoginPresenter @Inject constructor(
             } else {
                 Timber.d("ordersXXX=$orders")
                 Single.fromCallable{
-                    //db.ordersDao().clearOrders() // Перед вставкой очистим таблицу
                     // Получим id всех присланных заявок
                     val idsList= mutableListOf<String>()
                     orders.forEach{
@@ -255,7 +283,9 @@ class LoginPresenter @Inject constructor(
                     db.ordersDao().deleteOrders(idsList)
 
                     db.historyOrderStateDao().clearHistory() // Очистим таблицу с историей смены статуса заявок
+                    Timber.d("clearHistory")
                     orders.forEach{
+                        Timber.d("ordersDao_insert_$it")
                         db.ordersDao().insert(it)
                     }
                 }

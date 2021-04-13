@@ -54,6 +54,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     private var listllArchDaily: List<LinearLayout> = listOf()
     private var listllGroupOther: MutableList<LinearLayout> = mutableListOf()
 
+    val otherUtil=parentFragment.otherUtil
+
     fun create(rootView: View) {
         this.rootView=rootView
         enabled= !(parentFragment.currentOrder.status==parentFragment.getString(R.string.status_IN_WAY)||
@@ -557,11 +559,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 // Получим список фоток из папки
                 val imagesPhoto: List<String>
                 imagesPhoto = if (!tc.resvalue.isNullOrEmpty()) {
-                    OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/${tc.resvalue}")
+                    otherUtil.getFilesFromDir("${DCIM_DIR}/PhotoForApp/${tc.resvalue}")
                 } else {
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
                     val photoDirectory="${curOrder.guid}/${stepCheckup.results_guid}"
-                    OtherUtil().getFilesFromDir("${DCIM_DIR}/PhotoForApp/$photoDirectory")
+                    otherUtil.getFilesFromDir("${DCIM_DIR}/PhotoForApp/$photoDirectory")
                 }
                 val photoForDelete=imagesPhoto[indexPhoto]
                 Timber.d("photoForDelete=$photoForDelete")
@@ -599,7 +601,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             // Обновим список с фото
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
-            OtherUtil().getFilesFromDir(stDir)
+            otherUtil.getFilesFromDir(stDir)
 
         } else {
             listOf()
@@ -614,11 +616,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
 
-            val listPhoto=OtherUtil().getFilesFromDir(stDir)
+            val listPhoto=otherUtil.getFilesFromDir(stDir)
             Timber.d("listPhoto=${listPhoto}")
             if (File(stDir).exists() && listPhoto.isNotEmpty()) {
                 Timber.d("папка_есть")
-                OtherUtil().deleteDir(stDir)
+                otherUtil.deleteDir(stDir)
             }
         }
 
@@ -720,7 +722,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             }
         } else {
             Timber.d("parentFragment.currentOrder.countNode==null")
-            parentFragment.toaster.showToast(R.string.not_count_node)
+            parentFragment.requireActivity().runOnUiThread {
+                parentFragment.toaster.showErrorToast(R.string.not_count_node)
+            }
+
         }
 
         return listNodesView
@@ -878,9 +883,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Timber.d("Color.BLUE")
             questionColor=Color.BLUE
         }
-        parentFragment.requireActivity().runOnUiThread {
-            templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
+        if (parentFragment.isAdded) {
+            Timber.d("isAdded")
+            parentFragment.requireActivity().runOnUiThread {
+                templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
+            }
         }
+
     }
 
     fun refresh() {
@@ -992,7 +1001,5 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             ).show()
         }
     }
-
-
 
 }

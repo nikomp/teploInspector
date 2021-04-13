@@ -126,6 +126,7 @@ repositories {
     }
 }
 
+apply from: "$project.rootDir/build_scripts/counterCompilation.gradle"
 
 
 dependencies {

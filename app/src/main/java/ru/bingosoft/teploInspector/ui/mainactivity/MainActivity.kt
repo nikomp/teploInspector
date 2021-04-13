@@ -54,7 +54,6 @@ import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
-import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
@@ -76,12 +75,12 @@ import javax.inject.Inject
 
 class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     NavigationView.OnNavigationItemSelectedListener, MainActivityContractView, View.OnClickListener
-     {
+{
 
     @Inject
     lateinit var mainPresenter: MainActivityPresenter
-    @Inject
-    lateinit var loginPresenter: LoginPresenter
+    //@Inject
+    //lateinit var loginPresenter: LoginPresenter
 
     @Inject
     lateinit var toaster: Toaster
@@ -91,7 +90,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     lateinit var apiService: ApiService
 
     @Inject
+    lateinit var otherUtil: OtherUtil
+
+    @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
+
+    private val dateAndTime: Calendar =Calendar.getInstance()
 
     val shutdownReceiver=ShutdownReceiver()
 
@@ -239,7 +243,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        OtherUtil().writeToFile("Logger_onNewIntent")
+        otherUtil.writeToFile("Logger_onNewIntent")
         Timber.d("onNewIntent_${intent?.extras}")
         Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT",false)}")
         checkFinish(intent)
@@ -251,7 +255,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
-    private fun checkFinish(intent: Intent?) {
+    fun checkFinish(intent: Intent?) {
+        otherUtil.writeToFile("Logger_checkFinish")
         if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
             if (intent?.extras != null) {
                 Timber.d("EXIT_${intent.extras!!.getBoolean("EXIT", false)}")
@@ -259,8 +264,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     finish()
                 }
             }
+            otherUtil.writeToFile("Logger_action_${intent?.action}")
+            if (intent?.action!=null && intent.action =="EXIT") {
+                finish()
+            }
         } else {
-            OtherUtil().writeToFile("Logger_checkFinish_login_${sharedPref.getLogin()}_password_${sharedPref.getPassword()}")
+            otherUtil.writeToFile("Logger_checkFinish_login_${sharedPref.getLogin()}_password_${sharedPref.getPassword()}")
             // Проверим логин и пароль после сворачивания приложения
             if (sharedPref.getLogin().isEmpty() || sharedPref.getPassword().isEmpty()) {
                 // Запустим активити с настройками
@@ -279,7 +288,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("oldVersion$oldVersion")
         if (oldVersion.isNotEmpty()) {
             if ( oldVersion != currentVersion) {
-                OtherUtil().writeToFile("Logger_Версии не совпадают старая_$oldVersion, новая $currentVersion")
+                otherUtil.writeToFile("Logger_Версии не совпадают старая_$oldVersion, новая $currentVersion")
                 buildAlertClearUserData()
                 return false
             }
@@ -394,6 +403,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             Timber.d("startService_MainActivity1")
             // Стартуем фоновый сервис для отслеживания пользователя
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
+            otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService")
             startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
             startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
         }
@@ -425,6 +435,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 ) {
                     // Разрешения выданы
                     Timber.d("startService_MainActivity2")
+                    otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService")
                     startService(Intent(this, UserLocationService::class.java))
                     startService(Intent(this, MapkitLocationService::class.java))
                 } else {
@@ -650,7 +661,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 }
                 AUTH -> {
                     Timber.d("Авторизуемся_повторно")
-                    OtherUtil().writeToFile("Авторизуемся_повторно")
+                    otherUtil.writeToFile("Авторизуемся_повторно")
 
                     val login =
                         if (data?.getStringExtra("login") == null) "" else data.getStringExtra("login")
@@ -675,7 +686,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
                     of?.doAuthorization(data = dataAuth)
                     if (of == null) {
-                        OtherUtil().writeToFile("XZXZXZ_W")
+                        otherUtil.writeToFile("XZXZXZ_W")
                         doAuthorization(data = dataAuth)
                     }
 
@@ -740,7 +751,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 }
                 mainPresenter.authorization(url, data.login, data.password, msgId) // Проверим есть ли авторизация
 
-                //loginPresenter.authorization(url, data.login, data.password)
             } else {
                 // Запустим активити с настройками
                 val intent = Intent(this, LoginActivity::class.java)
@@ -754,7 +764,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onDestroy() {
         Timber.d("MainAct_destroy")
-        OtherUtil().writeToFile("Logger_MainAct_destroy_${Date()}")
+        otherUtil.writeToFile("Logger_MainAct_destroy_${Date()}")
         if (alertDialogRepeatSync?.isShowing == true) {
             alertDialogRepeatSync?.dismiss()
         }
@@ -769,7 +779,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         stopService(Intent(this, UserLocationService::class.java))
         stopService(Intent(this, MapkitLocationService::class.java))
         stopService(Intent(this, NotificationService::class.java))
-        mainPresenter.onDestroy()
+
+        if (this::mainPresenter.isInitialized) {
+            mainPresenter.onDestroy()
+        }
+
         try {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
             LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
@@ -864,13 +878,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         dialogView.buttonOK.setOnClickListener{
             Timber.d("alertExit_buttonOK")
-            OtherUtil().writeToFile("Logger_Нажата_кнопка_Да_в_диалоге_выхода")
+            otherUtil.writeToFile("Logger_Нажата_кнопка_Да_в_диалоге_выхода")
             alertDialog.dismiss()
             finish()
         }
 
         dialogView.buttonNo.setOnClickListener{
-            OtherUtil().writeToFile("Logger_Нажата_кнопка_Нет_в_диалоге_выхода")
+            otherUtil.writeToFile("Logger_Нажата_кнопка_Нет_в_диалоге_выхода")
             alertDialog.dismiss()
         }
 
@@ -925,7 +939,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("locationPhoto=${photoLocation?.latitude}_${photoLocation?.longitude}")
 
         Timber.d("lastKnownFilenamePhoto=${lastKnownFilenamePhoto}")
-        OtherUtil().saveExifLocation(lastKnownFilenamePhoto, photoLocation)
+        otherUtil.saveExifLocation(lastKnownFilenamePhoto, photoLocation)
 
         val navHostFragment=supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val childFragment=navHostFragment?.childFragmentManager?.fragments?.get(0)
@@ -1516,4 +1530,49 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
      }
 
 
+     fun showDateTimeDialog(id: Int, tv: TextView) {
+         Timber.d("showDialog")
+         //Если потребуется вводить дату вручную, нужно поставить флаг focusableInTouchMode в XML
+         if (id== Const.Dialog.DIALOG_DATE) {
+             val dateListener =
+                 DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
+                     dateAndTime.set(Calendar.YEAR, year)
+                     dateAndTime.set(Calendar.MONTH, month)
+                     dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                     tv.setText(
+                         SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateAndTime.time)
+                     )
+                     /*tv.error=null
+                     Timber.d("errorControls=${parentFragment.errorControls}")
+                     Timber.d("textInputEditText=${tv.id}")
+                     if (parentFragment.errorControls.contains(tv)) {
+                         parentFragment.errorControls.remove(tv)
+                     }*/
+                 }
+
+             DatePickerDialog(
+                 this,
+                 dateListener,
+                 dateAndTime.get(Calendar.YEAR),
+                 dateAndTime.get(Calendar.MONTH),
+                 dateAndTime.get(Calendar.DAY_OF_MONTH)
+             ).show()
+         } else {
+             val timeListener =
+                 TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
+                     dateAndTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                     dateAndTime.set(Calendar.MINUTE, minute)
+                     tv.setText(
+                         SimpleDateFormat("HH:mm", Locale("ru", "RU")).format(dateAndTime.time)
+                     )
+                 }
+
+             TimePickerDialog(
+                 this,
+                 timeListener,
+                 dateAndTime.get(Calendar.HOUR_OF_DAY),
+                 dateAndTime.get(Calendar.MINUTE), true
+             ).show()
+         }
+     }
 }

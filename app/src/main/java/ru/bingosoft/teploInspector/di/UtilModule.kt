@@ -34,8 +34,8 @@ class UtilModule {
 
     @Provides
     @Singleton
-    fun provideOtherUtil(): OtherUtil {
-        return OtherUtil()
+    fun provideOtherUtil(toaster: Toaster): OtherUtil {
+        return OtherUtil(toaster)
     }
 
     /*@Provides

@@ -23,6 +23,7 @@ import ru.bingosoft.teploInspector.util.Const.WebSocketConst.LOCATION_SERVICE_NO
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANNEL_ID_GPS_SERVICES
 import timber.log.Timber
 import java.util.*
+import javax.inject.Inject
 
 class MapkitLocationService: Service() {
     private lateinit var wakeLock: PowerManager.WakeLock
@@ -31,11 +32,12 @@ class MapkitLocationService: Service() {
     private val locationInterval = 60000L // 2000L минимальное время (в миллисекундах) между получением данных.
     private val locationDistance = 0.0 // 3.0 минимальное расстояние (в метрах). Т.е. если ваше местоположение изменилось на указанное кол-во метров И прошло минимальное время locationInterval, то вам придут новые координаты
 
+
     private val locationListener=UserLocationListener(this)
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        OtherUtil().writeToFile("Logger_MapkitLocationService_стартовал")
 
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.P) {
             val pm=(getSystemService(Context.POWER_SERVICE) as PowerManager)
             wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag")
@@ -112,28 +114,19 @@ class MapkitLocationService: Service() {
         Timber.d("MapkitDestroy")
         super.onDestroy()
         MapKitFactory.getInstance().onStop()
-        wakeLock.release()
+        if (this::wakeLock.isInitialized) {
+            wakeLock.release()
+        }
+
     }
 
     class UserLocationListener(private val ctx: Context): LocationListener {
-        var lastLocation: Location?=null
+        private var lastLocation: Location?=null
+        @Inject
+        lateinit var otherUtil: OtherUtil
 
         override fun onLocationStatusUpdated(locationStatus: LocationStatus) {
             // Статус GPS отслеживаем через UserLocationService
-            /*if (locationStatus == LocationStatus.NOT_AVAILABLE) {
-                if (lastLocation!=null) {
-                    sendIntent(lastLocation!!, PROVIDER_DISABLED)
-                } else {
-                    sendIntent(null, PROVIDER_DISABLED)
-                }
-
-            } else {
-                if (lastLocation!=null) {
-                    sendIntent(lastLocation!!, PROVIDER_ENABLED)
-                } else {
-                    sendIntent(null, PROVIDER_ENABLED)
-                }
-            }*/
         }
 
         override fun onLocationUpdated(location: Location) {
@@ -151,23 +144,32 @@ class MapkitLocationService: Service() {
             if (location!=null) {
                 intent.putExtra("lat", location.position.latitude)
                 intent.putExtra("lon", location.position.longitude)
+                intent.putExtra("accuracy", location.accuracy)
+                intent.putExtra("speed", location.speed)
             }
 
 
             // Получим разницу времени старта слежения и текущего времении
             // Данные сохраняем в БД раз в минуту, Mapkit делает это непонятно как
             val currentTime=Date().time
-            val diffTimeMinute=OtherUtil().getDifferenceTime(
+            val diffTimeMinute=getDifferenceTime(
                 (ctx as MapkitLocationService).startTimeService,
                 currentTime
             )
             Timber.d("diffTimeMinute=$diffTimeMinute")
             if (diffTimeMinute>= INTERVAL_SAVE_LOCATION) {
+                Timber.d("MLS_sendIntent_${location?.position?.latitude}__${location?.position?.longitude}__${location?.accuracy}__${location?.speed}")
+                OtherUtil(Toaster(ctx)).writeToFile("Logger_Location_Parameter_${location?.position?.latitude}__${location?.position?.longitude}__${location?.accuracy}__${location?.speed}")
                 LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
                 ctx.startTimeService=currentTime
             }
 
 
+        }
+
+        fun getDifferenceTime(startTime: Long, endTime: Long): Long {
+            val seconds=(endTime-startTime)/1000
+            return seconds/60
         }
 
 

@@ -14,7 +14,7 @@ import ru.bingosoft.teploInspector.db.AddLoad.AddLoad
 import timber.log.Timber
 
 class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: View) {
-    private var listllGroupTX: MutableList<LinearLayout> = mutableListOf()
+    private var listllGroupAL: MutableList<LinearLayout> = mutableListOf()
     val ctx: Context =rootView.context
 
     fun create() {
@@ -70,61 +70,6 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
                 doAssociateParent(templateStepAffiliation, llGroup)
             }
 
-
-
-
-            /*if (!al.long_group.isNullOrEmpty()) {
-                val groupList=al.long_group!!.split("#")
-
-                groupList.forEach { groupName ->
-                    val llGroup=if (parentGroup==null) {
-                        createGroup(groupName, rootView.findViewById(R.id.llMain))
-                    } else {
-                        createGroup(groupName, parentGroup!!, parentGroup!!.tag.toString())
-                    }
-                    parentGroup=llGroup
-
-                }
-            } else {
-                if (!al.short_group.isNullOrEmpty()) {
-                    val llGroup=createGroup(al.short_group!!, rootView.findViewById(R.id.llMain))
-                    parentGroup=llGroup
-
-                }
-            }
-
-            if (al.node!=null) {
-                val llGroup=if (parentGroup==null) {
-                    createGroup("Узел ${al.node}", rootView.findViewById(R.id.llMain))
-                }else {
-                    createGroup("Узел ${al.node}", parentGroup!!, parentGroup!!.tag.toString())
-                }
-
-                val templateStep=fillDataTH(al)
-                doAssociateParent(templateStep, llGroup)
-
-            } else {
-                Timber.d("все_пусто")
-                val llGroup=if (parentGroup==null) {
-                    rootView.findViewById(R.id.llMain)
-                }else {
-                    parentGroup
-                }
-
-                val templateStep=fillDataTH(al)
-                if (llGroup != null) {
-                    if (parentGroup==null) {
-                        val params = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                        params.setMargins(24, 0, 24, 0)
-                        llGroup.layoutParams = params
-                    }
-
-                    doAssociateParent(templateStep, llGroup)
-                }
-            }*/
         }
     }
 
@@ -150,13 +95,13 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
     private fun createGroup(name: String, parent: LinearLayout, node: String = ""): LinearLayout {
         // Проверим, возможно группа уже создана
-        val ll=listllGroupTX.filter { it.tag=="$name$node" }
+        val ll=listllGroupAL.filter { it.tag=="$name$node" }
         if (ll.isNotEmpty()) {
             return ll[0]
         } else {
             Timber.d("генерим группу $name$node")
             val templateStep= LayoutInflater.from(rootView.context).inflate(
-                R.layout.template_group_tx, parent as ViewGroup?, false
+                R.layout.template_group_al, parent as ViewGroup?, false
             ) as LinearLayout
 
 
@@ -189,7 +134,7 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
             doAssociateParent(templateStep, parent)
 
-            listllGroupTX.add(llGroup)
+            listllGroupAL.add(llGroup)
 
 
             return llGroup

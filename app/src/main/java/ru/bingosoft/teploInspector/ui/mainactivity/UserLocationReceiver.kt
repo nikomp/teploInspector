@@ -25,8 +25,6 @@ import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.ENABLE_LOCATION
-import ru.bingosoft.teploInspector.util.OtherUtil
-import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -38,17 +36,7 @@ class UserLocationReceiver @Inject constructor(
     private lateinit var disposable: Disposable
     private lateinit var disposableSendMsg: Disposable
 
-    /*private lateinit var disposableRoute: Disposable
-    var locationManager: LocationManager?=null
-    private val locationInterval = 2000L // минимальное время (в миллисекундах) между получением данных.
-    private val locationDistance = 3f*/
-
-
-
-    //lateinit var lastKnownLocation: Location
     var lastKnownLocation=Location(LocationManager.GPS_PROVIDER)
-    @Inject
-    lateinit var toaster: Toaster
 
     lateinit var ctx: Context
 
@@ -56,7 +44,6 @@ class UserLocationReceiver @Inject constructor(
 
     override fun onReceive(context: Context?, intent: Intent?) {
         Timber.d("onReceive")
-        OtherUtil().writeToFile("Logger_UserLocationReceiver_onReceive_${Date()}")
         if("userLocationUpdates" == intent?.action) {
             if (context != null) {
                 ctx=context
@@ -66,13 +53,13 @@ class UserLocationReceiver @Inject constructor(
 
             val lat= intent.getDoubleExtra("lat",0.0)
             val lon= intent.getDoubleExtra("lon",0.0)
+            val accuracy=intent.getDoubleExtra("accuracy",0.0)
+            val speed=intent.getDoubleExtra("speed",0.0)
             val provider= intent.getStringExtra("provider")
 
             lastKnownLocation=Location(provider)
-            if (lat!=null && lon!=null) {
-                lastKnownLocation.longitude=lon
-                lastKnownLocation.latitude=lat
-            }
+            lastKnownLocation.longitude=lon
+            lastKnownLocation.latitude=lat
 
             val status= intent.getStringExtra("status")
             Timber.d("statusGPS=$status")
@@ -84,11 +71,9 @@ class UserLocationReceiver @Inject constructor(
                 Timber.d("ENABLE_LOCATION")
                 sendMessageToAdmin(ENABLE_LOCATION)
             }
-            Timber.d("UserLocationReceiver=$lat _ $lon")
-            if (lat != null && lon!=null) {
-                if (provider != null && status != null) {
-                    saveLocation(lat,lon,provider,status)
-                }
+            Timber.d("UserLocationReceiver=${lat}_${lon}_ ${accuracy}_${speed}")
+            if (provider != null && status != null) {
+                saveLocation(lat,lon,provider,status)
             }
         }
 
@@ -176,67 +161,6 @@ class UserLocationReceiver @Inject constructor(
             )
 
     }
-
-    /*private fun sendUserRoute() {
-        Timber.d("sendUserRoute_from_UserLocationReceiver")
-        disposableRoute=db.trackingUserDao()
-            .getTrackingForCurrentDay()
-            .subscribeOn(Schedulers.io())
-            .map{trackingUserLocation ->
-                Timber.d("VVVVVVVVVVVVVV")
-                Timber.d("$trackingUserLocation")
-
-                val route=Models.FileRoute()
-                val jsonStr=Gson().toJson(trackingUserLocation)
-                route.fileRoute=jsonStr
-
-                val jsonBody=Gson().toJson(route)
-                    .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-                Timber.d("ДанныеМаршрута=${jsonStr}")
-
-                return@map jsonBody
-
-            }
-            .flatMap { jsonBodies ->
-                Timber.d("jsonBodies=${jsonBodies}")
-
-                apiService.sendTrackingUserLocation(jsonBodies).toFlowable()
-            }
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                { response ->
-                    Timber.d(response.toString())
-                    disposableRoute.dispose()
-
-                }, { throwable ->
-                    disposableRoute.dispose()
-                    throwable.printStackTrace()
-                }
-            )
-    }*/
-
-    /*private fun getLocation() {
-        Timber.d("getLocation")
-        if (locationManager==null) {
-            locationManager=ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        }
-
-        try {
-            locationManager?.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, locationInterval, locationDistance,
-                userLocationListener
-            )
-        } catch (e: SecurityException) {
-            Timber.d("Не удается запросить обновление местоположения, игнорировать ${e.printStackTrace()}")
-            //stopSelf()
-        } catch (e: IllegalArgumentException) {
-            Timber.d("GPS провайдер не существует ${e.printStackTrace()}")
-            //stopSelf()
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
-        }
-    }*/
 
     class UserLocationListener(val provider: String, private val ctx: Context): LocationListener {
 

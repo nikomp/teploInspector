@@ -28,6 +28,7 @@ import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
+import ru.bingosoft.teploInspector.ui.mainactivity.MainActivityPresenter
 import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
@@ -48,6 +49,9 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
     lateinit var orderPresenter: OrderPresenter
 
     @Inject
+    lateinit var mainPresenter: MainActivityPresenter
+
+    @Inject
     lateinit var toaster: Toaster
 
     @Inject
@@ -55,9 +59,6 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
 
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
-
-    /*@Inject
-    lateinit var userLocationNative: UserLocationNative*/
 
     private var currentOrder: Orders?=null
     private var rcv: RecyclerView?=null
@@ -118,10 +119,18 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
 
             val builder = AlertDialog.Builder(parentFragment.requireContext())
 
+            val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+            newDate.setOnClickListener{
+                Timber.d("newDate_setOnClickListener")
+                (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_DATE, newDate)
+            }
+            val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+            newTime.setOnClickListener{
+                (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
+            }
+
             dialogView.btnOk.setOnClickListener{
                 Timber.d("dialogView.buttonOK")
-                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
-                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
 
                 Timber.d(strDateTimeVisit)
@@ -133,7 +142,8 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                         order.dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
                         order.timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
 
-                        orderPresenter.saveDateTime(order)
+                        //orderPresenter.saveDateTime(order)
+                        mainPresenter.updateGiOrder(order)
                         (parentFragment.requireActivity() as MainActivity).currentOrder=order
 
                     }

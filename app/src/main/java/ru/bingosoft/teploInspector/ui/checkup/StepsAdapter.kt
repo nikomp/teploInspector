@@ -44,7 +44,7 @@ class StepsAdapter(
 
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
-        Timber.d("onBindViewHolder")
+        Timber.d("onBindViewHolder_lists[position]")
         holder.stepNumber.text="${position+1}"
         holder.stepName.text=lists[position]
         when (position) {
@@ -93,8 +93,12 @@ class StepsAdapter(
         holder.expandStep.setImageDrawable(drawable)
 
 
-        Timber.d("position=$position")
         holder.details.removeAllViews()
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        holder.details.layoutParams = params
         holder.details.visibility=View.GONE
         if (position==0 && isExpanded) {
             Timber.d("Общие_сведения")

@@ -22,26 +22,11 @@ import java.util.concurrent.TimeUnit
 class NetworkModule {
 
     @Provides
-    fun providesApiService(sharedPrefSaver: SharedPrefSaver) : ApiService {
-
-        /*val interceptor = if (BuildConfig.DEBUG) {
-            Timber.d("DEBUG")
-             HttpLoggingInterceptor()
-        } else {
-            Timber.d("RELEASE")
-            val fileLogger=object:HttpLoggingInterceptor.Logger {
-                override fun log(message: String) {
-                    writeToFile(message)
-                }
-
-            }
-            HttpLoggingInterceptor(fileLogger)
-        }
-        interceptor.level= HttpLoggingInterceptor.Level.BODY*/
+    fun providesApiService(sharedPrefSaver: SharedPrefSaver, otherUtil: OtherUtil) : ApiService {
 
         val fileLogger=object:HttpLoggingInterceptor.Logger {
             override fun log(message: String) {
-                OtherUtil().writeToFile(message)
+                otherUtil.writeToFile(message)
             }
 
         }

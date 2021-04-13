@@ -9,4 +9,7 @@ interface OrderContractView {
     fun techParamsLoaded(techParams:List<TechParams>)
 
     fun errorReceived(throwable: Throwable)
+    fun showFailure(idMsg: Int)
+
+    //fun sendGiOrder(order: Orders)
 }

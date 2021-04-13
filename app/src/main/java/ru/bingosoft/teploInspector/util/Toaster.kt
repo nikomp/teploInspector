@@ -10,7 +10,7 @@ import ru.bingosoft.teploInspector.R
 import timber.log.Timber
 
 
-class Toaster(private val ctx: Context) {
+class Toaster(val ctx: Context) {
     fun showToast(resId: Int, duration: Int = Toast.LENGTH_SHORT) {
         showToast(ctx.getString(resId), duration) // Используется перегрузка метода
     }

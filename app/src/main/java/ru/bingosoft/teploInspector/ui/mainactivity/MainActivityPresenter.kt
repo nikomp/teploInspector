@@ -3,7 +3,6 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.view.View
 import com.google.gson.Gson
 import com.google.gson.JsonArray
-import io.reactivex.Flowable.interval
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -19,7 +18,6 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
-import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
@@ -32,7 +30,6 @@ import timber.log.Timber
 import java.io.File
 import java.io.FilenameFilter
 import java.util.*
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
@@ -43,6 +40,9 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
+
+    @Inject
+    lateinit var otherUtil: OtherUtil
 
 
     private lateinit var disposable: Disposable
@@ -66,7 +66,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun authorization(url:String, stLogin: String?, stPassword: String?, msgId: Int=R.string.auth_ok){
         Timber.d("authorization1_MainActPres $stLogin _ $stPassword")
-        OtherUtil().writeToFile("Logger_authorization_from_MainActivityPresenter")
+        otherUtil.writeToFile("Logger_authorization_from_MainActivityPresenter")
         if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
 
             Timber.d("jsonBody=${Gson().toJson(Models.LP(login = stLogin, password = stPassword))}")
@@ -89,7 +89,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .subscribe(
                     { token ->
                         Timber.d("авторизовалисьZZ=${token.token}")
-                        sendRoute()
+                        //sendRoute()
                         disposableAuth.dispose()
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
@@ -114,7 +114,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
         } else {
             view?.errorReceived(Throwable("Не заданы логин или пароль"))
-            OtherUtil().writeToFile("Ошибка! Не заданы логин или пароль ${Date()}")
+            otherUtil.writeToFile("Ошибка! Не заданы логин или пароль ${Date()}")
         }
 
     }
@@ -264,6 +264,24 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         //disposable.dispose()
                     }
                 )
+    }
+
+    fun updateGiOrder(order: Orders) {
+        Timber.d("saveDateTime_$order")
+        disposable=Single.fromCallable {
+            db.ordersDao().update(order)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                Timber.d("view=$view")
+                sendGiOrder(order.id)
+                disposable.dispose()
+                Timber.d("Обновили_дату_время")
+            },{throwable ->
+                disposable.dispose()
+                throwable.printStackTrace()
+            })
     }
 
     fun sendGiOrder(idOrder:Long) {
@@ -606,7 +624,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
     //#RxJava #interval
-    private fun sendRoute() {
+    /*private fun sendRoute() {
+        Нет обновления координат в БД, стартуем при каждой автоматической авторизации
         Timber.d("test_sendRoute")
         disposableRouteInterval= interval(INTERVAL_SENDING_ROUTE,TimeUnit.MINUTES).map {
             Timber.d("ДанныеМаршрутаПолучили_${Date()}")
@@ -632,15 +651,14 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     )
                 } else {
                     Timber.d("Нет данных о маршруте")
-                    OtherUtil().writeToFile("Logger_Нет данных о маршруте ${Date()}")
+                    otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()}")
                 }
             },{throwable ->
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
             }
         )
-    }
-
+    }*/
 
 
     fun onDestroy() {

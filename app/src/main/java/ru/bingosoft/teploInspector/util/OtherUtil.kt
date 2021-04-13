@@ -1,8 +1,12 @@
 package ru.bingosoft.teploInspector.util
 
+import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Environment
+import androidx.core.content.ContextCompat
 import androidx.exifinterface.media.ExifInterface
 import com.google.gson.Gson
 import ru.bingosoft.teploInspector.db.Checkup.Checkup
@@ -16,7 +20,8 @@ import java.util.*
 import kotlin.math.round
 import kotlin.math.roundToInt
 
-class OtherUtil {
+class OtherUtil(private val toaster: Toaster) {
+    val ctx=toaster.ctx
     fun getDirForSync(checkups: List<Checkup>) :List<String> {
         Timber.d("getDirForSync")
         val list= mutableListOf<String>()
@@ -112,24 +117,30 @@ class OtherUtil {
     }
 
     fun writeToFile(message:String) {
-        Timber.d("writeToFile")
-        val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
-        val dir = "TeploInspectorLogs/$date"
+        if (ContextCompat.checkSelfPermission(ctx,READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(ctx,WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
 
-        val storageDir = File("${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}",dir)
-        if (!storageDir.exists()) {
-            Timber.d("создадим_папку $storageDir")
-            storageDir.mkdirs() // Создадим сразу все необходимые каталоги
-            Timber.d("!storageDir.exists()=${storageDir.exists()}")
-        }
+            Timber.d("writeToFile")
+            val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
+            val dir = "TeploInspectorLogs/$date"
 
-        val file="Log.log"
-        val logFile=File("$storageDir/$file")
-        if (!logFile.exists()) {
-            Timber.d("vcvc=$storageDir/$file")
-            logFile.createNewFile()
+            try {
+                val storageDir = File("${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}",dir)
+                if (!storageDir.exists()) {
+                    storageDir.mkdirs() // Создадим сразу все необходимые каталоги
+                }
+
+                val file="Log.log"
+                val logFile=File("$storageDir/$file")
+                if (!logFile.exists()) {
+                    logFile.createNewFile()
+                }
+                logFile.appendText("$message\n")
+            } catch (e: Exception) {
+                toaster.showErrorToast("Ошибка записи лога ${e.message}")
+            }
+
         }
-        logFile.appendText("$message\n")
 
     }
 

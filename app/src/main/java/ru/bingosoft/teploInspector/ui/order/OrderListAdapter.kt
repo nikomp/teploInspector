@@ -34,6 +34,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
     var ordersFilterList: List<Orders> = listOf()
 
+
     init {
         ordersFilterList=orders
     }
@@ -63,13 +64,22 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.orderType.text=ordersFilterList[position].typeOrder
         }
 
+        val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
+            parentFragment.requireContext(),
+            R.layout.template_multiline_spinner_item_state_order,
+            R.id.text1,
+            Const.StatusOrder.list
+        )
+
+        holder.orderState.setAdapter(adapterStatus)
+
         val orderStateListener=object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
 
 
                 // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
                 Timber.d("ordersFilterList_size=${ordersFilterList.size}__position_$position")
-                if (position>ordersFilterList.size) {
+                if (position>=ordersFilterList.size) {
                     Timber.d("IOIO")
                     return
                 }
@@ -112,13 +122,21 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         }
+        holder.orderState.addTextChangedListener(orderStateListener)
+
+        val adapter: ArrayAdapter<String> = ArrayAdapter(
+            parentFragment.requireContext(),
+            R.layout.template_multiline_spinner_item,
+            Const.TypeTransportation.list
+        )
+        holder.typeTransportation.setAdapter(adapter)
 
         val typeTransportationTextWatcher=object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 Timber.d("typeTransportationTextWatcher")
                 Timber.d("ordersFilterList_size=${ordersFilterList.size}__position_$position")
-                if (position>ordersFilterList.size) {
-                    Timber.d("IOIO")
+                if (position>=ordersFilterList.size) {
+                    Timber.d("IOIO2")
                     return
                 }
 
@@ -153,6 +171,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
         }
+        holder.typeTransportation.addTextChangedListener(typeTransportationTextWatcher)
 
         Timber.d("isSearchView=${(parentFragment.activity as MainActivity).isSearchView}")
         Timber.d("isBackPressed=${(parentFragment.activity as MainActivity).isBackPressed}")
@@ -177,10 +196,19 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
             val builder = AlertDialog.Builder(parentFragment.requireContext())
 
+            val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+            newDate.setOnClickListener{
+                Timber.d("newDate_setOnClickListener")
+                (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_DATE, newDate)
+            }
+            val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+            newTime.setOnClickListener{
+                (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
+            }
+
             dialogView.btnOk.setOnClickListener{
                 Timber.d("dialogView.buttonOK")
-                val newDate=dialogView.findViewById<TextView>(R.id.newDate)
-                val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
 
                 Timber.d(strDateTimeVisit)
@@ -192,7 +220,8 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                         ordersFilterList[position].dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
                         ordersFilterList[position].timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
 
-                        parentFragment.orderPresenter.saveDateTime(ordersFilterList[position])
+                        //parentFragment.orderPresenter.saveDateTime(ordersFilterList[position])
+                        parentFragment.mainPresenter.updateGiOrder(ordersFilterList[position])
                         (parentFragment.requireActivity() as MainActivity).currentOrder=ordersFilterList[position]
 
                     }
@@ -212,16 +241,6 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         }
 
 
-        val adapterStatus: ArrayAdapter<String> = ArrayAdapter(
-            parentFragment.requireContext(),
-            R.layout.template_multiline_spinner_item_state_order,
-            R.id.text1,
-            Const.StatusOrder.list
-        )
-
-        holder.orderState.setAdapter(adapterStatus)
-
-        holder.orderState.addTextChangedListener(orderStateListener)
 
         if (ordersFilterList[position].dateVisit!=null && ordersFilterList[position].timeVisit!=null) {
             val strDateTimeVisit="${ordersFilterList[position].dateVisit} ${ordersFilterList[position].timeVisit}"
@@ -247,14 +266,9 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
             holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
         }
 
-        val adapter: ArrayAdapter<String> = ArrayAdapter(
-            parentFragment.requireContext(),
-            R.layout.template_multiline_spinner_item,
-            Const.TypeTransportation.list
-        )
-        holder.typeTransportation.setAdapter(adapter)
 
-        holder.typeTransportation.addTextChangedListener(typeTransportationTextWatcher)
+
+
 
         if (ordersFilterList[position].phone.isNullOrEmpty()) {
             holder.btnPhone.text=parentFragment.requireContext().getString(R.string.no_contact)
@@ -309,6 +323,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         holder.listener=itemListener
 
     }
+
 
     private fun changeColorMBSState(view: MaterialBetterSpinner, status:String?) {
         Timber.d("changeColorMBSState=$status")
