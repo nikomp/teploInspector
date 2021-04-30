@@ -19,6 +19,7 @@ import java.util.*
 class PhotoHelper {
     lateinit var parentFragment: Fragment
 
+
     /**
      * Метод для создания фото и сохранения ее в файл и БД
      *
@@ -33,11 +34,13 @@ class PhotoHelper {
             (parentFragment.requireActivity() as MainActivity).lastKnownFilenamePhoto=photoFile.absolutePath
 
             uri = FileProvider.getUriForFile(
-                parentFragment.requireContext(), "${parentFragment.context?.packageName}.provider",
+                parentFragment.requireContext(), "${parentFragment.requireContext().packageName}.provider",
                 photoFile
             )
+
             intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
             parentFragment.requireActivity().startActivityForResult(intent, PHOTO)
 
 
@@ -54,8 +57,8 @@ class PhotoHelper {
      */
     @Throws(IOException::class)
     private fun createImageFile(dirname: String): File {
-        // Имя для папки с файлами PhotoForApp/+<id_заявки>. Если потребуется делать фотки Захоронений и Памятников, в папке с местом захоронения создадим еще 2 папки
-        val stDir = "PhotoForApp/$dirname" //+Integer.toString(inSector)+"."+Integer
+        // Имя для папки с файлами PhotoForApp/+<id_заявки>
+        val stDir = "PhotoForApp/$dirname"
 
         Timber.d("папка с фото $stDir")
 
@@ -79,7 +82,7 @@ class PhotoHelper {
     }
 
     fun checkDirAndEmpty(dirName: String): Boolean {
-        val file=File( "$DCIM_DIR/PhotoForApp/$dirName")
+        val file=File( dirName)
         if (file.exists() && file.isDirectory && !file.listFiles().isNullOrEmpty()) {
             return true
         }

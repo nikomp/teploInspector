@@ -158,7 +158,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         // Авторизуемся сразу при входе в приложение, чтоб уходили GPS данные
         // Авторизуемся так только если есть логин и пароль в настройках
-        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty() && sharedPref.isAuth()) {
             Timber.d("Первая_авторизация")
             doAuthorization() // Сразу пробуем авторизоваться
         }
@@ -257,7 +257,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     fun checkFinish(intent: Intent?) {
         otherUtil.writeToFile("Logger_checkFinish")
-        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+        if (sharedPref.isAuth()) { //sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()
             if (intent?.extras != null) {
                 Timber.d("EXIT_${intent.extras!!.getBoolean("EXIT", false)}")
                 if (intent.extras!!.getBoolean("EXIT", false)) {
@@ -271,7 +271,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         } else {
             otherUtil.writeToFile("Logger_checkFinish_login_${sharedPref.getLogin()}_password_${sharedPref.getPassword()}")
             // Проверим логин и пароль после сворачивания приложения
-            if (sharedPref.getLogin().isEmpty() || sharedPref.getPassword().isEmpty()) {
+            if (!sharedPref.isAuth()) { //sharedPref.getLogin().isEmpty() || sharedPref.getPassword().isEmpty()
                 // Запустим активити с настройками
                 val intent1 = Intent(this, LoginActivity::class.java)
                 startActivityForResult(intent1, AUTH)
@@ -594,14 +594,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 override fun onQueryTextChange(newText: String?): Boolean {
                     Timber.d(newText)
 
-                    isSearchView = true
+                    //isSearchView = true
                     //#SearchView_close
                     if (newText == "") {
                         Timber.d("Закроем")
                         searchView.isIconified = true
                     }
-
-                    Timber.d("_isSearchView=true")
 
                     val currentFragmentClassName =
                         (navController.currentDestination as FragmentNavigator.Destination).className
@@ -631,7 +629,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                             ?.find { it.javaClass.name == currentFragmentClassName } as MapFragment
                         mf.showMarkers(filteredList)
                     }
-
 
                     return true
                 }
@@ -700,66 +697,71 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     }
 
     fun doAuthorization(msgId: Int = R.string.auth_ok, data: Models.RepeatAuthData? = null) {
-        Timber.d("doAuthorization")
+        Timber.d("doAuthorization_MA")
         // Получим логин и пароль из настроек
         val sharedPref = this.getSharedPreferences(
             Const.SharedPrefConst.APP_PREFERENCES,
             Context.MODE_PRIVATE
         )
-        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
+        if (this.sharedPref.isAuth()) {
+            if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
 
-            val login = this.sharedPref.getLogin()
-            val password = this.sharedPref.getPassword()
+                val login = this.sharedPref.getLogin()
+                val password = this.sharedPref.getPassword()
 
-            // Для презентации
-            val url = if (BuildConfig.BUILD_TYPE=="presentation") {
-
-                // Для презентации
-                if (this.sharedPref.getEnterType()=="directory_service") {
-                    "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
-                } else {
-                    "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
-                }
-            } else {
-                if (this.sharedPref.getEnterType()=="directory_service") {
-                    "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
-                } else {
-                    "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
-                }
-            }
-
-
-            mainPresenter.authorization(url, login, password, msgId) // Проверим есть ли авторизация
-        } else {
-            Timber.d("логин/пароль=ОТСУТСТВУЮТ_в_настройках")
-            if (data!=null) {
                 // Для презентации
                 val url = if (BuildConfig.BUILD_TYPE=="presentation") {
 
                     // Для презентации
-                    if (data.enter_type=="directory_service") {
+                    if (this.sharedPref.getEnterType()=="directory_service") {
                         "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
                     } else {
                         "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
                     }
                 } else {
-                    if (data.enter_type=="directory_service") {
+                    if (this.sharedPref.getEnterType()=="directory_service") {
                         "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
                     } else {
                         "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
                     }
                 }
-                mainPresenter.authorization(url, data.login, data.password, msgId) // Проверим есть ли авторизация
 
+                mainPresenter.authorization(url, login, password, msgId) // Проверим есть ли авторизация
             } else {
-                // Запустим активити с настройками
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivityForResult(intent, AUTH)
+                Timber.d("логин/пароль=ОТСУТСТВУЮТ_в_настройках")
+                if (data!=null) {
+                    // Для презентации
+                    val url = if (BuildConfig.BUILD_TYPE=="presentation") {
+
+                        // Для презентации
+                        if (data.enter_type=="directory_service") {
+                            "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                        } else {
+                            "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                        }
+                    } else {
+                        if (data.enter_type=="directory_service") {
+                            "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                        } else {
+                            "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                        }
+                    }
+                    mainPresenter.authorization(url, data.login, data.password, msgId) // Проверим есть ли авторизация
+
+                } else {
+                    // Запустим активити с настройками
+                    val intent = Intent(this, LoginActivity::class.java)
+                    startActivityForResult(intent, AUTH)
+                }
+
             }
-
+        } else {
+            // Запустим активити с настройками
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivityForResult(intent, AUTH)
         }
-    }
 
+    }
 
 
     override fun onDestroy() {
@@ -770,7 +772,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
         // Отправляем сообщение о выходе, только если был совершен вход
-        if (sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()) {
+        if (sharedPref.isAuth()) { //sharedPref.getLogin().isNotEmpty() && sharedPref.getPassword().isNotEmpty()
             mainPresenter.sendMessageToAdmin(USER_LOGOUT)
         }
         sharedPref.clearAuthData() // Очистим информацию об авторизации
@@ -1046,6 +1048,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          Timber.d("saveLoginPasswordToSharedPreference")
          sharedPref.saveLogin(stLogin)
          sharedPref.savePassword(stPassword)
+         sharedPref.saveAuthFlag()
      }
 
      override fun saveToken(token: String) {
@@ -1539,9 +1542,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                      dateAndTime.set(Calendar.YEAR, year)
                      dateAndTime.set(Calendar.MONTH, month)
                      dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                     tv.setText(
-                         SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateAndTime.time)
-                     )
+                     tv.text = SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateAndTime.time)
                      /*tv.error=null
                      Timber.d("errorControls=${parentFragment.errorControls}")
                      Timber.d("textInputEditText=${tv.id}")

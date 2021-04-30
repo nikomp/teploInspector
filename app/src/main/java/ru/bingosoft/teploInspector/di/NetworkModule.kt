@@ -26,6 +26,7 @@ class NetworkModule {
 
         val fileLogger=object:HttpLoggingInterceptor.Logger {
             override fun log(message: String) {
+                Timber.d("Network_ZXC_$message")
                 otherUtil.writeToFile(message)
             }
 
@@ -42,7 +43,7 @@ class NetworkModule {
             .addInterceptor(interceptor)
             .addInterceptor(object : Interceptor {
                 override fun intercept(chain: Interceptor.Chain): Response {
-                    var token = ""
+                    val token: String
                     if (sharedPrefSaver.sptoken.isEmpty()) {
                         token = sharedPrefSaver.getToken()
                         sharedPrefSaver.sptoken = token

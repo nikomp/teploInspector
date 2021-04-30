@@ -85,7 +85,6 @@ class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
             .setWhen(System.currentTimeMillis())
             .setSmallIcon(R.drawable.ic_new_notification)
             .setContentIntent(resultPendingIntent)
-            .setAutoCancel(true)
             .build()
 
         notificationManager.notify(1000, customNotification)

@@ -32,14 +32,4 @@ data class Checkup (
     var text: JsonArray? = null,
     var textResult: JsonArray? = null,
     var sync: Boolean = false
-) {
-
-    /**
-     * Возвращает сотроку с описанием чеклиста. Поля могут меняться
-     */
-    override fun toString(): String {
-        return "Checkup(idOrder=$idOrder, numberOrder='$numberOrder', orderGuid='$orderGuid', typeOrder='$typeOrder', text=$text, textResult=$textResult, sync=$sync)"
-    }
-
-
-}
+)

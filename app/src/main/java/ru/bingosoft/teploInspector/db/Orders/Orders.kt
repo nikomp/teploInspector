@@ -14,7 +14,7 @@ data class Orders (
     @SerializedName("id")
     var id: Long = 0,
     @SerializedName("guid")
-    var guid: String,
+    var guid: String="",
     @SerializedName("number_order")
     var number: String? = null,
     @SerializedName("status")
@@ -47,6 +47,8 @@ data class Orders (
     var lat: Double = 0.0,
     @SerializedName("lon")
     var lon: Double = 0.0,
+    @SerializedName("order_note")
+    var orderNote: String? = null,
 
     @SerializedName("gi_contract_number")
     var giContractNumber: String? = null,
@@ -90,18 +92,14 @@ data class Orders (
     var giRtc: String? = null,
     @SerializedName("gi_master_rtc")
     var giMasterRtc: String? = null,
-
+    @SerializedName("tech_params_count")
+    var techParamsCount: Int=0,
 
     var checked: Boolean=false,
     var questionCount: Int=0,
-    var techParamsCount: Int=0,
     var addLoadCount: Int=0,
     var answeredCount: Int=0
-) {
-    override fun toString(): String {
-        return "Orders(id=$id, guid='$guid', number=$number, status=$status, address=$address, contactFio=$contactFio, phone=$phone, dateCreate=$dateCreate, dateVisit=$dateVisit, timeVisit=$timeVisit, purposeObject=$purposeObject, groupOrder=$groupOrder, countNode=$countNode, typeOrder=$typeOrder, typeTransportation=$typeTransportation, lat=$lat, lon=$lon, giContractNumber=$giContractNumber, giContractDate=$giContractDate, giLegalAddress=$giLegalAddress, giPhone=$giPhone, giEmail=$giEmail, giPostAddress=$giPostAddress, giContractor=$giContractor, gi_responsible_tx=$gi_responsible_tx, giDirector=$giDirector, giResponsiblePhoneCity=$giResponsiblePhoneCity, giResponsiblePhoneMob=$giResponsiblePhoneMob, giDirectorPhoneCity=$giDirectorPhoneCity, giDirectorPhoneMob=$giDirectorPhoneMob, gi_belong_or=$gi_belong_or, gi_belong_uen=$gi_belong_uen, giManagingOrganizationUen=$giManagingOrganizationUen, giContractingOrganization=$giContractingOrganization, giTrackOwnership=$giTrackOwnership, giNodeOwnership=$giNodeOwnership, giRtc=$giRtc, giMasterRtc=$giMasterRtc, checked=$checked, questionCount=$questionCount, techParamsCount=$techParamsCount, answeredCount=$answeredCount)"
-    }
-}
+)
 
 
 

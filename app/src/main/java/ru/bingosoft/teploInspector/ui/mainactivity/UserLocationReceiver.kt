@@ -21,6 +21,7 @@ import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.User.TrackingUserLocation
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.util.Const
+import ru.bingosoft.teploInspector.util.Const.Location.MAX_ACCURACY
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_DISABLED
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.PROVIDER_ENABLED
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
@@ -72,7 +73,7 @@ class UserLocationReceiver @Inject constructor(
                 sendMessageToAdmin(ENABLE_LOCATION)
             }
             Timber.d("UserLocationReceiver=${lat}_${lon}_ ${accuracy}_${speed}")
-            if (provider != null && status != null) {
+            if (provider != null && status != null && accuracy<MAX_ACCURACY) {
                 saveLocation(lat,lon,provider,status)
             }
         }

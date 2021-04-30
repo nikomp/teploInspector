@@ -27,8 +27,4 @@ data class HistoryOrderState (
     var stateOrder: String="",
     @SerializedName("date")
     var dateChange: Date=Date()
-) {
-    override fun toString(): String {
-        return "HistoryOrderState(id=$id, idOrder=$idOrder, stateOrder='$stateOrder', dateChange=$dateChange)"
-    }
-}
+)

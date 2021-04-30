@@ -27,10 +27,9 @@ class OrderPresenter @Inject constructor(
 ) {
 
     private var tempHistory= HistoryOrderState()
-
     var view: OrderContractView? = null
-
     private lateinit var disposable: Disposable
+
     fun attachView(view: OrderContractView) {
         this.view=view
     }
@@ -69,11 +68,12 @@ class OrderPresenter @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
                 Timber.d("response=$response")
-                Timber.d("Отправили статус")
+                Timber.d("Отправили_статус")
                 disposable.dispose()
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
+                println("error")
                 throwable.printStackTrace()
                 errorHandler(throwable)
                 disposable.dispose()
@@ -129,6 +129,7 @@ class OrderPresenter @Inject constructor(
                 if (it.isNotEmpty()) {
                     view?.showOrders(it)
                 } else {
+                    println("BV_${R.string.no_requests}")
                     view?.showFailure(R.string.no_requests)
                 }
 
@@ -144,41 +145,6 @@ class OrderPresenter @Inject constructor(
         }
     }
 
-    /*fun getAllMessage() {
-        Timber.d("getAllMessage")
-        disposable=apiService.getAllMessages()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({listNotifications ->
-                Timber.d("Получили_все_уведомления")
-                val unreadNotifications=listNotifications.filter { it.read_date==null }
-                Timber.d("unreadNotifications=${unreadNotifications.size}")
-                if (unreadNotifications.isNotEmpty()) {
-                    view?.showUnreadNotification(unreadNotifications)
-                }
-                disposable.dispose()
-            },{throwable ->
-                throwable.printStackTrace()
-                disposable.dispose()
-            })
-
-    }*/
-
-    /*fun getTechParams(idOrder: Long) {
-        Timber.d("techParams=$idOrder")
-        Single.fromCallable {
-            db.techParamsDao().getTechParamsOrder(idOrder)
-            //Timber.d("checkupxxxx=$checkup")
-            //view?.checkupIsLoaded(checkup)
-
-        }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { techParams ->
-                Timber.d("techParams=$techParams")
-                view?.techParamsLoaded(techParams)
-            }
-    }*/
 
     /*fun importData() {
         // Вставка данных в БД

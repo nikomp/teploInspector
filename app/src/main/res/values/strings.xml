@@ -131,6 +131,8 @@
     <string name="status_IN_WAY">В пути</string> нд
     <string name="status_IN_WORK">В работе</string>
     <string name="status_OPEN">Открыта</string> нд
+    <string name="status_Empty">Нет</string>
+
 
     <string name="checklist_is_empty">Чеклист пуст</string>
     <string name="th_is_empty">Нет технических характеристик</string>
@@ -171,6 +173,7 @@
     <string name="enter_with_directory_service">Вход через службу каталогов</string>
 
     <string name="order_number">№ %1$s</string>
+    <string name="count_node">Узлов %1$d</string>
     <string name="count_question_checklist">%1$d/%2$d</string>
     <string name="name_node">Узел %1$d</string>
     <string name="question">%1$s %2$d</string>
@@ -215,5 +218,8 @@
     <string name="contractor">Контрагент</string>
 
     <string name="no_requests">Нет заявок</string>
+
+    <string name="default_notification_channel_id" translatable="false">TeploInspectorFCMChennel</string>
+    <string name="for_testing">Тестовая строка</string>
 
 </resources>

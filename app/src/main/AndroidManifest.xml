@@ -21,12 +21,15 @@
     <uses-feature android:name="android.hardware.telephony"/>
     <uses-feature android:name="android.hardware.camera" />
 
+
+
+    <!--android:requestLegacyExternalStorage="true"-->
     <application
         android:name="ru.bingosoft.teploInspector.App"
         android:allowBackup="true"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="true"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -70,6 +73,9 @@
             android:required="false" />
 
         <!--Иконка и цвет уведомлений по умолчанию-->
+        <!--<meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id"/>-->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_clock" />

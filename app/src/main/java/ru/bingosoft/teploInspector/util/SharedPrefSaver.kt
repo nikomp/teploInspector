@@ -9,6 +9,7 @@ import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.APP_PREFERENCES
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.DATESYNC
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.FIREBASE_MESSAGE
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.IS_AUTH
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ROLE_ID
@@ -35,6 +36,17 @@ class SharedPrefSaver(ctx: Context) {
         editor.apply()
     }
 
+    fun saveAuthFlag() {
+        Timber.d("saveAuthFlag")
+        val editor: SharedPreferences.Editor = sharedPreference.edit()
+        editor.putBoolean(IS_AUTH, true)
+        editor.apply()
+    }
+
+    fun isAuth(): Boolean {
+        return sharedPreference.getBoolean(IS_AUTH,false)
+    }
+
     fun getLogin(): String {
         return sharedPreference.getString(LOGIN, "") ?: ""
     }
@@ -57,7 +69,6 @@ class SharedPrefSaver(ctx: Context) {
         //#token #user_id
         val strTemp=token.split(".")
         Timber.d(strTemp.toString())
-        //val decodedBytes = Base64.getDecoder().decode(strTemp[1])
         val decodedBytes = Base64.decode(strTemp[1],Base64.DEFAULT)
         val decodedString = String(decodedBytes)
 
@@ -78,13 +89,8 @@ class SharedPrefSaver(ctx: Context) {
     }
 
     fun savePassword(password: String) {
-        /*val coder = Coder(ctx) // Создадим экземпляр шифратора
-        //ШИФРУЕМ
-        val eList = coder.encode(password)*/
-
         val editor: SharedPreferences.Editor = this.sharedPreference.edit()
         editor.putString(PASSWORD, password) //eList[0]
-        //editor.putString(IVPASS, ) //eList[1]
         editor.apply()
 
     }
@@ -93,13 +99,6 @@ class SharedPrefSaver(ctx: Context) {
     fun getPassword(): String {
         //СЧИТАЕМ
         if (sharedPreference.contains(PASSWORD)) {
-            /*val coder = Coder(ctx) // Создадим экземпляр шифратора
-
-            return coder.decode(
-                sharedPreference.getString(PASSWORD, "") ?: "",
-                sharedPreference.getString(IVPASS, "") ?: ""
-            )*/
-
             return sharedPreference.getString(PASSWORD, "") ?: ""
         }
 
@@ -110,8 +109,9 @@ class SharedPrefSaver(ctx: Context) {
     fun clearAuthData() {
         Timber.d("clearAuthData")
         val editor: SharedPreferences.Editor = this.sharedPreference.edit()
-        editor.remove(LOGIN)
-        editor.remove(PASSWORD)
+        //editor.remove(LOGIN)
+        //editor.remove(PASSWORD)
+        editor.remove(IS_AUTH)
         editor.remove(USER_FULLNAME)
         editor.remove(TOKEN)
         editor.remove(USER_ID)
@@ -132,6 +132,7 @@ class SharedPrefSaver(ctx: Context) {
             editor.putString(DATESYNC, dateTime)
             editor.apply()
         } catch (e: ParseException) {
+            println("ERROR")
             e.printStackTrace()
         }
 

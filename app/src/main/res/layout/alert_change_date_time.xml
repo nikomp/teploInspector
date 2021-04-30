@@ -12,6 +12,7 @@
         android:layout_marginTop="8dp"
         android:autofillHints=""
         android:ems="10"
+        android:enabled="false"
         android:hint="@string/alert_change_date_date"
         android:inputType="date"
         app:layout_constraintEnd_toStartOf="@+id/newTime"

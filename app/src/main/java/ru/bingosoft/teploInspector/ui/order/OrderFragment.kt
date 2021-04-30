@@ -135,58 +135,65 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         Timber.d("doAuthorization")
         // Получим логин и пароль из настроек
         val sharedPref = factivity.getSharedPreferences(Const.SharedPrefConst.APP_PREFERENCES, Context.MODE_PRIVATE)
-        if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
+        if (this.sharedPref.isAuth()) {
+            if (sharedPref!!.contains(Const.SharedPrefConst.LOGIN) && sharedPref.contains(Const.SharedPrefConst.PASSWORD)) {
 
-            val login = this.sharedPref.getLogin()
-            val password = this.sharedPref.getPassword()
+                val login = this.sharedPref.getLogin()
+                val password = this.sharedPref.getPassword()
 
-            // Для презентации
-            val url = if (BuildConfig.BUILD_TYPE=="presentation") {
-                // Для презентации
-                if (this.sharedPref.getEnterType()=="directory_service") {
-                    "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
-                } else {
-                    "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
-                }
-            } else {
-                if (this.sharedPref.getEnterType()=="directory_service") {
-                    "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
-                } else {
-                    "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
-                }
-            }
-
-            loginPresenter.attachView(this)
-            loginPresenter.authorization(url, login, password) // Проверим есть ли авторизация
-        } else {
-            Timber.d("логин/пароль=ОТСУТСТВУЮТ")
-            if (data!=null) {
                 // Для презентации
                 val url = if (BuildConfig.BUILD_TYPE=="presentation") {
-
                     // Для презентации
-                    if (data.enter_type=="directory_service") {
+                    if (this.sharedPref.getEnterType()=="directory_service") {
                         "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
                     } else {
                         "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
                     }
                 } else {
-                    if (data.enter_type=="directory_service") {
+                    if (this.sharedPref.getEnterType()=="directory_service") {
                         "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
                     } else {
                         "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
                     }
                 }
+
                 loginPresenter.attachView(this)
-                loginPresenter.authorization(url, data.login, data.password) // Проверим есть ли авторизация
-
+                loginPresenter.authorization(url, login, password) // Проверим есть ли авторизация
             } else {
-                // Запустим активити с настройками
-                val intent = Intent(this.activity, LoginActivity::class.java)
-                startActivityForResult(intent, Const.RequestCodes.AUTH)
-            }
+                Timber.d("логин/пароль=ОТСУТСТВУЮТ")
+                if (data!=null) {
+                    // Для презентации
+                    val url = if (BuildConfig.BUILD_TYPE=="presentation") {
 
+                        // Для презентации
+                        if (data.enter_type=="directory_service") {
+                            "http://teplomi.bingosoft-office.ru/ldapauthentication/auth/login"
+                        } else {
+                            "http://teplomi.bingosoft-office.ru/defaultauthentication/auth/login"
+                        }
+                    } else {
+                        if (data.enter_type=="directory_service") {
+                            "https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
+                        } else {
+                            "https://mi.teploenergo-nn.ru/defaultauthentication/auth/login"
+                        }
+                    }
+                    loginPresenter.attachView(this)
+                    loginPresenter.authorization(url, data.login, data.password) // Проверим есть ли авторизация
+
+                } else {
+                    // Запустим активити с настройками
+                    val intent = Intent(this.activity, LoginActivity::class.java)
+                    startActivityForResult(intent, Const.RequestCodes.AUTH)
+                }
+
+            }
+        } else {
+            // Запустим активити с настройками
+            val intent = Intent(this.activity, LoginActivity::class.java)
+            startActivityForResult(intent, Const.RequestCodes.AUTH)
         }
+
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -236,7 +243,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
-        if (sharedPref.getLogin()=="" && sharedPref.getPassword()=="") {
+        if (!sharedPref.isAuth()) { //sharedPref.getLogin()=="" && sharedPref.getPassword()==""
             doAuthorization()
         } else {
             Timber.d("sharedPref.getLogin()=${sharedPref.getLogin()}")
@@ -319,6 +326,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     override fun saveLoginPasswordToSharedPreference(stLogin: String, stPassword: String) {
         sharedPref.saveLogin(stLogin)
         sharedPref.savePassword(stPassword)
+        sharedPref.saveAuthFlag()
         requestGPSPermission()
     }
 
@@ -444,8 +452,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     override fun getAllMessage() {
         Timber.d("OF_LoginPresenter_getAllMessage")
         // Получим все уведомления с сервера
-        /*mainPresenter.attachView(requireActivity() as MainActivity)
-        mainPresenter.getAllMessage()*/
         (activity as MainActivity).getAllMessage()
 
     }
@@ -657,7 +663,13 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         Timber.d("MainActivity_orders_recyclerViewListClicked=${(requireContext() as MainActivity).orders}")
 
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
+        /*Timber.d("notifyItemChanged_1")
+        (rcv.adapter as OrderListAdapter).notifyItemChanged(position)
+        Timber.d("notifyItemChanged_2")*/
+
         currentOrder = if (rcv.adapter!=null) {
+            //(rcv.adapter as OrderListAdapter).getOrder(position)
+
             (rcv.adapter as OrderListAdapter).getOrder(position)
         } else {
             Orders(guid="")

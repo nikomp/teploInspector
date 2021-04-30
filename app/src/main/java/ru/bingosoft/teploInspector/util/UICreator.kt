@@ -298,14 +298,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             R.layout.template_multiline_spinner_item,
             listLinesWithBreak //it.value
         )
-
-        materialSpinner.isEnabled = enabled
-        if (enabled) {
-            materialSpinner.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
-        } else {
-            materialSpinner.dropDownHeight = 0
-        }
-
         // Заполним spinner
         parentFragment.requireActivity().runOnUiThread{
             materialSpinner.setAdapter(spinnerArrayAdapter)
@@ -315,6 +307,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 materialSpinner.setText(it.resvalue)
             }
         }
+
+        materialSpinner.isEnabled = enabled
+        if (enabled) {
+            materialSpinner.dropDownHeight = WindowManager.LayoutParams.WRAP_CONTENT
+        } else {
+            materialSpinner.dropDownHeight = 0
+        }
+
+
 
 
 
@@ -579,7 +580,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
                     // Проверим папку, может она пуста
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
-                    if (photoHelper.checkDirAndEmpty("${curOrder.guid}/${stepCheckup.results_guid}")) {
+                    if (photoHelper.checkDirAndEmpty("$DCIM_DIR/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}")) {
                         Timber.d("Папка есть, она не пуста")
                     } else {
                         Timber.d("Удаляем_папку")

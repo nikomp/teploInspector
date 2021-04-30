@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
+import android.text.TextUtils
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
@@ -108,7 +109,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val checkupSteps: ArrayList<String> = ArrayList()
         checkupSteps.add("Общие сведения об абоненте")
         checkupSteps.add("Технические характеристики объекта")
-        checkupSteps.add("Дополнительная нагрузка")
+        checkupSteps.add("Расчетные значения договорных нагрузок (Отопление, Вентиляция, ГВС)")
 
         val typeOrderTag = arguments?.getString("typeOrder")
         if (typeOrderTag!=null) {
@@ -177,13 +178,31 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         }
         val order=(rootView.context as MainActivity).currentOrder
 
-        rootView.findViewById<TextView>(R.id.number).text="№ ${order.number}"
+        rootView.findViewById<TextView>(R.id.number).text=getString(R.string.order_number,order.number)//"№ ${order.number}"
+        rootView.findViewById<TextView>(R.id.count_node).text=getString(R.string.count_node,order.countNode)
         rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         if (order.typeOrder.isNullOrEmpty()){
             rootView.findViewById<TextView>(R.id.order_type).text="Тип заявки"
         } else {
             rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
         }
+
+        val orderNote=rootView.findViewById<TextView>(R.id.orderNote)
+        if (order.orderNote.isNullOrEmpty()) {
+            orderNote.visibility=View.GONE
+        } else {
+            orderNote.text=order.orderNote
+            orderNote.visibility=View.VISIBLE
+            orderNote.tag=true
+            orderNote.setOnClickListener {
+                (it as TextView).tag=!(it.tag as Boolean)
+                it.isSingleLine = (it.tag as Boolean)
+                it.ellipsize= TextUtils.TruncateAt.END
+            }
+        }
+
+
+
         val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
         mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
         changeColorMBSState(mbsOrderState, order.status)
@@ -199,11 +218,23 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             val builder = AlertDialog.Builder(requireContext())
 
             val newDate=dialogView.findViewById<TextView>(R.id.newDate)
+            if  (!order.dateVisit.isNullOrEmpty()) {
+                try {
+                    val dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).parse(order.dateVisit!!)
+                    newDate.text=SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateVisit!!)
+                } catch (e:Exception) {
+                    e.printStackTrace()
+                }
+
+            }
+            // Разрешаем менять дату только у заявок определенного списка
+            newDate.isEnabled=Const.OrderTypeForDateChangeAvailable.types.contains(order.typeOrder)
             newDate.setOnClickListener{
                 Timber.d("newDate_setOnClickListener")
                 (requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_DATE, newDate)
             }
             val newTime=dialogView.findViewById<TextView>(R.id.newTime)
+            newTime.text=order.timeVisit
             newTime.setOnClickListener{
                 (requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
             }
@@ -704,6 +735,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         } else {
             toaster.showToast(R.string.checklist_not_loaded)
+            (parentFragment?.requireActivity() as MainActivity).enabledSaveButton()
         }
     }
 

@@ -358,7 +358,7 @@ class LoginPresenter @Inject constructor(
                 .subscribe ({
                     Timber.d("Сохранили тех характеристики в БД")
                     //#Группировка_List
-                    val groupTechParams=response.groupBy { it.idOrder }
+                    /*val groupTechParams=response.groupBy { it.idOrder }
                     groupTechParams.forEach{
                         Single.fromCallable{
                             db.ordersDao().updateTechParamsCount(it.key,it.value.size)
@@ -370,7 +370,7 @@ class LoginPresenter @Inject constructor(
                             },{throwable ->
                                 throwable.printStackTrace()
                             })
-                    }
+                    }*/
                 },{throwable ->
                     throwable.printStackTrace()
                 })

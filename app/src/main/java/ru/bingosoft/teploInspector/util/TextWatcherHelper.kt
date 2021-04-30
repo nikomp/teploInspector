@@ -8,35 +8,37 @@ import java.util.*
 
 class TextWatcherHelper(private val control: Models.TemplateControl, val view: View): TextWatcher {
     override fun afterTextChanged(s: Editable?) {
-        control.answered = s.toString().isNotEmpty()
-        when (control.type) {
-            "numeric"-> {
-                if (s.toString().isNotEmpty()) {
-                    control.resvalue=s?.toString()?.replace(',', '.')
-                } else {
-                    control.resvalue=null
+        if (s!=null) {
+            control.answered = s.toString().isNotEmpty()
+            when (control.type) {
+                "numeric"-> {
+                    if (s.toString().isNotEmpty()) {
+                        control.resvalue= s.toString().replace(',', '.')
+                    } else {
+                        control.resvalue=null
+                    }
                 }
-            }
-            "combobox" -> {
-                if (s.toString().isNotEmpty() && s.toString().contains("\n")) {
-                    control.resvalue=s?.toString()?.replace("\n", "")
-                } else {
+                "combobox" -> {
+                    if (s.toString().isNotEmpty() && s.toString().contains("\n")) {
+                        control.resvalue=s.toString().replace("\n", "")
+                    } else {
+                        control.resvalue=s.toString()
+                    }
+                }
+                else -> {
                     control.resvalue=s.toString()
                 }
             }
-            else -> {
-                control.resvalue=s.toString()
-            }
+
+            control.datetime= Date().time
+        } else {
+            control.answered = false
+            control.resvalue="null"
         }
 
-        control.datetime= Date().time
     }
 
-    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-        //TODO реализую при необходимости
-    }
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-        //TODO реализую при необходимости
-    }
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 }

@@ -8,10 +8,7 @@ import android.location.LocationManager
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import androidx.exifinterface.media.ExifInterface
-import com.google.gson.Gson
-import ru.bingosoft.teploInspector.db.Checkup.Checkup
 import ru.bingosoft.teploInspector.db.Orders.Orders
-import ru.bingosoft.teploInspector.models.Models
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -22,19 +19,6 @@ import kotlin.math.roundToInt
 
 class OtherUtil(private val toaster: Toaster) {
     val ctx=toaster.ctx
-    fun getDirForSync(checkups: List<Checkup>) :List<String> {
-        Timber.d("getDirForSync")
-        val list= mutableListOf<String>()
-        checkups.forEach { it ->
-            val controlList = Gson().fromJson(it.textResult, Models.ControlList::class.java)
-            val controlPhoto=controlList.list.filter { it.type=="photo" }
-            controlPhoto.forEach{
-                it.resvalue?.let { it1 -> list.add(it1) }
-            }
-        }
-
-        return list
-    }
 
     fun getDistance(userLocation: Location, order: Orders): Float {
         val orderLocation=Location(LocationManager.GPS_PROVIDER)
@@ -45,9 +29,13 @@ class OtherUtil(private val toaster: Toaster) {
         return round(dist*10)/10
     }
 
-    fun saveExifLocation(filename: String, photoLocation: Location?) {
+    fun saveExifLocation(filename: String, photoLocation: Location?):Boolean {
+        var success=true
         try {
             Timber.d("Exif")
+            if (!File(filename).exists()) {
+                return false
+            }
             val exif = ExifInterface(filename)
             //Timber.d(convertLat(photoLocation!!.latitude))
             if (photoLocation!=null) {
@@ -62,6 +50,7 @@ class OtherUtil(private val toaster: Toaster) {
                 exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "$num1Lat/1,$num2Lat/1,$num3Lat/1000")
                 exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, "$num1Lon/1,$num2Lon/1,$num3Lon/1000")
 
+                println(photoLocation.latitude)
                 if (photoLocation.latitude>0) {
                     exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N")
                 } else {
@@ -80,7 +69,9 @@ class OtherUtil(private val toaster: Toaster) {
 
         } catch (e: IOException) {
             e.printStackTrace()
+            success=false
         }
+        return success
     }
 
     fun getFilesFromDir(dir: String): List<String> {
@@ -120,7 +111,6 @@ class OtherUtil(private val toaster: Toaster) {
         if (ContextCompat.checkSelfPermission(ctx,READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(ctx,WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
 
-            Timber.d("writeToFile")
             val date= SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(Date())
             val dir = "TeploInspectorLogs/$date"
 

@@ -14,6 +14,7 @@ class Const {
     object SharedPrefConst {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
+        const val IS_AUTH = "is_auth"
         const val ENTER_TYPE = "enter_type"
         const val TOKEN = "accent_token"
         const val USER_ID = "user_id"
@@ -78,8 +79,19 @@ class Const {
         const val DESIRED_ACCURACY = 0.0
         const val MINIMAL_TIME=0L
         const val MINIMAL_DISTANCE=50.0
+        const val MAX_ACCURACY=100.0
         const val USE_IN_BACKGROUND=false
 
+    }
+
+    object OrderTypeForDateChangeAvailable{
+        val types= listOf(
+            "Распломбировка ПУ",
+            "Приемка ПУ из монтажа",
+            "Приемка ПУ повторная",
+            "Приемка ИПУ ОТ",
+            "Приемка ИПУ ГВС"
+        )
     }
 
     object GeneralInformation {

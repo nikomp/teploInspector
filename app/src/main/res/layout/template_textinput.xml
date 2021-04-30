@@ -85,18 +85,6 @@
                 android:visibility="gone"
                 tools:text="Норматив" />
 
-            <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabCheck"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:backgroundTint="@color/colorAccent"
-                android:clickable="true"
-                android:focusable="true"
-                app:fabCustomSize="32dp"
-                app:srcCompat="@drawable/ic_check_black_8dp" />-->
-
-
         </LinearLayout>
 
 

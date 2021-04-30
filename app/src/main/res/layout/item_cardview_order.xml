@@ -2,8 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/llMainCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:descendantFocusability="beforeDescendants"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
     android:orientation="vertical">
 
 
@@ -20,6 +24,7 @@
         app:cardBackgroundColor="@color/colorCardItem">
 
         <LinearLayout
+            android:id="@+id/llSubMainCard"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
@@ -29,16 +34,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginBottom="4dp"
+                android:descendantFocusability="beforeDescendants"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:orientation="horizontal">
 
                 <ImageView
-                android:id="@+id/ivExpand"
-                android:layout_width="20dp"
-                android:layout_height="12dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="8dp"
-                android:visibility="gone"
-                app:srcCompat="@drawable/arrow_down" />
+                    android:id="@+id/ivExpand"
+                    android:layout_width="20dp"
+                    android:layout_height="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/arrow_down" />
 
                 <ImageView
                     android:id="@+id/ivSync"
@@ -67,18 +75,6 @@
                     android:layout_height="0dp"
                     android:layout_weight="0.08" />
 
-                <!--<TextView
-                    android:id="@+id/order_state"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:fontFamily="@font/roboto_medium"
-                    android:textAllCaps="true"
-                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
-                    android:textSize="11sp"
-                    tools:text="В работе" />-->
-
                 <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
                     android:id="@+id/order_state"
                     android:layout_width="wrap_content"
@@ -88,7 +84,7 @@
                     android:dropDownWidth="200dp"
                     android:fontFamily="@font/roboto_medium"
                     android:singleLine="true"
-                    android:text="@string/status_OPEN"
+                    android:text="@string/status_Empty"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:tooltipText="@string/tooltip_change_state"
@@ -105,6 +101,8 @@
                 android:id="@+id/dataOrder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:descendantFocusability="beforeDescendants"
+                android:focusableInTouchMode="true"
                 android:visibility="visible">
 
                 <TextView
@@ -118,10 +116,24 @@
                     android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
                     android:textColor="@color/orderTextName"
                     android:textSize="17sp"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/count_node"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:text="Промывка ВСО" />
+
+                <TextView
+                    android:id="@+id/count_node"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="@font/roboto_bold"
+                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
+                    android:textColor="#7C838B"
+                    android:textSize="13sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:text="Узлов 5" />
 
                 <TextView
                     android:id="@+id/name"
@@ -156,20 +168,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/name"
                     tools:text="Нижний Новгород, Россия, 603146, Михайловская улица, 24" />
-
-                <!--<TextView
-                    android:id="@+id/date"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:fontFamily="@font/roboto_medium"
-                    android:textAppearance="@style/Base.TextAppearance.AppCompat.Medium"
-
-                    android:textColor="@color/orderTextDate"
-                    android:textSize="13sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/btnRoute"
-                    tools:text="09.06.2020 15:03" />-->
 
                 <Button
                     android:id="@+id/btnChangeDateTime"
@@ -222,16 +220,30 @@
                     app:met_floatingLabel="normal"
                     app:met_hideUnderline="true" />
 
+                <TextView
+                    android:id="@+id/orderNote"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="8dp"
+                    android:singleLine="true"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/type_transportation"
+                    tools:text="Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
+
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="8dp"
                     android:orientation="horizontal"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/type_transportation">
+                    app:layout_constraintTop_toBottomOf="@+id/orderNote">
 
                     <Button
                         android:id="@+id/btnPhone"
