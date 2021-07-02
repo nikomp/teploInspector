@@ -218,7 +218,8 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                     order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
                     changeColorMBSState(mbsOrderState, order.status)
                     try {
-                        orderPresenter.addHistoryState(order)
+                        //orderPresenter.addHistoryState(order)
+                        orderPresenter.updateOrderState(order)
                     } catch (e: Throwable) {
                         (activity as MainActivity).errorReceived(e)
                     }

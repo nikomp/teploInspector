@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.models
 
+import android.view.View
 import android.widget.TextView
 import com.google.gson.JsonArray
 import com.google.gson.annotations.Expose
@@ -91,7 +92,7 @@ class Models {
 
         @Expose @SerializedName("replication_nodes") var replication_nodes: Boolean?=null,
         @Expose @SerializedName("replicating_archival_records") var replicating_archival_records: Boolean?=null,
-        @Expose @SerializedName("group_checklist") val group_checklist: String?=null,
+        @Expose @SerializedName("group_checklist") var group_checklist: String?=null,
         @Expose @SerializedName("replicated_on") val replicated_on: Int?=null,
         @Expose @SerializedName("node_itp") val node_itp: String?=null,
         @Expose @SerializedName("archival_records") val archival_records: Int?=null,
@@ -101,8 +102,10 @@ class Models {
 
         @Expose @SerializedName("answered") var answered: Boolean = false,
 
-        var parent: TemplateControl?=null
-        //var view: View?=null
+        @Expose @SerializedName("replicated") var replicated: Boolean=false,
+
+        var parentView: View?=null
+
     )
 
     data class CustomMarker(

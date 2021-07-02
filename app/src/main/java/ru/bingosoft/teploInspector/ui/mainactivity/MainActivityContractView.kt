@@ -36,10 +36,9 @@ interface MainActivityContractView {
 
     //fun finishApp()
 
-    //fun sendRoute()
+    fun sendRoute()
 
     fun clearAuthData()
-
 
 
 }

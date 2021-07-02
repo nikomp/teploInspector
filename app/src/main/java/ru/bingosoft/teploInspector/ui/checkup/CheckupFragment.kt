@@ -28,7 +28,6 @@ import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.alert_change_date_time.view.*
-import kotlinx.android.synthetic.main.fragment_gallery2.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AddLoad.AddLoad
@@ -54,7 +53,9 @@ import kotlin.collections.ArrayList
 class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     var uiCreator: UICreator?=null
+    var txCreator: TechnicalCharacteristics?=null
     var llMainUi= mutableListOf<View>()
+    var llMainUiTX= mutableListOf<View>()
 
     @Inject
     lateinit var checkupPresenter: CheckupPresenter
@@ -87,6 +88,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     var addLoads: List<AddLoad> = listOf()
 
     var errorControls= mutableListOf<View>()
+    lateinit var btnSave: MaterialButton
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -102,7 +104,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         // Устанавливаем заголовок фрагмента
         (this.requireActivity() as AppCompatActivity).supportActionBar?.setTitle(R.string.title_checkup_fragment)
 
-        val btnSave = rootView.findViewById(R.id.mbSaveCheckup) as MaterialButton
+        btnSave = rootView.findViewById(R.id.mbSaveCheckup) as MaterialButton
         btnSave.setOnClickListener(this)
 
 
@@ -177,6 +179,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             return
         }
         val order=(rootView.context as MainActivity).currentOrder
+        currentOrder=order
 
         rootView.findViewById<TextView>(R.id.number).text=getString(R.string.order_number,order.number)//"№ ${order.number}"
         rootView.findViewById<TextView>(R.id.count_node).text=getString(R.string.count_node,order.countNode)
@@ -252,7 +255,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                         order.dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(date)
                         order.timeVisit=SimpleDateFormat("HH:mm:ss", Locale("ru","RU")).format(date)
                         Timber.d("order=$order")
-                        currentOrder=order
+                        //currentOrder=order
                         mainPresenter.updateGiOrder(order)
                     }
                 } catch (e: Exception) {
@@ -281,43 +284,53 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
         mbsOrderState.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                Timber.d("afterTextChanged")
 
-                // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
-                if (order.answeredCount==0 && s.toString()=="Выполнена") {
-                    toaster.showToast(R.string.checklist_not_changed_status)
+                Timber.d("btnSave_${btnSave.isEnabled}")
+                if (btnSave.isEnabled) {
+                    // Если статус меняется на Выполнена, а чек лист пуст, выдаем сообщение
+                    if (order.answeredCount==0 && s.toString()=="Выполнена") {
+                        toaster.showToast(R.string.checklist_not_changed_status)
+                        mbsOrderState.removeTextChangedListener(this)
+                        mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
+                        mbsOrderState.addTextChangedListener(this)
+                    }
+
+                    if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
+                        order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
+                        currentOrder=order
+                        changeColorMBSState(mbsOrderState, order.status)
+                        try {
+                            //orderPresenter.addHistoryState(order)
+                            orderPresenter.updateOrderState(order)
+                        } catch (e: Throwable) {
+                            errorReceived(e)
+                        }
+                    }
+
+                    uiCreator?.checkEnabled()
+
+                    mbsOrderState.removeTextChangedListener(this)
+                    mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
+                    mbsOrderState.addTextChangedListener(this)
+
+
+                    if (s.toString()!="Открыта" && s.toString()!="В пути") {
+                        pw?.dismiss()
+                    } else {
+                        checkStateOrder(order)
+                    }
+
+                    //Фильтруем по статусу
+                    if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
+                        (activity as MainActivity).filteredOrders=(activity as MainActivity).filteredOrders.filter {it.id!=currentOrder.id }
+                        Timber.d("фильтранули=${(activity as MainActivity).filteredOrders}")
+                    }
+                } else {
+                    toaster.showToast(R.string.wait_data_uploaded)
                     mbsOrderState.removeTextChangedListener(this)
                     mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
-                }
-
-                if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
-                    order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
-                    currentOrder=order
-                    changeColorMBSState(mbsOrderState, order.status)
-                    try {
-                        orderPresenter.addHistoryState(order)
-                    } catch (e: Throwable) {
-                        errorReceived(e)
-                    }
-                }
-
-                uiCreator?.checkEnabled()
-
-                mbsOrderState.removeTextChangedListener(this)
-                mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
-                mbsOrderState.addTextChangedListener(this)
-
-
-                if (s.toString()!="Открыта" && s.toString()!="В пути") {
-                    pw?.dismiss()
-                } else {
-                    checkStateOrder(order)
-                }
-
-                //Фильтруем по статусу
-                if (s.toString()=="Выполнена" || s.toString()=="Отменена") {
-                    (activity as MainActivity).filteredOrders=(activity as MainActivity).filteredOrders.filter {it.id!=currentOrder.id }
-                    Timber.d("фильтранули=${(activity as MainActivity).filteredOrders}")
                 }
 
             }
@@ -331,6 +344,8 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             }
 
         })
+
+
 
         if (order.dateVisit!=null && order.timeVisit!=null) {
             val strDateTimeVisit="${order.dateVisit} ${order.timeVisit}"
@@ -548,10 +563,10 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
                     Timber.d("mbSaveCheckup")
-                    mbSaveCheckup.isEnabled=false // Блокируем кнопку пока данные не уйдут
+                    btnSave.isEnabled=false // Блокируем кнопку пока данные не уйдут
+
                     // Всегда сохраняем основные данные по заявке
                     if (errorControls.isEmpty()) {
-                        //checkupPresenter.saveGeneralInformationOrder(currentOrder)
                         mainPresenter.updateGiOrder(currentOrder)
                         doSaveCheckup()
                     } else {
@@ -727,6 +742,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
             val changedCheckupCount = uiCreator!!.controlList.filter { it.answered }.size
             if (changedCheckupCount!=0) {
+                orderPresenter.updateOrderState(currentOrder) // Обновим данные по заявке, актуально для типа Другое, меняется число вопросов
                 checkupPresenter.saveCheckup(uiCreator!!)
             } else {
                 toaster.showToast(R.string.checklist_not_changed)

@@ -46,6 +46,7 @@
                 android:textSize="15sp" />
 
             <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+                android:focusableInTouchMode="false"
                 android:id="@+id/android_material_design_spinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

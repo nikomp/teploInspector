@@ -102,7 +102,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 if (ordersFilterList[position].answeredCount==0 && s.toString()=="Выполнена") {
                     parentFragment.toaster.showToast(R.string.checklist_not_changed_status)
                     holder.orderState.removeTextChangedListener(this)
-                    holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT))
+                    holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT),false)
                     holder.orderState.addTextChangedListener(this)
                     return
                 }
@@ -118,7 +118,8 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                         .capitalize()
                     changeColorMBSState(holder.orderState, ordersFilterList[position].status)
                     try {
-                        parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+                        //parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
+                        parentFragment.orderPresenter.updateOrderState(ordersFilterList[position])
                     } catch (e: Throwable) {
                         parentFragment.errorReceived(e)
                     }
@@ -127,7 +128,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
 
                 holder.orderState.removeTextChangedListener(this)
-                holder.orderState.setText(s.toString().toUpperCase(Locale.ROOT))
+                holder.orderState.setText(s.toString().toUpperCase(Locale.ROOT),false)
                 holder.orderState.addTextChangedListener(this)
 
                 //Фильтруем по статусу
@@ -179,7 +180,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 }
 
                 holder.typeTransportation.removeTextChangedListener(this)
-                holder.typeTransportation.setText(s.toString())
+                holder.typeTransportation.setText(s.toString(),false)
                 holder.typeTransportation.addTextChangedListener(this)
 
 
@@ -210,11 +211,11 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
 
 
         Timber.d("SDR_${holder.orderState.text}__${ordersFilterList[position].status?.toUpperCase(Locale.ROOT)}__${ordersFilterList[position]}")
-        holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT))
+        holder.orderState.setText(ordersFilterList[position].status?.toUpperCase(Locale.ROOT),false)
         changeColorMBSState(holder.orderState, ordersFilterList[position].status)
 
         if (!ordersFilterList[position].typeTransportation.isNullOrEmpty()) {
-            holder.typeTransportation.setText(ordersFilterList[position].typeTransportation)
+            holder.typeTransportation.setText(ordersFilterList[position].typeTransportation,false)
         }
 
 

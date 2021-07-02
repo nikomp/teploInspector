@@ -8,15 +8,18 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.children
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import timber.log.Timber
 
 
-class TechnicalCharacteristics(private val lists: List<TechParams>, private val rootView: View) {
+class TechnicalCharacteristics(private val parentFragment: CheckupFragment, private val lists: List<TechParams>) {
     private var listllGroupTX: MutableList<LinearLayout> = mutableListOf()
+    private lateinit var rootView:View
 
-    fun create() {
+    fun create(rootView: View) {
+        this.rootView=rootView
 
         lists.forEach { th ->
 
@@ -67,7 +70,10 @@ class TechnicalCharacteristics(private val lists: List<TechParams>, private val 
                             LinearLayout.LayoutParams.WRAP_CONTENT
                         )
                         params.setMargins(24, 0, 24, 0)
-                        llGroup.layoutParams = params
+                        parentFragment.requireActivity().runOnUiThread{
+                            llGroup.layoutParams = params
+                        }
+
                     }
 
                     doAssociateParent(templateStep, llGroup)
@@ -79,19 +85,22 @@ class TechnicalCharacteristics(private val lists: List<TechParams>, private val 
     private fun fillDataTH(th: TechParams):LinearLayout {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
             R.layout.item_technical_characteristic, rootView.parent as ViewGroup?, false
-        ) as LinearLayout
+        ) as LinearLayout //  R.layout.template_textinput
 
-        templateStep.findViewById<TextView>(R.id.gi_name).text=th.technical_characteristic
-        templateStep.findViewById<TextView>(R.id.gi_value_edit).text = th.value
+        parentFragment.requireActivity().runOnUiThread {
+            templateStep.findViewById<TextView>(R.id.gi_name).text=th.technical_characteristic
+            templateStep.findViewById<TextView>(R.id.gi_value_edit).text = th.value
 
-        val layoutParams= LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
+            val layoutParams= LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
 
-        layoutParams.bottomMargin=4
+            layoutParams.bottomMargin=4
 
-        templateStep.findViewById<LinearLayout>(R.id.txll).layoutParams=layoutParams
+            templateStep.findViewById<LinearLayout>(R.id.txll).layoutParams=layoutParams
+        }
+
 
         return templateStep
     }
@@ -150,13 +159,22 @@ class TechnicalCharacteristics(private val lists: List<TechParams>, private val 
      * Метод, в котором осуществляется привязка дочернего View к родительскому
      */
     private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
-        if (mainView is LinearLayout) {
-            if (index!=null) {
-                mainView.addView(v, index)
-            } else {
-                mainView.addView(v)
-            }
+        parentFragment.requireActivity().runOnUiThread{
+            if (mainView is LinearLayout) {
+                if (index!=null) {
+                    mainView.addView(v, index)
+                } else {
+                    mainView.addView(v)
+                }
 
+            }
         }
+
+    }
+
+    fun saveUI() {
+        Timber.d("saveUI")
+        val ll=rootView.findViewById<LinearLayout>(R.id.llMain)
+        parentFragment.llMainUiTX.addAll(ll.children)
     }
 }

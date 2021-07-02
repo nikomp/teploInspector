@@ -5,6 +5,7 @@ import androidx.core.content.FileProvider
 import junit.framework.TestCase.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -13,7 +14,7 @@ import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 
-
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class PhotoHelperTest {
     lateinit var photoHelper: PhotoHelper
     lateinit var context: Context

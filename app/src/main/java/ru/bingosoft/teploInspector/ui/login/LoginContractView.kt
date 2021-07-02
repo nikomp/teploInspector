@@ -30,4 +30,9 @@ interface LoginContractView {
     fun startFinishWorker()
     fun finishAppDoubler()
 
+    fun clearOrdersList()
+
+    fun saveRouteIntervalFlag()
+
+    fun requestGPSPermission()
 }

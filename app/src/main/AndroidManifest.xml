@@ -51,7 +51,7 @@
 
         <activity
             android:name="ru.bingosoft.teploInspector.ui.mainactivity.MainActivity"
-            android:label="@string/app_name"
+            android:label="@string/menu_orders"
             android:screenOrientation="portrait"
             android:launchMode="singleTask"
             android:theme="@style/AppTheme.NoActionBar">

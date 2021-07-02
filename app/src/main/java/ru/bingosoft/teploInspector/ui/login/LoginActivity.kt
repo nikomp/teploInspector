@@ -40,6 +40,11 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         val toolbar=logintoolbar
         setSupportActionBar(toolbar)
 
+        // Попытка решить ошибку в крашлитикс Editor$SelectionModifierCursorController.getMinTouchOffset()
+        // Подробнее тут https://stackoverflow.com/questions/53435237/nullpointerexception-int-android-widget-editorselectionmodifiercursorcontrolle
+        // https://question-it.com/questions/1614991/nullpointerexception-int-androidwidgeteditor-selectionmodifiercursorcontrollergetmintouchoffset
+        edUrl.setOnLongClickListener { true }
+
         val cbEnter=findViewById<CheckBox>(R.id.cbEnter)
 
         if (sharedPref.getLogin().isNotEmpty()) {
@@ -87,16 +92,13 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
                             this.finish()
                         } else {
-                            toaster.showErrorToast("Заполните все поля")
+                            toaster.showErrorToast(getString(R.string.fill_all_fields))
                         }
 
 
                     } else {
                         toaster.showToast(R.string.not_internet)
                     }
-                }
-                R.id.cbEnter -> {
-                    Timber.d("LoginActivity_onClick_cbEnter")
                 }
             }
         }

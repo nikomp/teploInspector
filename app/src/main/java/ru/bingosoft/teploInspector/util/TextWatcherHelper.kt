@@ -4,6 +4,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import ru.bingosoft.teploInspector.models.Models
+import timber.log.Timber
 import java.util.*
 
 class TextWatcherHelper(private val control: Models.TemplateControl, val view: View): TextWatcher {
@@ -31,6 +32,7 @@ class TextWatcherHelper(private val control: Models.TemplateControl, val view: V
             }
 
             control.datetime= Date().time
+            Timber.d("ControlXZ_$control")
         } else {
             control.answered = false
             control.resvalue="null"

@@ -15,6 +15,7 @@ class Const {
         const val APP_PREFERENCES = "AppSettings"
         const val LOGIN = "login"
         const val IS_AUTH = "is_auth"
+        const val IS_INTERVAL_ROUTE = "is_interval_route"
         const val ENTER_TYPE = "enter_type"
         const val TOKEN = "accent_token"
         const val USER_ID = "user_id"
@@ -140,6 +141,22 @@ class Const {
         const val NOTIFICATION_SERVICE_NOTIFICATION_ID = 521
         const val LOCATION_SERVICE_NOTIFICATION_ID = 522
         const val GPS_SERVICE_NOTIFICATION_ID = 523
+    }
+
+    object SpecialTypesOrders{
+        const val OTHER="Другое"
+        const val NUMBER_GROUPS_FIELD_MARK="number_groups"
+        const val NUMBER_GROUPS_QUESTION="Количество группы полей"
+        const val NAME_GROUP_REPLICATE="Вопросы"
+        const val NEW_NAME_GROUP_REPLICATE="ВопросыТираж"
+        const val MAX_COUNT_REPLICATE_GROUP=100
+    }
+
+    object PositionSteps{
+        const val GENERAL_INFORMATION_POSITION=0
+        const val TECHNICAL_CHARACTERISTICS_POSITION=1
+        const val ADDITIONAL_LOAD_POSITION=2
+        const val CHECKUP_POSITION=3
     }
 
 }

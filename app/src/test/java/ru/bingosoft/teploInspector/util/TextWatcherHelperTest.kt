@@ -3,11 +3,13 @@ package ru.bingosoft.teploInspector.util
 import android.text.Editable
 import android.view.View
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import ru.bingosoft.teploInspector.models.Models
 
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class TextWatcherHelperTest {
 
     @Test

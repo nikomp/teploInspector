@@ -54,6 +54,7 @@ import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
+import ru.bingosoft.teploInspector.ui.login.LoginPresenter
 import ru.bingosoft.teploInspector.ui.map.MapFragment
 import ru.bingosoft.teploInspector.ui.order.OrderFragment
 import ru.bingosoft.teploInspector.ui.order.OrderListAdapter
@@ -70,6 +71,7 @@ import java.net.UnknownHostException
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 
 
@@ -79,8 +81,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     @Inject
     lateinit var mainPresenter: MainActivityPresenter
-    //@Inject
-    //lateinit var loginPresenter: LoginPresenter
+    @Inject
+    lateinit var loginPresenter: LoginPresenter
 
     @Inject
     lateinit var toaster: Toaster
@@ -97,7 +99,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private val dateAndTime: Calendar =Calendar.getInstance()
 
-    val shutdownReceiver=ShutdownReceiver()
+    private val shutdownReceiver=ShutdownReceiver()
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var navController: NavController
@@ -134,12 +136,16 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     var ordersIdsNotSync: MutableList<Long> = mutableListOf()
 
     var alertDialogRepeatSync: AlertDialog?=null
+    var routeIntervalFlag=false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("MainActivity_onCreate")
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
+
+        setCustomDefaultUncaughtExceptionHandler()
+
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -241,11 +247,28 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
+    // #Необрабатываемые_исключения
+    // Попытка решить ошибку Fatal Exception: java.util.concurrent.TimeoutException
+    // com.yandex.runtime.NativeObject.finalize() timed out after 10 seconds
+    // Подробнее см. тут
+    // https://stackoverflow.com/questions/24021609/how-to-handle-java-util-concurrent-timeoutexception-android-os-binderproxy-fin
+    private fun setCustomDefaultUncaughtExceptionHandler() {
+        val defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            if (t.name == "FinalizerWatchdogDaemon" && e is TimeoutException) {
+                e.printStackTrace()
+            } else {
+                defaultUncaughtExceptionHandler?.uncaughtException(t, e)
+            }
+        }
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         otherUtil.writeToFile("Logger_onNewIntent")
         Timber.d("onNewIntent_${intent?.extras}")
-        Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT",false)}")
+        Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT", false)}")
+        Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT", false)}")
         checkFinish(intent)
     }
 
@@ -529,6 +552,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 rbStateAll.setOnClickListener(this)
                 val rbWithoutDone=dialogStateFilterView.findViewById<RadioButton>(R.id.rbWithoutDone)
                 rbWithoutDone.setOnClickListener(this)
+                val rbOnWay=dialogStateFilterView.findViewById<RadioButton>(R.id.rbOnWay)
+                rbOnWay.setOnClickListener(this)
+                val rbInProgress=dialogStateFilterView.findViewById<RadioButton>(R.id.rbInProgress)
+                rbInProgress.setOnClickListener(this)
+                val rbOpen=dialogStateFilterView.findViewById<RadioButton>(R.id.rbOpen)
+                rbOpen.setOnClickListener(this)
 
 
                 builder.setView(dialogStateFilterView)
@@ -607,7 +636,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
                     if (currentFragmentClassName == getString(R.string.order_fragment_className)) {
                         val rcv = findViewById<RecyclerView>(R.id.orders_recycler_view)
-                        (rcv.adapter as OrderListAdapter).filter.filter(newText)
+                        if (rcv.adapter != null) {
+                            (rcv.adapter as OrderListAdapter).filter.filter(newText)
+                        } else {
+                            //toaster.showErrorToast(R.string.rcv_adapter_isnull)
+                            // Обновляем список заявок
+                            findViewById<Button>(R.id.btnList).performClick()
+                        }
+
 
                     } else {
                         Timber.d("Включена карта11 $newText")
@@ -668,13 +704,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                         )
                     val url =
                         if (data?.getStringExtra("url") == null) "" else data.getStringExtra("url")
-                    val enter_type =
+                    val enterType =
                         if (data?.getStringExtra("enter_type") == null) "" else data.getStringExtra(
                             "enter_type"
                         )
 
                     val dataAuth = Models.RepeatAuthData(
-                        login, password, url, enter_type
+                        login, password, url, enterType
                     )
 
 
@@ -925,7 +961,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         if (childFragment is MapFragment){
             Timber.d("Включена карта")
             val rcv=findViewById<RecyclerView>(R.id.orders_recycler_view)
-            childFragment.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+            if (rcv.adapter!=null) {
+                childFragment.showMarkers((rcv.adapter as OrderListAdapter).ordersFilterList)
+            } else {
+                toaster.showErrorToast(R.string.rcv_adapter_isnull)
+            }
+
         }
     }
 
@@ -965,6 +1006,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         return when (item.itemId) {
             R.id.nav_home -> {
+                Timber.d("nav_home")
                 navController.navigate(R.id.nav_home)
                 //setMode(false) //Включены заявки
                 true
@@ -1228,13 +1270,19 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          of?.alertRepeatSync()
      }
 
-     override fun clearAuthData() {
+    override fun sendRoute() {
+        // Из MainActivity стартуем если ранее еще не стартовали из LoginPresenter
+        if (routeIntervalFlag) {
+            mainPresenter.sendRoute()
+        }
+    }
+
+    override fun clearAuthData() {
          Timber.d("clearAuthData_MainActivity")
          sharedPref.clearAuthData()
      }
 
-
-     fun invalidateNavigationDrawer() {
+    fun invalidateNavigationDrawer() {
         Timber.d("invalidateNavigationDrawer")
         val user=sharedPref.getUser()
          Timber.d("user_$user")
@@ -1390,6 +1438,27 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     dialogFilterStateOrder.dismiss()
                 }
             }
+            R.id.rbOnWay -> {
+                Timber.d("Фильтр_по_Статусу_В_пути")
+                filterOrderByState("on_way")
+                if (::dialogFilterStateOrder.isInitialized) {
+                    dialogFilterStateOrder.dismiss()
+                }
+            }
+            R.id.rbInProgress -> {
+                Timber.d("Фильтр_по_Статусу_В_работе")
+                filterOrderByState("in_progress")
+                if (::dialogFilterStateOrder.isInitialized) {
+                    dialogFilterStateOrder.dismiss()
+                }
+            }
+            R.id.rbOpen -> {
+                Timber.d("Фильтр_по_Статусу_Открыты")
+                filterOrderByState("open")
+                if (::dialogFilterStateOrder.isInitialized) {
+                    dialogFilterStateOrder.dismiss()
+                }
+            }
         }
     }
 
@@ -1510,11 +1579,31 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          }
          if (childFragment is MapFragment){
              Timber.d("Включена карта")
-             val filteredOrderByState: List<Orders> = if (filter=="all") {
+             var filteredOrderByState: List<Orders> = listOf()
+             when (filter) {
+                 "all" -> {
+                     filteredOrderByState = orders.filter { it.status != null }
+                 }
+                 "all_without_Done_and_Cancel" -> {
+                     filteredOrderByState =
+                         orders.filter { it.status != "Выполнена" && it.status != "Отменена" }
+                 }
+                 "on_way" -> {
+                     filteredOrderByState = orders.filter { it.status == "В пути" }
+                 }
+                 "in_progress" -> {
+                     filteredOrderByState = orders.filter { it.status == "В работе" }
+                 }
+                 "open" -> {
+                     filteredOrderByState = orders.filter { it.status == "Открыта" }
+                 }
+             }
+
+             /*val filteredOrderByState: List<Orders> = if (filter=="all") {
                  orders.filter { it.status !=null }
              } else {
                  orders.filter { it.status !="Выполнена" && it.status !="Отменена" }
-             }
+             }*/
 
              filteredOrders=filteredOrderByState
 
@@ -1543,12 +1632,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                      dateAndTime.set(Calendar.MONTH, month)
                      dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth)
                      tv.text = SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(dateAndTime.time)
-                     /*tv.error=null
-                     Timber.d("errorControls=${parentFragment.errorControls}")
-                     Timber.d("textInputEditText=${tv.id}")
-                     if (parentFragment.errorControls.contains(tv)) {
-                         parentFragment.errorControls.remove(tv)
-                     }*/
                  }
 
              DatePickerDialog(
@@ -1563,9 +1646,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
                      dateAndTime.set(Calendar.HOUR_OF_DAY, hourOfDay)
                      dateAndTime.set(Calendar.MINUTE, minute)
-                     tv.setText(
-                         SimpleDateFormat("HH:mm", Locale("ru", "RU")).format(dateAndTime.time)
-                     )
+                     tv.text = SimpleDateFormat("HH:mm", Locale("ru", "RU")).format(dateAndTime.time)
                  }
 
              TimePickerDialog(
@@ -1576,4 +1657,6 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
              ).show()
          }
      }
+
+
 }

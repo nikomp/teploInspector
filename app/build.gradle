@@ -12,6 +12,14 @@ apply plugin: 'com.google.firebase.crashlytics'
 
 apply plugin: "jacoco"
 
+jacoco {
+    toolVersion = '0.8.5'
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+}
+
 static def versionNameDate() {
     return new Date().format("yyyyMMdd")
 }
@@ -51,6 +59,8 @@ android {
         versionCode 1
         versionName versionNameDate()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Состояние приложения очищается между тестами
+        testInstrumentationRunnerArguments clearPackageData: 'true'
 
         vectorDrawables.useSupportLibrary = true // Для использования VectorDrawable в Fab кнопке
 
@@ -66,11 +76,11 @@ android {
             resValue 'string', 'login', accent_login
             resValue 'string', 'password', accent_password
             // Наша тестовая система для показов
-            resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
+            resValue 'string', 'url', '"https://teplomi.bingosoft-office.ru/"' // Тестовый сервер
             resValue 'string', 'url_socket', '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
 
 
-            buildConfigField "String", "urlServer", '"http://teplomi.bingosoft-office.ru/"'
+            buildConfigField "String", "urlServer", '"https://teplomi.bingosoft-office.ru/"'
             buildConfigField "String", "url_socket", '"ws://teplomi.bingosoft-office.ru/notificationservice/socket"'
             buildConfigField "String", "yandex_mapkit_api", yandex_mapkit_api
 
@@ -81,6 +91,7 @@ android {
         }
         debug {resValue 'string', 'login', accent_login
             testCoverageEnabled = true
+            //isTestCoverageEnabled true
             resValue 'string', 'password', accent_password
             // Наша тестовая система для показов
             /*resValue 'string', 'url', '"http://teplomi.bingosoft-office.ru/"' // Тестовый сервер
@@ -123,11 +134,13 @@ android {
     }
 
 
+
     testOptions {
+        //execution 'ANDROIDX_TEST_ORCHESTRATOR' // Возможно потребуется обновить версию градл
         unitTests.returnDefaultValues = true // Необходимо для тестирования например Location
-        unitTests.includeAndroidResources = true
-        // Необходимо для работы Robolectric, иначе Jacoco не учитывает тесты Robolectric
+        unitTests.includeAndroidResources = true // Необходимо для работы Robolectric, иначе Jacoco не учитывает тесты Robolectric
         unitTests.all {
+            setIgnoreFailures(true) // Игнорирует Failed тесты при формировании отчета Jacoco
             jacoco {
                 includeNoLocationClasses = true
             }
@@ -135,7 +148,8 @@ android {
     }
 }
 
-task jacocoTestReport(type: JacocoReport) {
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) { //createDebugAndroidTestCoverageReport
+
     reports {
         xml.enabled = true
         html.enabled = true
@@ -144,7 +158,7 @@ task jacocoTestReport(type: JacocoReport) {
                       '**/*Test*.*', 'android/**/*.*',
                       '**/db/**/*.*',  // Исключаем папку db т.к. в ней тестировать нечего кроме сгенерированных get/set методов
                       '**/models/*.*',  // Исключаем папку models т.к. в ней тоже одни data классы со сгенерированными методами
-                      '**/Const*.*' // Исключаем т.к. там только singleton object без логики (без методов)
+                      '**/Const*.*'// Исключаем т.к. там только singleton object без логики (без методов)
                       ]
     def kotlinTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
     def mainSrc = "${project.projectDir}/src/main/java"
@@ -152,7 +166,18 @@ task jacocoTestReport(type: JacocoReport) {
 
     sourceDirectories.setFrom(files([mainSrc]))
     classDirectories.setFrom(files([kotlinTree]))
-    executionData.setFrom(files("${buildDir}/jacoco/testDebugUnitTest.exec"))
+    //executionData.setFrom(files("${buildDir}/jacoco/testDebugUnitTest.exec"))
+    println("XCV_$buildDir")
+    def reportsTree=fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code_coverage/debugAndroidTest/connected/*coverage.ec"
+    ])
+    executionData.setFrom(files([reportsTree]))
+    //executionData.setFrom(files("${buildDir}/jacoco/testDebugUnitTest.exec","${buildDir}/outputs/code-coverage/connected/*coverage.ec"))
+    /*executionData = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])*/
 }
 
 repositories {
@@ -188,6 +213,10 @@ dependencies {
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+    // AndroidJUnitRunner and JUnit Rules
+    androidTestImplementation 'androidx.test:runner:1.3.0'
+    androidTestUtil 'androidx.test:orchestrator:1.3.0'
+    androidTestImplementation 'androidx.test:rules:1.3.0'
 
     //MaterialDesign компоненты
     implementation 'com.google.android.material:material:1.2.0-alpha05' //при смене версии могут ломаться кнопки
@@ -263,15 +292,19 @@ dependencies {
     implementation 'com.nhaarman.supertooltips:library:3.0.0'
 
     // Mockito
-    //implementation 'org.mockito:mockito-core:3.4.0' //3.4.0
-    //testImplementation 'org.mockito:mockito-inline:3.4.0' //3.4.0
     testImplementation 'org.mockito:mockito-core:3.8.0'
     testImplementation "org.mockito.kotlin:mockito-kotlin:3.1.0"
-    //androidTestImplementation 'org.mockito:mockito-inline:3.4.0' //3.4.0
+    testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0" // Для работы ArgumentCaptor
     androidTestImplementation 'org.mockito:mockito-android:3.7.7'
 
     // WorkManager
     //implementation "android.arch.work:work-runtime:1.0.1"
     implementation "androidx.work:work-runtime-ktx:2.5.0"
+
+    /*androidTestImplementation 'com.21buttons:fragment-test-rule:2.0.1'
+    debugImplementation 'com.21buttons:fragment-test-rule-extras:2.0.1'*/
+
+    debugImplementation 'androidx.fragment:fragment-testing:1.3.4'
+
 
 }

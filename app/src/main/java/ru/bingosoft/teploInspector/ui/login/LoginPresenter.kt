@@ -82,6 +82,7 @@ class LoginPresenter @Inject constructor(
                         this.stLogin = stLogin
                         this.stPassword = stPassword
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
+                        view?.requestGPSPermission()
                         view?.saveToken(token.token)
                         view?.saveAppVersionName()
                         view?.sendMessageUserLogged()
@@ -92,8 +93,6 @@ class LoginPresenter @Inject constructor(
                         view?.checkMessageId() // Уведомление прочитано
 
                         view?.getAllMessage()
-
-
 
                         val v = view
                         if (v != null) {
@@ -135,18 +134,20 @@ class LoginPresenter @Inject constructor(
 
         } else {
             view?.errorReceived(Throwable("Не заданы логин или пароль"))
-            otherUtil.writeToFile("Logger_Не заданы логин или пароль ${Date()}")
+            otherUtil.writeToFile("Logger_Не заданы логин или пароль")
         }
 
     }
 
     private fun setAutoFinish() {
+        println("setAutoFinish")
         // Срабатывает периодически
         Timber.d("setAutoFinish_${Date()}")
         otherUtil.writeToFile("Logger_setAutoFinish_${Date()}")
         disposableFinishInterval=Flowable.interval(
             FINISH_CHECK_INTERVAL,
-            TimeUnit.MINUTES
+            TimeUnit.MINUTES,
+            Schedulers.computation() // Scheduler добавил для тестирования см. тест LoginPresenterTest.testSetAutoFinish, до этого было пусто
         ).subscribe({
             Timber.d("setAutoFinish_trigger_${Date()}")
             otherUtil.writeToFile("Logger_setAutoFinish_trigger_${Date()}")
@@ -156,7 +157,7 @@ class LoginPresenter @Inject constructor(
                 Const.FinishTime.FINISH_HOURS_DOUBLER,
                 Const.FinishTime.FINISH_MINUTES_DOUBLER,0)
 
-            if (System.currentTimeMillis()>calendar.timeInMillis) {
+            if (date.timeInMillis>calendar.timeInMillis) { //System.currentTimeMillis()
                 Timber.d("FINISH_APP")
                 view?.finishAppDoubler()
 
@@ -170,9 +171,13 @@ class LoginPresenter @Inject constructor(
 
     private fun sendRoute() {
         Timber.d("test_sendRoute_LoginPresenter")
+        view?.saveRouteIntervalFlag() // Отметим, что передача маршрута включена
+        otherUtil.writeToFile("Logger_sendRoute_LoginPresenter_${Date()}")
+
         disposableRouteInterval= Flowable.interval(
             Const.LocationStatus.INTERVAL_SENDING_ROUTE,
-            TimeUnit.MINUTES
+            TimeUnit.MINUTES,
+            Schedulers.computation() // Scheduler добавил для тестирования см. тест LoginPresenterTest.testSendRoute, до этого было пусто
         ).map {
             Timber.d("ДанныеМаршрутаПолучили_LP_${Date()}")
             db.trackingUserDao().getTrackingForCurrentDay()
@@ -309,8 +314,8 @@ class LoginPresenter @Inject constructor(
                 clearOrders()
             }
             if (view!=null) {
-                view?.showFailureTextView("Нет заявок")
-                view?.errorReceived(throwable)
+                 view?.showFailureTextView("Нет заявок")
+                 view?.errorReceived(throwable)
             } else {
                 errorHandler(throwable)
             }
@@ -319,13 +324,16 @@ class LoginPresenter @Inject constructor(
         .andThen(syncTechParams(sharedPrefSaver.getUserId()))
 
     private fun clearOrders() {
+        Timber.d("clearOrders")
         disposableClearOrdersFromDB=Single.fromCallable{
             db.ordersDao().clearOrders()
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe({
+            Timber.d("clearOrders_OK")
             disposableClearOrdersFromDB.dispose()
+            view?.clearOrdersList()
             view?.showOrders()
 
         },{throwable ->
@@ -357,20 +365,6 @@ class LoginPresenter @Inject constructor(
                 .subscribeOn(Schedulers.io())
                 .subscribe ({
                     Timber.d("Сохранили тех характеристики в БД")
-                    //#Группировка_List
-                    /*val groupTechParams=response.groupBy { it.idOrder }
-                    groupTechParams.forEach{
-                        Single.fromCallable{
-                            db.ordersDao().updateTechParamsCount(it.key,it.value.size)
-
-                        }
-                            .subscribeOn(Schedulers.io())
-                            .subscribe({
-                                Timber.d("Обновили_кол_во_ТХ")
-                            },{throwable ->
-                                throwable.printStackTrace()
-                            })
-                    }*/
                 },{throwable ->
                     throwable.printStackTrace()
                 })

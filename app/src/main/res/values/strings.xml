@@ -30,6 +30,7 @@
 
     <string name="not_permissions">Разрешения не выданы, приложение может работать неправильно</string>
     <string name="not_internet">Нет подключения к сети</string>
+    <string name="fill_all_fields">Заполните все поля</string>
     <string name="server_not_avaliable">Нет подключения. Проверьте логин и пароль</string>
     <string name="textview">Текст вопроса</string>
     <string name="hint_spinner">Выберите значение из списка</string>
@@ -169,6 +170,9 @@
 
     <string name="filter_status_all">Все</string>
     <string name="filter_status_without_Done_and_Cancel">Кроме Выполненных и Отмененных</string>
+    <string name="filter_status_on_way">В пути</string>
+    <string name="filter_status_in_progress">В работе</string>
+    <string name="filter_status_open">Открыты</string>
 
     <string name="enter_with_directory_service">Вход через службу каталогов</string>
 
@@ -221,5 +225,18 @@
 
     <string name="default_notification_channel_id" translatable="false">TeploInspectorFCMChennel</string>
     <string name="for_testing">Тестовая строка</string>
+
+    <string name="invalid_username">Неверный логин</string>
+    <string name="rcv_adapter_isnull">null cannot be cast to non-null type</string>
+
+    <string name="wait_data_uploaded">Подождите, идет выгрузка данных</string>
+
+    <string name="other_type_order_number_group_empty">Для типа заявки Другое укажите Количество групп полей в диапазоне от 1 до 100</string>
+    <string name="other_type_order_number_group_null">Не могу найти поле Количество групп полей</string>
+    <string name="question_group">Группа вопросов</string>
+    <string name="nameTX">Название</string>
+
+    <string name="max_number_group_limit">Число групп не может превышать 100</string>
+    <string name="checkup_fragment_not_attached">Не могу загрузить Обследование</string>
 
 </resources>

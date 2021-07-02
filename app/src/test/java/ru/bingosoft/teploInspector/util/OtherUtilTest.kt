@@ -10,6 +10,7 @@ import junit.framework.Assert.assertFalse
 import junit.framework.TestCase.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -26,6 +27,7 @@ import java.io.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.O_MR1])
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class OtherUtilTest {
     lateinit var otherUtil: OtherUtil
     lateinit var context: Context

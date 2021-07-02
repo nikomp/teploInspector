@@ -3,6 +3,7 @@ package ru.bingosoft.teploInspector.ui.mainactivity
 import android.view.View
 import com.google.gson.Gson
 import com.google.gson.JsonArray
+import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -17,7 +18,9 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.Orders.Orders
+import ru.bingosoft.teploInspector.db.User.TrackingUserLocation
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SENDING_ROUTE
 import ru.bingosoft.teploInspector.util.Const.MessageCode.DISABLE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REFUSED_PERMISSION
 import ru.bingosoft.teploInspector.util.Const.MessageCode.REPEATEDLY_REFUSED
@@ -25,6 +28,7 @@ import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
 import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGOUT
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
 import ru.bingosoft.teploInspector.util.OtherUtil
+import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.ThrowHelper
 import timber.log.Timber
 import java.io.File
@@ -44,6 +48,9 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     @Inject
     lateinit var otherUtil: OtherUtil
 
+    @Inject
+    lateinit var sharedPrefSaver: SharedPrefSaver
+
 
     private lateinit var disposable: Disposable
     private lateinit var disposableSendMsg: Disposable
@@ -54,6 +61,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     private lateinit var disposableSendGi: Disposable
     private lateinit var disposableGetAllMessage: Disposable
     private lateinit var disposableMarkAllMessage: Disposable
+    private lateinit var disposableUpdateLocation: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
 
     private var filesToSync: Array<File>? = arrayOf()
@@ -89,7 +97,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 .subscribe(
                     { token ->
                         Timber.d("авторизовалисьZZ=${token.token}")
-                        //sendRoute()
+                        view?.sendRoute()
+
                         disposableAuth.dispose()
                         view?.saveLoginPasswordToSharedPreference(stLogin, stPassword)
                         view?.saveToken(token.token)
@@ -624,12 +633,18 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
     //#RxJava #interval
-    /*private fun sendRoute() {
-        Нет обновления координат в БД, стартуем при каждой автоматической авторизации
-        Timber.d("test_sendRoute")
-        disposableRouteInterval= interval(INTERVAL_SENDING_ROUTE,TimeUnit.MINUTES).map {
+    fun sendRoute() {
+        //Нет обновления координат в БД, стартуем при каждой автоматической авторизации
+        sharedPrefSaver.saveRouteIntervalFlag() // Отметим, что передача маршрута включена
+        otherUtil.writeToFile("Logger_sendRoute_MainActivityPresenter_${Date()}_возможно дублирование координат")
+
+        disposableRouteInterval= Flowable.interval(INTERVAL_SENDING_ROUTE,
+            java.util.concurrent.TimeUnit.MINUTES,
+            Schedulers.computation() // Scheduler добавил для тестирования см. тест LoginPresenterTest.testSendRoute, до этого было пусто
+        ).map {
             Timber.d("ДанныеМаршрутаПолучили_${Date()}")
             db.trackingUserDao().getTrackingForCurrentDay()
+
         }
         .subscribe(
             {trackingUserLocation ->
@@ -643,10 +658,16 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
 
                     apiService.sendTrackingUserLocation(jsonBody).subscribe(
-                        {Timber.d("ОтправилиМаршрут")},
+                        {
+                            Timber.d("ОтправилиМаршрут")
+                            Timber.d("trackingUserLocation=${trackingUserLocation}")
+                            updateLocationPoints(trackingUserLocation)
+                        },
                         {throwable ->
                             throwable.printStackTrace()
-                            view?.errorReceived(throwable)
+                            if (view!=null) {
+                                view?.errorReceived(throwable)
+                            }
                         }
                     )
                 } else {
@@ -658,7 +679,25 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                 view?.errorReceived(throwable)
             }
         )
-    }*/
+    }
+
+    private fun updateLocationPoints(location: List<TrackingUserLocation>) {
+        Timber.d("updateLocationPoints")
+        disposableUpdateLocation=Single.fromCallable{
+            val ids=location.map { it.dateLocation.time }
+            db.trackingUserDao().updateLocationSynced(ids)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                Timber.d("updateLocationPoints_OK")
+                disposableUpdateLocation.dispose()
+            },{throwable ->
+                throwable.printStackTrace()
+                disposableUpdateLocation.dispose()
+            })
+
+    }
 
 
     fun onDestroy() {

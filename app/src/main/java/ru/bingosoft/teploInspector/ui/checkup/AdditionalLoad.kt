@@ -25,7 +25,9 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
             // Создадим группу по Системе потребления
             if (al.system_consumption.isNotEmpty()) {
+                println("parentGroup_$parentGroup")
                 val llGroup=if (parentGroup==null) {
+                    println("parentGroup_XXX")
                     createGroup(al.system_consumption, rootView.findViewById(R.id.llMain))
                 } else {
                     createGroup(al.system_consumption, parentGroup, parentGroup.tag.toString())
@@ -35,6 +37,7 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
             // Создадим группу по назначению
             if (al.purpose.isNotEmpty()) {
+                println("parentGroup_$parentGroup")
                 val llGroup=createGroup(al.purpose, parentGroup!!, al.code.toString())
                 parentGroup=llGroup
             }

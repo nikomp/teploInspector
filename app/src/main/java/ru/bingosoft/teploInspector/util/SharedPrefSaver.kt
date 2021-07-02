@@ -10,6 +10,7 @@ import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.DATESYNC
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.FIREBASE_MESSAGE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.IS_AUTH
+import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.IS_INTERVAL_ROUTE
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.PASSWORD
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ROLE_ID
@@ -47,11 +48,23 @@ class SharedPrefSaver(ctx: Context) {
         return sharedPreference.getBoolean(IS_AUTH,false)
     }
 
+    fun saveRouteIntervalFlag() {
+        Timber.d("saveRouteIntervalFlag")
+        val editor: SharedPreferences.Editor = sharedPreference.edit()
+        editor.putBoolean(IS_INTERVAL_ROUTE, true)
+        editor.apply()
+    }
+
+    fun isRouteInterval() :Boolean {
+        return sharedPreference.getBoolean(IS_INTERVAL_ROUTE,false)
+    }
+
     fun getLogin(): String {
         return sharedPreference.getString(LOGIN, "") ?: ""
     }
 
     fun saveEnterType(type: String="default") {
+        println("saveEnterType")
         Timber.d("saveEnterType")
         val editor: SharedPreferences.Editor = sharedPreference.edit()
         editor.putString(ENTER_TYPE, type)
@@ -112,6 +125,7 @@ class SharedPrefSaver(ctx: Context) {
         //editor.remove(LOGIN)
         //editor.remove(PASSWORD)
         editor.remove(IS_AUTH)
+        editor.remove(IS_INTERVAL_ROUTE)
         editor.remove(USER_FULLNAME)
         editor.remove(TOKEN)
         editor.remove(USER_ID)

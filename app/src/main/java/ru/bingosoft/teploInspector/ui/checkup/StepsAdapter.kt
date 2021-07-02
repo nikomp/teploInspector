@@ -16,6 +16,10 @@ import kotlinx.android.synthetic.main.item_cardview_step.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
+import ru.bingosoft.teploInspector.util.Const.PositionSteps.ADDITIONAL_LOAD_POSITION
+import ru.bingosoft.teploInspector.util.Const.PositionSteps.CHECKUP_POSITION
+import ru.bingosoft.teploInspector.util.Const.PositionSteps.GENERAL_INFORMATION_POSITION
+import ru.bingosoft.teploInspector.util.Const.PositionSteps.TECHNICAL_CHARACTERISTICS_POSITION
 import ru.bingosoft.teploInspector.util.UICreator
 import timber.log.Timber
 
@@ -100,7 +104,7 @@ class StepsAdapter(
         )
         holder.details.layoutParams = params
         holder.details.visibility=View.GONE
-        if (position==0 && isExpanded) {
+        if (position==GENERAL_INFORMATION_POSITION && isExpanded) {
             Timber.d("Общие_сведения")
             Timber.d("parentFragment.currentOrder=${parentFragment.currentOrder}")
 
@@ -118,17 +122,43 @@ class StepsAdapter(
             holder.details.addView(rvgi)
             holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
         }
-        if (position==1 && isExpanded) {
+        if (position==TECHNICAL_CHARACTERISTICS_POSITION && isExpanded) {
             //Генерируем тех характеристики
-            if (parentFragment.techParams.isNotEmpty()) {
-                val uiCreator=TechnicalCharacteristics(parentFragment.techParams, holder.details)
-                uiCreator.create()
+            if (parentFragment.llMainUiTX.isNotEmpty()) {
+                parentFragment.llMainUiTX.forEach {
+                    try {
+                        holder.details.addView(it)
+                    } catch (e: Exception) {
+                        Timber.d("parentFragment_llMainUi_error")
+                        e.printStackTrace()
+                    }
+                }
+                parentFragment.llMainUiTX= mutableListOf()
+                holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
             } else {
-                parentFragment.toaster.showToast(R.string.th_is_empty)
+                if (parentFragment.techParams.isNotEmpty()) {
+                    holder.pbStepLoad.visibility=View.VISIBLE
+                    val txCreator=TechnicalCharacteristics(parentFragment, parentFragment.techParams)
+                    val r= Runnable {
+                        txCreator.create(holder.details)
+                        parentFragment.requireActivity().runOnUiThread {
+                            holder.pbStepLoad.visibility=View.INVISIBLE
+                            holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+                        }
+                    }
+                    val t=Thread(r)
+                    t.start()
+
+                    parentFragment.txCreator=txCreator
+
+                } else {
+                    parentFragment.toaster.showToast(R.string.th_is_empty)
+                }
             }
-            holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
         }
-        if (position==2 && isExpanded){
+        if (position==ADDITIONAL_LOAD_POSITION && isExpanded){
             //Генерируем доп. нагрузку
             if (parentFragment.addLoads.isNotEmpty()) {
                 val uiCreator=AdditionalLoad(parentFragment.addLoads, holder.details)
@@ -139,7 +169,7 @@ class StepsAdapter(
             holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
 
         }
-        if (position==3 && isExpanded){
+        if (position==CHECKUP_POSITION && isExpanded){
             //Генерируем чеклист
             Timber.d("llMainTemp=${parentFragment.llMainUi}")
             if (parentFragment.llMainUi.isNotEmpty()) {
@@ -176,8 +206,12 @@ class StepsAdapter(
             }
         }
 
+        // Если группа ТХ сворачивается сохраним ее состояние
+        if (position== TECHNICAL_CHARACTERISTICS_POSITION && !isExpanded) {
+            parentFragment.txCreator?.saveUI()
+        }
         // Если чеклист сворачивается сохраним его текущее состояние
-        if (position==3 && !isExpanded) {
+        if (position== CHECKUP_POSITION && !isExpanded) {
             parentFragment.uiCreator?.saveUI()
         }
 

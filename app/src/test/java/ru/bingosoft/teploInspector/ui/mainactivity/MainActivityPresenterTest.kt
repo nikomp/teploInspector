@@ -74,24 +74,7 @@ class MainActivityPresenterTest {
             .assertNoErrors()
             .isDisposed()
 
-        //verify(mockView).saveLoginPasswordToSharedPreference(stLogin,stPassword)
-
-        /*mainActivityPresenter.authorization(url,stLogin,stPassword)
-        verify(mockView).saveLoginPasswordToSharedPreference(stLogin,stPassword)*/
-
 
     }
 
-    /*fun xxx() {
-        val url="https://mi.teploenergo-nn.ru/ldapauthentication/auth/login"
-        val stLogin="test_inzhener"
-        val stPassword="TGu(c5F4{q"
-        val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
-            .toRequestBody("application/json".toMediaType())
-
-        `when`(mockApiService.getAuthentication(url,jsonBody))
-            .thenReturn(Single.error(Throwable("Error")))
-
-        val testSubscriber=mockApiService.getAuthentication().te
-    }*/
 }

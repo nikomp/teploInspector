@@ -89,10 +89,6 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
     override fun onClick(v: View?) {
         Timber.d("onClick_ROUTE")
         if (v != null) {
-            //Очистим предыдущий маршрут
-            /*if (parentFragment.lastCarRouter.isNotEmpty()) {
-                parentFragment.removeRouter(parentFragment.lastCarRouter)
-            }*/
 
             when (v.id) {
                 R.id.btnCar -> {

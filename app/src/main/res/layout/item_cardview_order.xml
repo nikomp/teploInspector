@@ -76,6 +76,7 @@
                     android:layout_weight="0.08" />
 
                 <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+                    android:focusableInTouchMode="false"
                     android:id="@+id/order_state"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -203,6 +204,7 @@
 
                 <!--#Spinner_без_underline #Spinner_dropDown_width-->
                 <com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
+                    android:focusableInTouchMode="false"
                     android:id="@+id/type_transportation"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

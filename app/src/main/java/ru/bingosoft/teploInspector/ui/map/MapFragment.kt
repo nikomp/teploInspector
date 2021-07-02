@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.PointF
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -108,7 +109,17 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     fun showRouteDialog(order: Orders) {
         Timber.d("showRouteDialog")
         val routeDetailFragment = RouteDetailFragment(order, this)
-        routeDetailFragment.show(fragment.requireActivity().supportFragmentManager,"BOTTOM_SHEET_ROUTE_DETAIL")
+        // Handler().post попытка решить Fatal Exception: java.lang.RuntimeException
+        //java.lang.IllegalStateException: Can not perform this action after onSaveInstanceState androidx
+        // подробнее тут https://stackoverflow.com/questions/14177781/java-lang-illegalstateexception-can-not-perform-this-action-after-onsaveinstanc
+        Handler().post {
+            routeDetailFragment.show(
+                fragment.requireActivity().supportFragmentManager,
+                "BOTTOM_SHEET_ROUTE_DETAIL"
+            )
+        }
+
+
     }
 
     private val inputListener=object:InputListener {

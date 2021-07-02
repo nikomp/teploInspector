@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import org.hamcrest.CoreMatchers.instanceOf
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -33,6 +34,7 @@ import java.util.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.O_MR1])
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class SharedPrefSaverTestWithRobolectric {
     lateinit var sharedPreferences: SharedPreferences
     lateinit var sharedPref: SharedPrefSaver

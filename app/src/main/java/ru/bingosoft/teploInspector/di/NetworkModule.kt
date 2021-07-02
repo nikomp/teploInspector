@@ -26,7 +26,7 @@ class NetworkModule {
 
         val fileLogger=object:HttpLoggingInterceptor.Logger {
             override fun log(message: String) {
-                Timber.d("Network_ZXC_$message")
+                //Timber.d("Network_ZXC_$message")
                 otherUtil.writeToFile(message)
             }
 

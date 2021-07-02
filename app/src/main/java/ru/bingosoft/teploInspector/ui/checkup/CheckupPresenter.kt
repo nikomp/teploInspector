@@ -58,7 +58,7 @@ class CheckupPresenter @Inject constructor(
                     Timber.d("checkupxxxx=$checkup")
                     view?.dataIsLoaded(checkup)
                     disposable.dispose()
-                },{ throwable ->
+                }, { throwable ->
                     disposable.dispose()
                     Timber.d("errorX")
                     throwable.printStackTrace()
@@ -88,8 +88,15 @@ class CheckupPresenter @Inject constructor(
             })
     }*/
 
-    fun saveCheckup(uiCreator: UICreator, send:Boolean=true) {
+    fun saveCheckup(uiCreator: UICreator, send: Boolean = true) {
         Timber.d("Сохраняем данные чеклиста")
+        //#sleep_без_блокировки_UI
+        /*val handler = Handler()
+        handler.postDelayed(Runnable {
+            // Actions to do after 10 seconds
+        }, 10000)*/
+
+        Timber.d("controlListCheckup_${uiCreator.controlList.size}_${uiCreator.controlList}")
 
         val listType: Type = object : TypeToken<List<Models.TemplateControl?>?>() {}.type
 
@@ -165,7 +172,7 @@ class CheckupPresenter @Inject constructor(
             .subscribe({
                 disposable.dispose()
                 view?.setAnsweredCount(filterControls.size)
-            },{throwable ->
+            }, { throwable ->
                 disposable.dispose()
                 view?.errorReceived(throwable)
             })
@@ -188,10 +195,10 @@ class CheckupPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({ techParams ->
+            .subscribe({ techParams ->
                 disposableTH.dispose()
                 view?.techParamsLoaded(techParams)
-            },{ throwable ->
+            }, { throwable ->
                 Timber.d("th_error $throwable")
                 throwable.printStackTrace()
                 disposableTH.dispose()
@@ -206,10 +213,10 @@ class CheckupPresenter @Inject constructor(
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({ addLoads ->
+            .subscribe({ addLoads ->
                 disposableAL.dispose()
                 view?.addLoadsLoaded(addLoads)
-            },{ throwable ->
+            }, { throwable ->
                 Timber.d("al_error $throwable")
                 throwable.printStackTrace()
                 disposableAL.dispose()

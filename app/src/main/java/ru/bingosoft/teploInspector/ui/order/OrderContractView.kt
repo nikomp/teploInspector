@@ -11,5 +11,8 @@ interface OrderContractView {
     fun errorReceived(throwable: Throwable)
     fun showFailure(idMsg: Int)
 
+
+
+
     //fun sendGiOrder(order: Orders)
 }

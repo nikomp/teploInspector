@@ -14,6 +14,7 @@ import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.db.HistoryOrderState.HistoryOrderState
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.net.UnknownHostException
@@ -29,14 +30,19 @@ class OrderPresenter @Inject constructor(
     private var tempHistory= HistoryOrderState()
     var view: OrderContractView? = null
     private lateinit var disposable: Disposable
+    private lateinit var disposableUpdateState: Disposable
+    private lateinit var disposableSendState: Disposable
+
+    @Inject
+    lateinit var otherUtil: OtherUtil
 
     fun attachView(view: OrderContractView) {
         this.view=view
     }
 
-    fun addHistoryState(order: Orders) {
+    private fun addHistoryState(order: Orders) {
         disposable=Single.fromCallable {
-            db.ordersDao().update(order)
+            //db.ordersDao().update(order)
             val date=Date()
             val history=HistoryOrderState(id = date.hashCode(), idOrder = order.id, stateOrder = order.status!!, dateChange = date)
             tempHistory=history
@@ -51,36 +57,68 @@ class OrderPresenter @Inject constructor(
                     idOrder = tempHistory.idOrder,
                     stateOrder = tempHistory.stateOrder,
                     dateChange = tempHistory.dateChange.time)
-                sendHistoryToServer(history)
+                sendHistoryToServer(order, history)
             },{throwable ->
                 disposable.dispose()
                 throwable.printStackTrace()
             })
+
     }
 
-    private fun sendHistoryToServer(history: Models.HistoryOrderOnServer) {
+    private fun sendHistoryToServer(order:Orders, history: Models.HistoryOrderOnServer) {
         Timber.d("sendHistoryToServer=$history")
         val jsonBody2 = Gson().toJson(history)
             .toRequestBody("application/json".toMediaType())
 
-        disposable=apiService.sendStatusOrder(jsonBody2)
+        disposableSendState=apiService.sendStatusOrder(jsonBody2)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
                 Timber.d("response=$response")
                 Timber.d("Отправили_статус")
-                disposable.dispose()
+                disposableSendState.dispose()
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
-                println("error")
                 throwable.printStackTrace()
                 errorHandler(throwable)
-                disposable.dispose()
+                disposableSendState.dispose()
 
             })
 
     }
+
+    fun updateOrderState(order: Orders) {
+        disposableUpdateState=Single.fromCallable {
+            db.ordersDao().update(order)
+        }
+        .subscribeOn(Schedulers.io())
+        .subscribe({
+            disposableUpdateState.dispose()
+            otherUtil.writeToFile("Logger_Обновили_статус_заявки_$order")
+            Timber.d("Данные_обновили_в_БД_Телефона")
+            addHistoryState(order)
+        },{
+            disposableUpdateState.dispose()
+            it.printStackTrace()
+        })
+    }
+
+    /*fun updateOrderQuestionCount(idOrder: Int, Count: Int) {
+        disposableUpdateOrderQuestionCount=Single.fromCallable {
+            db.ordersDao().update(order)
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                disposableUpdateOrderQuestionCount.dispose()
+                otherUtil.writeToFile("Logger_Обновили_статус_заявки_$order")
+                Timber.d("Данные_обновили_в_БД_Телефона")
+                addHistoryState(order)
+            },{
+                disposableUpdateOrderQuestionCount.dispose()
+                it.printStackTrace()
+            })
+    }*/
 
     fun changeTypeTransortation(order: Orders) {
         Single.fromCallable {
@@ -129,7 +167,6 @@ class OrderPresenter @Inject constructor(
                 if (it.isNotEmpty()) {
                     view?.showOrders(it)
                 } else {
-                    println("BV_${R.string.no_requests}")
                     view?.showFailure(R.string.no_requests)
                 }
 
