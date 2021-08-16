@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -255,15 +257,32 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                                 ivAddGroup.setOnClickListener(addGroupClickListener)
                             } else {
                                 Timber.d("groupName_$groupName")
-                                Timber.d("VC_${llGroup.parent.parent.parent.parent}")
+                                Timber.d("VC_${llGroup}")
+                                Timber.d("VC_${llGroup.parent}")
+                                Timber.d("VC_${llGroup.parent.parent}")
+                                Timber.d("VC_${llGroup.parent.parent.parent}")
+                                Timber.d("VC0_${llGroup.parent.parent.parent.parent}")
 
                                 val ivDeleteGroup=(llGroup.parent as LinearLayout).findViewById<ImageView>(R.id.ivDeleteGroup)
                                 ivDeleteGroup.visibility=View.VISIBLE
-                                if (llGroup.parent.parent.parent.parent!=null) {
+
+                                Timber.d("VC_${ivDeleteGroup}")
+                                Timber.d("VC_${ivDeleteGroup.parent}")
+                                Timber.d("VC1_${ivDeleteGroup.parent.parent}")
+                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent}")
+                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent.parent}")
+                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent.parent.parent}")
+
+
+                                val templateStep=llGroup.parent.parent.parent as LinearLayout //id/llGroupRoot
+                                //deleteGroupClickListener.templateStep=templateStep
+                                ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
+
+                                /*if (llGroup.parent.parent.parent.parent!=null) {
                                     val templateStep=llGroup.parent.parent.parent.parent as LinearLayout
                                     deleteGroupClickListener.templateStep=templateStep
                                     ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
-                                }
+                                }*/
 
                             }
 
@@ -933,6 +952,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 } else {
 
                     // Группа Вопросы, должна быть растиражирована
+                    // Чеклист у заявки Другое может ломаться, если в пустую БД, приходит заявки с ранее заполненным чекоситом
+                    // Такое может быть если пользователь сохранил чеклист, не перевел заявку в Выполнено, очистил БД и повторил синхронизацию
+                    // Группа тиражируется неправильно, т.к. с сервера прилетает уже измененный чеклист, а не дефолтный
+                    // Возможные способы исправления: 1) Добавить жестко в код шаблон чеклиста Другое
+                    // 2) Либо с сервера всегда присылать чистый шаблон.
+                    // Чистые поля как-то пометить в реестре и при формировании чеклиста отбирать только эти поля
                     if (parentFragment.currentOrder.typeOrder== OTHER && name==NAME_GROUP_REPLICATE) {
                         if (rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK)!=null) {
                             val numberGroups=(rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK).text.toString()).toIntOrNull()
@@ -967,6 +992,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             }
 
             doAssociateParent(templateStep, parent)
+
 
             listllGroupOther.add(llGroup)
 
@@ -1018,6 +1044,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     @SuppressLint("SetTextI18n")
     private fun addReplicatedCheckupInUI(checkup: Checkup, templateStep: LinearLayout) {
+        Timber.d("addReplicatedCheckupInUI")
         val layoutGroup=templateStep.findViewById<LinearLayout>(R.id.container)
         val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
 
@@ -1056,10 +1083,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 )
 
                 //Для всех потомков Группы добавим кнопки для удаления
+                Timber.d("layoutGroup.children=${layoutGroup.children.count()}")
                 layoutGroup.children.forEach {
                     val ivDeleteGroup=it.findViewById<ImageView>(R.id.ivDeleteGroup)
                     ivDeleteGroup.visibility=View.VISIBLE
-                    deleteGroupClickListener.templateStep=templateStep
+                    //deleteGroupClickListener.templateStep=templateStep
+                    Timber.d("setOnClickListener_deleteGroupClickListener")
                     ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
                 }
 
@@ -1086,10 +1115,20 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     }
 
     private val deleteGroupClickListener=object: View.OnClickListener{
-        lateinit var templateStep: LinearLayout
+        //lateinit var templateStep: LinearLayout
         @SuppressLint("SetTextI18n")
         override fun onClick(v: View?) {
-            val parentView=templateStep.findViewById<LinearLayout>(R.id.container)
+
+            val parentView=rootView.findViewWithTag<LinearLayout>(NEW_NAME_GROUP_REPLICATE)
+            Timber.d("xxx=$parentView")
+
+            //val parentView=templateStep.findViewById<LinearLayout>(R.id.container)
+            /*Timber.d("parentView=${templateStep.parent}")
+            val parentView=templateStep.parent as LinearLayout
+            Timber.d("parentView=$parentView")*/
+
+
+
 
             val viewForDelete=v?.parent?.parent?.parent?.parent as View
             val nameGroup=viewForDelete.findViewById<TextView>(R.id.question).text
@@ -1228,7 +1267,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 }
             }
         } else {
-            parentFragment.toaster.showErrorToast(R.string.checkup_fragment_not_attached)
+            // Сообщение отправляем не в UI потоке, requireActivity не используем т.к.isAdded=false
+            Handler(Looper.getMainLooper()).post{
+                parentFragment.toaster.showErrorToast(R.string.checkup_fragment_not_attached)
+            }
+
         }
     }
 

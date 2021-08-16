@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -27,7 +28,6 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
-import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.AddLoad.AddLoad
@@ -83,7 +83,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     var pw: PopupWindow? =null
 
     lateinit var checkup: Checkup
-    lateinit var currentOrder: Orders
+    var currentOrder=Orders(guid = "") //lateinit var currentOrder: Orders
     var techParams: List<TechParams> = listOf()
     var addLoads: List<AddLoad> = listOf()
 
@@ -242,7 +242,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 (requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
             }
 
-            dialogView.btnOk.setOnClickListener{
+            dialogView.findViewById<MaterialButton>(R.id.btnOk).setOnClickListener{
                 Timber.d("dialogView.buttonOK")
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
 
@@ -437,7 +437,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     )
                 ) {
                     order.typeTransportation=s.toString()
-                    orderPresenter.changeTypeTransortation(order)
+                    orderPresenter.changeTypeTransportation(order)
                 }
             }
 
@@ -563,12 +563,24 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
             when (v.id) {
                 R.id.mbSaveCheckup -> {
                     Timber.d("mbSaveCheckup")
-                    btnSave.isEnabled=false // Блокируем кнопку пока данные не уйдут
 
                     // Всегда сохраняем основные данные по заявке
                     if (errorControls.isEmpty()) {
+                        btnSave.isEnabled=false // Блокируем кнопку пока данные не уйдут
                         mainPresenter.updateGiOrder(currentOrder)
                         doSaveCheckup()
+
+                        // Резервный вариант разблокировки
+                        // Принудительно разблокируем кнопку сохранения через 30 секунд
+                        Handler().postDelayed({
+                            if (!btnSave.isEnabled) {
+                                btnSave.isEnabled=true
+                                otherUtil.writeToFile("Logger_Что-то пошло не так при отправке, разблокирую кнопку принудительно")
+                                //toaster.showErrorToast(R.string.btn_is_bloking_yet)
+                            }
+
+                        }, 30000)
+
                     } else {
                         toaster.showErrorToast(R.string.error_checklist_contains)
                     }
@@ -742,7 +754,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
             val changedCheckupCount = uiCreator!!.controlList.filter { it.answered }.size
             if (changedCheckupCount!=0) {
-                orderPresenter.updateOrderState(currentOrder) // Обновим данные по заявке, актуально для типа Другое, меняется число вопросов
+                orderPresenter.updateOrder(currentOrder) // Обновим данные по заявке, актуально для типа Другое, меняется число вопросов
                 checkupPresenter.saveCheckup(uiCreator!!)
             } else {
                 toaster.showToast(R.string.checklist_not_changed)

@@ -112,15 +112,6 @@
             </intent-filter>
         </service>
 
-        <!--Ресивер, отслеживает выключение телефона, сохраняет лог-->
-        <!--<receiver android:name="ru.bingosoft.teploInspector.util.ShutdownReceiver"
-            android:enabled="true"
-            android:exported="true" >
-            <intent-filter>
-                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
-            </intent-filter>
-        </receiver>-->
-
     </application>
 
 </manifest>

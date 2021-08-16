@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.android.synthetic.main.item_general_information.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import timber.log.Timber
@@ -131,7 +130,7 @@ class GeneralInformationAdapter(private val lists: List<String>, val order :Orde
             //listener.recyclerViewListClicked(v, this.layoutPosition)
         }
 
-        var giName:TextView=itemView.gi_name
-        var giValue:TextInputEditText=itemView.gi_value_edit
+        var giName:TextView=itemView.findViewById(R.id.gi_name)
+        var giValue:TextInputEditText=itemView.findViewById(R.id.gi_value_edit)
     }
 }

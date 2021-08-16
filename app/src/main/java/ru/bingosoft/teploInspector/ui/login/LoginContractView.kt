@@ -35,4 +35,5 @@ interface LoginContractView {
     fun saveRouteIntervalFlag()
 
     fun requestGPSPermission()
+
 }

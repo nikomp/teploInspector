@@ -18,9 +18,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
-import kotlinx.android.synthetic.main.alert_change_date_time.view.*
-import kotlinx.android.synthetic.main.item_cardview_order.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.FragmentsContractActivity
@@ -118,7 +117,6 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                         .capitalize()
                     changeColorMBSState(holder.orderState, ordersFilterList[position].status)
                     try {
-                        //parentFragment.orderPresenter.addHistoryState(ordersFilterList[position])
                         parentFragment.orderPresenter.updateOrderState(ordersFilterList[position])
                     } catch (e: Throwable) {
                         parentFragment.errorReceived(e)
@@ -173,7 +171,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                         )
                     ) {
                         ordersFilterList[position].typeTransportation=s.toString()
-                        parentFragment.orderPresenter.changeTypeTransortation(ordersFilterList[position])
+                        parentFragment.orderPresenter.changeTypeTransportation(ordersFilterList[position])
                     }
                 } catch (e: Throwable) {
                     parentFragment.errorReceived(e)
@@ -259,7 +257,7 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
                 (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
             }
 
-            dialogView.btnOk.setOnClickListener{
+            dialogView.findViewById<MaterialButton>(R.id.btnOk).setOnClickListener{
                 Timber.d("dialogView.buttonOK")
 
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
@@ -406,21 +404,21 @@ class OrderListAdapter (val orders: List<Orders>, private val itemListener: Orde
         }
 
 
-        var orderNumber: TextView = itemView.number
-        var orderType: TextView = itemView.order_type
-        var orderState: MaterialBetterSpinner = itemView.order_state
-        var orderCountNode: TextView = itemView.count_node
-        var btnChangeDateTime: Button = itemView.btnChangeDateTime
-        var orderPurposeObject: TextView = itemView.name
-        var orderadress: TextView = itemView.adress
-        var orderNote: TextView=itemView.orderNote
-        var fio: TextView = itemView.fio
-        var typeTransportation: MaterialBetterSpinner = itemView.type_transportation
-        var btnPhone: Button=itemView.btnPhone
-        var btnRoute: Button=itemView.btnRoute
+        var orderNumber: TextView = itemView.findViewById(R.id.number)
+        var orderType: TextView = itemView.findViewById(R.id.order_type)
+        var orderState: MaterialBetterSpinner = itemView.findViewById(R.id.order_state)
+        var orderCountNode: TextView = itemView.findViewById(R.id.count_node)
+        var btnChangeDateTime: Button = itemView.findViewById(R.id.btnChangeDateTime)
+        var orderPurposeObject: TextView = itemView.findViewById(R.id.name)
+        var orderadress: TextView = itemView.findViewById(R.id.adress)
+        var orderNote: TextView=itemView.findViewById(R.id.orderNote)
+        var fio: TextView = itemView.findViewById(R.id.fio)
+        var typeTransportation: MaterialBetterSpinner = itemView.findViewById(R.id.type_transportation)
+        var btnPhone: Button=itemView.findViewById(R.id.btnPhone)
+        var btnRoute: Button=itemView.findViewById(R.id.btnRoute)
         lateinit var listener: OrdersRVClickListeners
 
-        var ivSync: ImageView=itemView.ivSync
+        var ivSync: ImageView=itemView.findViewById(R.id.ivSync)
 
         //var cardView: CardView = itemView.cv
 

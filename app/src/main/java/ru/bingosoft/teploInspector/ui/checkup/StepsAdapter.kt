@@ -12,7 +12,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.item_cardview_step.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
@@ -242,12 +241,12 @@ class StepsAdapter(
             //listener?.recyclerViewListClicked(v, this.layoutPosition)
         }
 
-        var stepNumber:TextView = itemView.stepNumber
-        var stepName:TextView = itemView.stepName
-        var countQuestion:TextView=itemView.countQuestion
-        var expandStep:ImageView=itemView.expandStep
-        var details: LinearLayout =itemView.llMain
-        var pbStepLoad: ProgressBar=itemView.pbStepLoad
+        var stepNumber:TextView = itemView.findViewById(R.id.stepNumber)
+        var stepName:TextView = itemView.findViewById(R.id.stepName)
+        var countQuestion:TextView=itemView.findViewById(R.id.countQuestion)
+        var expandStep:ImageView=itemView.findViewById(R.id.expandStep)
+        var details: LinearLayout =itemView.findViewById(R.id.llMain)
+        var pbStepLoad: ProgressBar=itemView.findViewById(R.id.pbStepLoad)
 
         init {
             view.setOnClickListener(this)

@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.yandex.mapkit.directions.driving.DrivingRoute
-import kotlinx.android.synthetic.main.item_cardview_map_bottom_sheet.view.*
 import ru.bingosoft.teploInspector.R
 
 class DrivingRouterListAdapter(private val routes: MutableList<DrivingRoute>, private val itemListener: DrivingRouterRVClickListener): RecyclerView.Adapter<DrivingRouterListAdapter.DrivingRouterViewHolder>() {
@@ -50,12 +49,12 @@ class DrivingRouterListAdapter(private val routes: MutableList<DrivingRoute>, pr
             listener.drivingRouterRVListClicked(v, this.layoutPosition)
         }
 
-        var routerName: TextView = itemView.routerName
-        var time: TextView = itemView.time
-        var distance: TextView = itemView.transfersCount
-        var timeWithTraffic: TextView = itemView.walkingDistance
-        var sectionsRoute: RecyclerView=itemView.section_route_recycler_view
-        var rugged: ImageView=itemView.ivRugged
+        var routerName: TextView = itemView.findViewById(R.id.routerName)
+        var time: TextView = itemView.findViewById(R.id.time)
+        var distance: TextView = itemView.findViewById(R.id.transfersCount)
+        var timeWithTraffic: TextView = itemView.findViewById(R.id.walkingDistance)
+        var sectionsRoute: RecyclerView=itemView.findViewById(R.id.section_route_recycler_view)
+        var rugged: ImageView=itemView.findViewById(R.id.ivRugged)
 
         lateinit var listener: DrivingRouterRVClickListener
 

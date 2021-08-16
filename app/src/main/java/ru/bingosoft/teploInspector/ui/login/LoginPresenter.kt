@@ -180,7 +180,16 @@ class LoginPresenter @Inject constructor(
             Schedulers.computation() // Scheduler добавил для тестирования см. тест LoginPresenterTest.testSendRoute, до этого было пусто
         ).map {
             Timber.d("ДанныеМаршрутаПолучили_LP_${Date()}")
+            /*val trackingList=db.trackingUserDao().getTrackingForCurrentDay()
+            if (trackingList.size>LIMIT_RECORDS) {
+                Timber.d("getTrackingForCurrentDay")
+                return@map trackingList
+            } else {
+                Timber.d("getTrackingForLastMinutes")
+                return@map db.trackingUserDao().getTrackingForLastMinutes()
+            }*/
             db.trackingUserDao().getTrackingForCurrentDay()
+
         }
             .subscribe(
                 {trackingUserLocation ->
@@ -197,7 +206,7 @@ class LoginPresenter @Inject constructor(
 
                         apiService.sendTrackingUserLocation(jsonBody).subscribe(
                             {
-                                Timber.d("ОтправилиМаршрут")
+                                Timber.d("ОтправилиМаршрут_LoginPresenter")
                                 Timber.d("trackingUserLocation=${trackingUserLocation}")
                                 updateLocationPoints(trackingUserLocation)
                             },
@@ -212,7 +221,7 @@ class LoginPresenter @Inject constructor(
                         )
                     } else {
                         Timber.d("Нет данных о маршруте")
-                        otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()}")
+                        otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()} GPS доступен:${otherUtil.checkOnOffGPS()}")
                     }
                 },{throwable ->
                     throwable.printStackTrace()
@@ -312,10 +321,14 @@ class LoginPresenter @Inject constructor(
             Timber.d("CXCX_$view")
             if (throwable.message=="Нет заявок") {
                 clearOrders()
+                if (view!=null) {
+                    view?.showFailureTextView("Нет заявок")
+                }
             }
             if (view!=null) {
-                 view?.showFailureTextView("Нет заявок")
+                 view?.showFailureTextView("")
                  view?.errorReceived(throwable)
+                 view?.showOrders()
             } else {
                 errorHandler(throwable)
             }

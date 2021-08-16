@@ -1,4 +1,4 @@
-package ru.bingosoft.teploInspector.util
+package ru.bingosoft.teploInspector.statereceivers
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -10,8 +10,9 @@ import timber.log.Timber
 class ShutdownReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         Timber.d("ShutdownReceiver_onReceive")
-        if("android.intent.action.ACTION_SHUTDOWN" == intent?.action) {
+        if( Intent.ACTION_SHUTDOWN == intent?.action) { //"android.intent.action.ACTION_SHUTDOWN"
             val activity=(context as MainActivity)
+            activity.otherUtil.writeToFile("Logger_ShutdownReceiver_onReceive")
             activity.finish()
         }
     }

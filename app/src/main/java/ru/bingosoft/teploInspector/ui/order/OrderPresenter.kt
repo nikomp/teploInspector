@@ -32,9 +32,13 @@ class OrderPresenter @Inject constructor(
     private lateinit var disposable: Disposable
     private lateinit var disposableUpdateState: Disposable
     private lateinit var disposableSendState: Disposable
+    private lateinit var disposableRollbackStateOrder: Disposable
+    private lateinit var disposableUpdateOrder: Disposable
+    private lateinit var disposableDeleteOrder: Disposable
 
     @Inject
     lateinit var otherUtil: OtherUtil
+    var isRollbackChangeStateOrder:Boolean=false
 
     fun attachView(view: OrderContractView) {
         this.view=view
@@ -57,6 +61,7 @@ class OrderPresenter @Inject constructor(
                     idOrder = tempHistory.idOrder,
                     stateOrder = tempHistory.stateOrder,
                     dateChange = tempHistory.dateChange.time)
+
                 sendHistoryToServer(order, history)
             },{throwable ->
                 disposable.dispose()
@@ -76,51 +81,105 @@ class OrderPresenter @Inject constructor(
             .subscribe({ response ->
                 Timber.d("response=$response")
                 Timber.d("Отправили_статус")
+                if (order.status=="Отменена") {
+                    deleteOrder(order)
+                }
+                otherUtil.writeToFile("Logger_Отправили_статус_заявки на сервер_$order")
                 disposableSendState.dispose()
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
                 throwable.printStackTrace()
                 errorHandler(throwable)
-                disposableSendState.dispose()
+                if (!isRollbackChangeStateOrder) {
+                    rollbackChangeStateOrder(order)
+                } else {
+                    Timber.d("RollbackChangeStateOrder_только_один_раз")
+                    isRollbackChangeStateOrder=false
+                }
 
+                disposableSendState.dispose()
             })
 
     }
 
+    private fun deleteOrder(order: Orders) {
+        Timber.d("deleteOrder")
+        disposableDeleteOrder=Single.fromCallable {
+            db.ordersDao().delete(order)
+        }
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                Timber.d("Удалили_Отмененную_заявку_в_БД")
+                disposableDeleteOrder.dispose()
+            },{
+                disposableDeleteOrder.dispose()
+                it.printStackTrace()
+            })
+    }
+
+    /*Возврат к предыдущему состоянию Заявки нужен в случае если отправка данных по заявке уже прошла,
+    а при смене состояния на Выполнена произошла ошибка, например нет Интернета. Если не будет возврата к
+    предыдущему состоянию заявка пропадет из списка и на сервере данные не обновятся*/
+    fun rollbackChangeStateOrder(order: Orders) {
+        // Возврат к предыдущему состоянию делаем только если ошибка возникла при переводе в
+        // Выполнена либо Отменена, т.к. заявка пропадает из списка и по сути это
+        // последние состояния, в которых заявка может быть
+        if (order.status=="Выполнена" || order.status=="Отменена") {
+            // Получим предыдущее состояние Заявки
+            Timber.d("rollbackChangeStateOrder")
+            disposableRollbackStateOrder=Single.fromCallable{
+                db.historyOrderStateDao().getPreviousStateByIdOrder(order.id)
+            }.subscribeOn(Schedulers.io())
+                .subscribe({
+                    Timber.d("XCX_$it")
+                    otherUtil.writeToFile("Logger_Откатим_изменение_статуса_заявки_${order}_в_$it")
+                    Timber.d("Откатим_изменение_статуса_заявки_${order}_в_$it")
+                    order.status=it
+                    updateOrderState(order)
+                    isRollbackChangeStateOrder=true
+                    disposableRollbackStateOrder.dispose()
+                },{
+                    disposableRollbackStateOrder.dispose()
+                    it.printStackTrace()
+                })
+        }
+
+    }
+
+    /*Сначала обновляем данные в локальной БД. Должна быть возсожность отслеживать историю изменения статуса по заявки
+    * Нельзя блокировать смену статуса если отсутствует Интернет.*/
     fun updateOrderState(order: Orders) {
         disposableUpdateState=Single.fromCallable {
             db.ordersDao().update(order)
         }
         .subscribeOn(Schedulers.io())
         .subscribe({
-            disposableUpdateState.dispose()
-            otherUtil.writeToFile("Logger_Обновили_статус_заявки_$order")
+            otherUtil.writeToFile("Logger_Обновили_в_БД_Телефона_статус_заявки_$order")
             Timber.d("Данные_обновили_в_БД_Телефона")
             addHistoryState(order)
+            disposableUpdateState.dispose()
         },{
             disposableUpdateState.dispose()
             it.printStackTrace()
         })
     }
 
-    /*fun updateOrderQuestionCount(idOrder: Int, Count: Int) {
-        disposableUpdateOrderQuestionCount=Single.fromCallable {
+    fun updateOrder(order: Orders) {
+        disposableUpdateOrder=Single.fromCallable {
             db.ordersDao().update(order)
         }
-            .subscribeOn(Schedulers.io())
-            .subscribe({
-                disposableUpdateOrderQuestionCount.dispose()
-                otherUtil.writeToFile("Logger_Обновили_статус_заявки_$order")
-                Timber.d("Данные_обновили_в_БД_Телефона")
-                addHistoryState(order)
-            },{
-                disposableUpdateOrderQuestionCount.dispose()
-                it.printStackTrace()
-            })
-    }*/
+        .subscribeOn(Schedulers.io())
+        .subscribe({
+            Timber.d("Данные_обновили_в_БД_Телефона")
+            disposableUpdateOrder.dispose()
+        },{
+            disposableUpdateOrder.dispose()
+            it.printStackTrace()
+        })
+    }
 
-    fun changeTypeTransortation(order: Orders) {
+    fun changeTypeTransportation(order: Orders) {
         Single.fromCallable {
             db.ordersDao().update(order)
         }

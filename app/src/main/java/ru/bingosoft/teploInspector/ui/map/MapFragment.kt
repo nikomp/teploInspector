@@ -52,6 +52,7 @@ import ru.bingosoft.teploInspector.util.Const.Location.TARGET_POINT
 import ru.bingosoft.teploInspector.util.Const.Location.USE_IN_BACKGROUND
 import ru.bingosoft.teploInspector.util.Const.Location.ZOOM_LEVEL
 import ru.bingosoft.teploInspector.util.Const.RequestCodes.PERMISSION
+import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.Toaster
 import timber.log.Timber
 import java.util.*
@@ -83,6 +84,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     var lastStopTransferMarkers=mutableListOf<PlacemarkMapObject>()
     var prevMapObjectMarker: MapObject?=null
 
+    @Inject
+    lateinit var otherUtil: OtherUtil
+
 
     private val mapLoadedListener= MapLoadedListener {
 
@@ -94,15 +98,20 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
             controlId=control
         }
 
-        Timber.d("MapFragment_filteredOrders=${(activity as MainActivity).filteredOrders}")
-        showMarkers((this.requireActivity() as MainActivity).filteredOrders)
+        if (isAdded) {
+            Timber.d("MapFragment_filteredOrders=${(this.requireActivity() as MainActivity).filteredOrders}")
+            showMarkers((this.requireActivity() as MainActivity).filteredOrders)
 
-        if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
-            Timber.d("isInitCurrentOrder_${(this.requireActivity() as MainActivity).currentOrder}")
-            if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
-                showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
+            if ((this.requireActivity() as MainActivity).isInitCurrentOrder()) {
+                Timber.d("isInitCurrentOrder_${(this.requireActivity() as MainActivity).currentOrder}")
+                if ((this.requireActivity() as MainActivity).currentOrder.id!=0L) {
+                    showRouteDialog((this.requireActivity() as MainActivity).currentOrder)
+                }
             }
+        } else {
+            otherUtil.writeToFile("Logger_MapFragment.isAdded==false")
         }
+
 
     }
 
@@ -175,9 +184,10 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         override fun onObjectAdded(userLocationView: UserLocationView) {
             Timber.d("onObjectAdded")
+            /*следить за локацией пользователя, карта будет перепрыгивать на локацию пользователя
             userLocationLayer?.setAnchor(
                 PointF((mapView.width * 0.5).toFloat(), ((mapView.height * 0.5)).toFloat()) ,
-                PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat()))
+                PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat()))*/
 
 
             val bitmap=getBitmapFromVectorDrawable(R.drawable.ic_navigation_24dp)
@@ -297,7 +307,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        AndroidSupportInjection.inject(this)
+        //AndroidSupportInjection.inject(this)
         Timber.d("MapFragment_onCreateView")
 
         locationManager=MapKitFactory.getInstance().createLocationManager()
@@ -324,6 +334,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
         MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
@@ -438,6 +449,7 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
             userLocationLayer!!.isVisible=true
             userLocationLayer!!.isHeadingEnabled=true
             userLocationLayer!!.setObjectListener(userLocationObjectListener)
+
         }
     }
 

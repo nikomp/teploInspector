@@ -159,4 +159,9 @@ class Const {
         const val CHECKUP_POSITION=3
     }
 
+
+    object Network{
+        const val TIMEOUT=120L
+    }
+
 }

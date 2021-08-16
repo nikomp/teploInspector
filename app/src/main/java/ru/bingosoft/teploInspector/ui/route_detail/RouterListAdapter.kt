@@ -12,7 +12,6 @@ import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.yandex.mapkit.transport.masstransit.Route
 import com.yandex.mapkit.transport.masstransit.Section
-import kotlinx.android.synthetic.main.item_cardview_map_bottom_sheet.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.ui.map_bottom.SectionRouteAdapter
 import timber.log.Timber
@@ -79,11 +78,11 @@ class RouterListAdapter(private val routes: MutableList<Route>, private val item
             listener.routerRVListClicked(v, this.layoutPosition)
         }
 
-        var routerName: TextView = itemView.routerName
-        var time: TextView = itemView.time
-        var transfersCount: TextView = itemView.transfersCount
-        var walkingDistance: TextView = itemView.walkingDistance
-        var sectionsRoute: RecyclerView=itemView.section_route_recycler_view
+        var routerName: TextView = itemView.findViewById(R.id.routerName)
+        var time: TextView = itemView.findViewById(R.id.time)
+        var transfersCount: TextView = itemView.findViewById(R.id.transfersCount)
+        var walkingDistance: TextView = itemView.findViewById(R.id.walkingDistance)
+        var sectionsRoute: RecyclerView=itemView.findViewById(R.id.section_route_recycler_view)
 
         lateinit var listener: RouterRVClickListeners
 

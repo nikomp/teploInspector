@@ -2,6 +2,7 @@ package ru.bingosoft.teploInspector.util
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -19,6 +20,7 @@ import kotlin.math.roundToInt
 
 class OtherUtil(private val toaster: Toaster) {
     val ctx=toaster.ctx
+
 
     fun getDistance(userLocation: Location, order: Orders): Float {
         val orderLocation=Location(LocationManager.GPS_PROVIDER)
@@ -132,6 +134,11 @@ class OtherUtil(private val toaster: Toaster) {
 
         }
 
+    }
+
+    fun checkOnOffGPS():Boolean {
+        val locationManager=(ctx.getSystemService(Context.LOCATION_SERVICE)) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
 }

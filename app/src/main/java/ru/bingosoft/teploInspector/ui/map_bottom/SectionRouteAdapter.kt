@@ -9,7 +9,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.yandex.mapkit.transport.masstransit.Section
-import kotlinx.android.synthetic.main.item_cardview_route.view.*
 import ru.bingosoft.teploInspector.R
 import timber.log.Timber
 
@@ -64,8 +63,8 @@ class SectionRouteAdapter(private val sections: MutableList<Section>): RecyclerV
     }
 
     class SectionRouteViewHolder(view: View): RecyclerView.ViewHolder(view) {
-        var sectionIcon: ImageView = itemView.sectionIcon
-        var sectionText: TextView = itemView.sectionText
+        var sectionIcon: ImageView = itemView.findViewById(R.id.sectionIcon)
+        var sectionText: TextView = itemView.findViewById(R.id.sectionText)
         //var nextIcon: ImageView = itemView.nextIcon
 
     }

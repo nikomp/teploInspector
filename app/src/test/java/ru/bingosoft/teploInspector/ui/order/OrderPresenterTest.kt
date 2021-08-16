@@ -159,7 +159,7 @@ class OrderPresenterTest {
     fun testChangeTypeTransortation() {
         val fakeOrder=Orders(id = 1, status = "Открыта", typeTransportation = "Тестовая строка")
         `when`(mockDb.ordersDao()).thenReturn(mockOrdersDao)
-        orderPresenter.changeTypeTransortation(fakeOrder)
+        orderPresenter.changeTypeTransportation(fakeOrder)
         sleep(1000)
         verify(mockOrdersDao).update(fakeOrder)
     }

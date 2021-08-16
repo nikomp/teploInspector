@@ -11,14 +11,17 @@ import android.location.Location
 import android.location.LocationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.PowerManager
+import android.os.PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED
 import android.provider.Settings
 import android.view.*
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
@@ -40,11 +43,10 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.navigation.NavigationView
 import com.yandex.mapkit.geometry.Point
 import dagger.android.AndroidInjection
-import kotlinx.android.synthetic.main.alert_syncdb.view.*
-import kotlinx.android.synthetic.main.fragment_gallery2.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
@@ -52,6 +54,9 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
+import ru.bingosoft.teploInspector.statereceivers.CustomNetworkCallback
+import ru.bingosoft.teploInspector.statereceivers.DozeReceiver
+import ru.bingosoft.teploInspector.statereceivers.ShutdownReceiver
 import ru.bingosoft.teploInspector.ui.checkup.CheckupFragment
 import ru.bingosoft.teploInspector.ui.login.LoginActivity
 import ru.bingosoft.teploInspector.ui.login.LoginPresenter
@@ -99,7 +104,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private val dateAndTime: Calendar =Calendar.getInstance()
 
-    private val shutdownReceiver=ShutdownReceiver()
+    private val shutdownReceiver= ShutdownReceiver()
+    private val airplaneModeReceiver=AirplaneModeReceiver()
+    private val dozeReceiver= DozeReceiver()
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    private val defaultNetworkCallback= CustomNetworkCallback()
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var navController: NavController
@@ -144,6 +154,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
 
+        if (isAirplaneModeOn(this)) {
+            Timber.d("Logger_isAirplaneModeOn")
+            otherUtil.writeToFile("Logger_isAirplaneModeOn")
+        }
+
         setCustomDefaultUncaughtExceptionHandler()
 
         setContentView(R.layout.activity_main)
@@ -170,7 +185,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
 
-        checkIntent() // Возможно Activity открыта из уведомления
+        //checkIntent() // Возможно Activity открыта из уведомления
 
         locationManager=getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) /*&&
@@ -247,6 +262,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     }
 
+    fun isAirplaneModeOn(context: Context): Boolean {
+        return Settings.System.getInt(
+            context.contentResolver,
+            Settings.Global.AIRPLANE_MODE_ON, 0
+        ) != 0
+    }
+
     // #Необрабатываемые_исключения
     // Попытка решить ошибку Fatal Exception: java.util.concurrent.TimeoutException
     // com.yandex.runtime.NativeObject.finalize() timed out after 10 seconds
@@ -265,11 +287,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
+        setIntent(intent)
         otherUtil.writeToFile("Logger_onNewIntent")
         Timber.d("onNewIntent_${intent?.extras}")
         Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT", false)}")
-        Timber.d("onNewIntent_${intent?.extras?.getBoolean("EXIT", false)}")
+        Timber.d("onNewIntent_${intent?.extras?.getInt("messageId")}")
         checkFinish(intent)
+        checkIntent() // Возможно Activity открыта из уведомления
     }
 
     override fun onPause() {
@@ -328,7 +352,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val builder = AlertDialog.Builder(this)
 
-        dialogView.buttonOK.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonOK).setOnClickListener{
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 (getSystemService(ACTIVITY_SERVICE) as ActivityManager).clearApplicationUserData()
             } else {
@@ -352,6 +376,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     private val unauthorizedReceiver=object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Timber.d("unauthorizedReceiver_onReceive")
+            //otherUtil.writeToFile("unauthorizedReceiver_onReceive")
             doAuthorization(msgId = R.string.auth_restored)
         }
     }
@@ -359,16 +384,28 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private fun checkIntent() {
         Timber.d("checkIntent")
+
         messageId=intent.getIntExtra("messageId", 0)
+        Timber.d("messageId=$messageId")
         if (messageId!=0) {
+            refreshOrderListFromMA()
             mainPresenter.markMessageAsRead(messageId)
         }
         val messageAll=intent.getBooleanExtra("allMessageRead", false)
         Timber.d("messageAll=$messageAll")
         if (messageAll) {
+            refreshOrderListFromMA()
             mainPresenter.markAllMessageAsRead()
         }
     }
+
+    private fun refreshOrderListFromMA() {
+        val navHostFragment: NavHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
+        of?.refreshOrdersList()
+    }
+
 
     fun isInitCurrentOrder() :Boolean {
         return ::currentOrder.isInitialized
@@ -384,12 +421,12 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val builder = AlertDialog.Builder(this)
 
-        dialogView.buttonOK.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonOK).setOnClickListener{
             startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             alertDialog.dismiss()
         }
 
-        dialogView.buttonNo.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonNo).setOnClickListener{
             Timber.d("Сообщение администратору")
             mainPresenter.sendMessageToAdmin(REPEATEDLY_REFUSED)
             alertDialog.dismiss()
@@ -458,7 +495,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 ) {
                     // Разрешения выданы
                     Timber.d("startService_MainActivity2")
-                    otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService")
+                    otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_from_onRequestPermissionsResult")
                     startService(Intent(this, UserLocationService::class.java))
                     startService(Intent(this, MapkitLocationService::class.java))
                 } else {
@@ -719,7 +756,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
                     of?.doAuthorization(data = dataAuth)
                     if (of == null) {
-                        otherUtil.writeToFile("XZXZXZ_W")
+                        otherUtil.writeToFile("Logger_MainActivity_OrderFragment == null")
                         doAuthorization(data = dataAuth)
                     }
 
@@ -826,6 +863,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
             LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
             unregisterReceiver(shutdownReceiver)
+            unregisterReceiver(airplaneModeReceiver)
+            unregisterReceiver(dozeReceiver)
+            unregisterCustomNetworkCallback()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -834,6 +874,13 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         super.onDestroy()
 
+    }
+
+    private fun unregisterCustomNetworkCallback() {
+        val connectivityManager  = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            connectivityManager.unregisterNetworkCallback(defaultNetworkCallback)
+        }
     }
 
 
@@ -914,14 +961,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         val builder = AlertDialog.Builder(this)
 
-        dialogView.buttonOK.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonOK).setOnClickListener{
             Timber.d("alertExit_buttonOK")
             otherUtil.writeToFile("Logger_Нажата_кнопка_Да_в_диалоге_выхода")
             alertDialog.dismiss()
             finish()
         }
 
-        dialogView.buttonNo.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonNo).setOnClickListener{
             otherUtil.writeToFile("Logger_Нажата_кнопка_Нет_в_диалоге_выхода")
             alertDialog.dismiss()
         }
@@ -1181,10 +1228,14 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
          val resultIntent= Intent(this, MainActivity::class.java).putExtra(
              "allMessageRead", true
          )
-         val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
+         /*val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
              addNextIntentWithParentStack(resultIntent)
              getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
-         }
+         }*/
+
+         //подробнее тут https://stackoverflow.com/questions/28258404/singletask-and-singleinstance-not-respected-when-using-pendingintent
+         //+ переустановка приложения на эмуляторе
+         val resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
          val customNotification=notificationBuilder.setAutoCancel(true)
              .setContentTitle(getString(R.string.notification_title, count))
@@ -1254,13 +1305,26 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                  "unauthorized"
              )
          )
-         registerReceiver(shutdownReceiver, IntentFilter("android.intent.action.ACTION_SHUTDOWN"))
+
+         registerReceiver(shutdownReceiver, IntentFilter(Intent.ACTION_SHUTDOWN))
+         registerReceiver(airplaneModeReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
+         registerReceiver(dozeReceiver, IntentFilter(ACTION_DEVICE_IDLE_MODE_CHANGED))
+         registerCustomDefaultNetworkCallback()
+
 
      }
 
+    fun registerCustomDefaultNetworkCallback() {
+        val connectivityManager  = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            defaultNetworkCallback.otherUtil=otherUtil
+            connectivityManager.registerDefaultNetworkCallback(defaultNetworkCallback)
+        }
+    }
+
+
      override fun enabledSaveButton() {
-         Timber.d("enabledSaveButton=$mbSaveCheckup")
-         mbSaveCheckup.isEnabled=true
+         findViewById<MaterialButton>(R.id.mbSaveCheckup).isEnabled=true
      }
 
      override fun repeatSync() {
@@ -1272,7 +1336,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun sendRoute() {
         // Из MainActivity стартуем если ранее еще не стартовали из LoginPresenter
-        if (routeIntervalFlag) {
+        Timber.d("routeIntervalFlag_$routeIntervalFlag")
+        otherUtil.writeToFile("Logger_routeIntervalFlag_$routeIntervalFlag")
+        if (!routeIntervalFlag) {
             mainPresenter.sendRoute()
         }
     }
@@ -1472,21 +1538,21 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder==this.getString(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType2).text=orders.filter { it.groupOrder== this.getString(
                 R.string.orderType2
-            ).toLowerCase(
+            ).lowercase(
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder==this.getString(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType3).text=orders.filter { it.groupOrder== this.getString(
                 R.string.orderType3
-            ).toLowerCase(
+            ).lowercase(
                 Locale.ROOT
             )
             }.size.toString()
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder==this.getString(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType4).text=orders.filter { it.groupOrder== this.getString(
                 R.string.orderType4
-            ).toLowerCase(
+            ).lowercase(
                 Locale.ROOT
             )
             }.size.toString()
@@ -1514,11 +1580,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
         if (cb3.isChecked) {
             filterCount+=1
-            filterGroupList.add(getString(R.string.orderType3).toLowerCase(Locale.ROOT))
+            filterGroupList.add(getString(R.string.orderType3).lowercase(Locale.ROOT))
         }
         if (cb4.isChecked) {
             filterCount+=1
-            filterGroupList.add(getString(R.string.orderType4).toLowerCase(Locale.ROOT))
+            filterGroupList.add(getString(R.string.orderType4).lowercase(Locale.ROOT))
         }
 
         Timber.d("filterCount=$filterCount")

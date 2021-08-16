@@ -5,7 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.item_mab_bottom_orders.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import timber.log.Timber
@@ -42,8 +41,8 @@ class MapBottomOrdersListAdapter(val orders: List<Orders>, private val itemListe
             listener.recyclerViewListClicked(v, this.layoutPosition)
         }
 
-        var orderNumber: TextView = itemView.orderNumber
-        var orderType: TextView = itemView.orderType
+        var orderNumber: TextView = itemView.findViewById(R.id.orderNumber)
+        var orderType: TextView = itemView.findViewById(R.id.orderType)
         lateinit var listener: MapBottomOrdersRVClickListeners
 
         init {

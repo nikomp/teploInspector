@@ -167,6 +167,7 @@
     <string name="rugged_description">Неровности на дороге</string>
     <string name="error_date">Требуемый формат даты дд.мм.гггг</string>
     <string name="error_checklist_contains">Сохранение невозможно. Чеклист содержит ошибки</string>
+    <string name="btn_is_bloking_yet">Что-то пошло не так при отправке данных</string>
 
     <string name="filter_status_all">Все</string>
     <string name="filter_status_without_Done_and_Cancel">Кроме Выполненных и Отмененных</string>

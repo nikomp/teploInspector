@@ -25,10 +25,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
+import com.google.android.material.button.MaterialButton
 import dagger.android.support.AndroidSupportInjection
-import kotlinx.android.synthetic.main.alert_not_internet.view.*
-import kotlinx.android.synthetic.main.alert_syncdb.view.*
-import kotlinx.android.synthetic.main.fragment_order.*
 import retrofit2.HttpException
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
@@ -130,7 +128,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         return root
     }
 
-    private fun refreshOrdersList() {
+    fun refreshOrdersList() {
         Timber.d("refreshOrdersList")
         val swipeRefreshLayout = root.findViewById(R.id.srl_container) as SwipeRefreshLayout
         swipeRefreshLayout.isRefreshing=true
@@ -299,6 +297,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         }
     }
 
+
     @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -384,8 +383,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun showAlertNotInternet() {
-        textfailure.visibility=View.VISIBLE
-        progressBar.visibility=View.INVISIBLE
+        root.findViewById<TextView>(R.id.textfailure).visibility=View.VISIBLE
+        root.findViewById<ProgressBar>(R.id.progressBar).visibility=View.INVISIBLE
         alertNotInternet()
     }
 
@@ -395,8 +394,6 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
      */
     override fun alertRepeatSync() {
         Timber.d("doSync")
-        /*val pb=progressBar
-        pb.visibility= View.INVISIBLE*/
         loginPresenter.attachView(this)
 
         val dbFile = this.requireContext().getDatabasePath("mydatabase.db")
@@ -408,22 +405,21 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
                 layoutInflater.inflate(R.layout.alert_syncdb, (root.parent as ViewGroup), false)
 
             if (sharedPref.getDateSyncDB()!="") {
-                dialogView.stMsgAlert.text=getString(R.string.syncdb, sharedPref.getDateSyncDB())
+                dialogView.findViewById<TextView>(R.id.stMsgAlert).text=getString(R.string.syncdb, sharedPref.getDateSyncDB())
             } else {
-                dialogView.stMsgAlert.text=getString(R.string.syncdb2)
+                dialogView.findViewById<TextView>(R.id.stMsgAlert).text=getString(R.string.syncdb2)
             }
 
             val builder = AlertDialog.Builder(this.context)
 
-            dialogView.buttonOK.setOnClickListener{
+            dialogView.findViewById<MaterialButton>(R.id.buttonOK).setOnClickListener{
                 Timber.d("dialogView.buttonOK")
                 alertDialogRepeatSync.dismiss()
                 loginPresenter.syncDB()
             }
 
-            dialogView.buttonNo.setOnClickListener{
+            dialogView.findViewById<MaterialButton>(R.id.buttonNo).setOnClickListener{
                 alertDialogRepeatSync.dismiss()
-                //showMessageLogin(R.string.auth_ok)
                 showOrders()
             }
 
@@ -447,17 +443,12 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         val builder = AlertDialog.Builder(this.context)
 
-        dialogView.buttonInetOK.setOnClickListener{
-            Timber.d("dialogView.buttonInetOK")
-            //TODO возможно тут потребуется вывести окно авторизации
+        dialogView.findViewById<MaterialButton>(R.id.buttonInetOK).setOnClickListener{
             showMessageLogin(R.string.working_offline)
             alertDialogNotInternet.dismiss()
-
-            /*textfailure.visibility=View.INVISIBLE
-            Navigation.findNavController(root).navigate(R.id.nav_home)*/
         }
 
-        dialogView.buttonInetNo.setOnClickListener{
+        dialogView.findViewById<MaterialButton>(R.id.buttonInetNo).setOnClickListener{
             alertDialogNotInternet.dismiss()
         }
 
@@ -502,7 +493,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     private fun showFilterOrders(orders: List<Orders>) {
-        longInfo("showFilterOrders=${orders}")
+        // включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
+        //longInfo("showFilterOrders=${orders}")
 
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
@@ -526,7 +518,8 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     }
 
     override fun showOrders(orders: List<Orders>) {
-        longInfo("showOrdersVV=${orders}")
+        // включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
+        //longInfo("showOrdersVV=${orders}")
 
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
@@ -561,6 +554,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     //#Android_Studio #длинный_лог
     // Функция для вывода длинных строк в лог. Использовать вместо Timber.d
+    //включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
     private fun longInfo(str: String) {
         if (str.length > 3000) {
             Timber.d(str.substring(0, 3000))
@@ -796,6 +790,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     override fun saveRouteIntervalFlag() {
         // Запустили периодическую передачу данных о маршруте
+
         (requireContext() as MainActivity).routeIntervalFlag=true
         sharedPref.saveRouteIntervalFlag()
     }

@@ -242,8 +242,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     val reverseData=Models.ReverseData()
                     reverseData.data=resultX
 
-                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
-                    longInfo("Данные222=${Gson().toJson(reverseData)}")
+                    // включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
+                    //longInfo("Данные222=${Gson().toJson(reverseData)}")
 
                     val jsonBody = Gson().toJson(reverseData)
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -317,7 +317,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     resultX.data=Gson().fromJson(Gson().toJson(result), JsonArray::class.java)
 
                     val ordersData=Gson().toJson(resultX)
-                    longInfo("ДанныеOrder=$ordersData")
+                    // включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
+                    //longInfo("ДанныеOrder=$ordersData")
 
                     val jsonBody = ordersData
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -402,8 +403,8 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     val reverseData=Models.ReverseData()
                     reverseData.data=resultX
 
-                    //Timber.d("Данные2=${Gson().toJson(reverseData)}")
-                    longInfo("Данные222=${Gson().toJson(reverseData)}")
+                    // включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
+                    //longInfo("Данные222=${Gson().toJson(reverseData)}")
 
                     val jsonBody = Gson().toJson(reverseData)
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -422,12 +423,11 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                             Timber.d("response=${response[0].id}")
                             sendFile(response)
                         } else {
+                            view?.enabledSaveButton()
                             view?.dataSyncOK(idOrder)
                             if (syncView!=null) {
                                 syncView.visibility=View.GONE
                             }
-                            view?.enabledSaveButton()
-
                         }
                     }, { throwable ->
                         Timber.d("MainActivityPresenter_throwable")
@@ -522,6 +522,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         }
     }
 
+    //включать с осторожностью, может привести к OutOfMemmory, если строка слишком длинная
     private fun longInfo(str: String) {
         if (str.length > 3000) {
             Timber.d( str.substring(0, 3000))
@@ -611,8 +612,6 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         }
             .subscribeOn(Schedulers.io())
             .subscribe ()
-
-
     }
 
     fun getAllOrderNotSync() {
@@ -635,6 +634,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     //#RxJava #interval
     fun sendRoute() {
         //Нет обновления координат в БД, стартуем при каждой автоматической авторизации
+        Timber.d("test_sendRoute_MainActivityPresenter")
         sharedPrefSaver.saveRouteIntervalFlag() // Отметим, что передача маршрута включена
         otherUtil.writeToFile("Logger_sendRoute_MainActivityPresenter_${Date()}_возможно дублирование координат")
 
@@ -643,6 +643,15 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             Schedulers.computation() // Scheduler добавил для тестирования см. тест LoginPresenterTest.testSendRoute, до этого было пусто
         ).map {
             Timber.d("ДанныеМаршрутаПолучили_${Date()}")
+            //db.trackingUserDao().getTrackingForLastMinutes()
+            /*val trackingList=db.trackingUserDao().getTrackingForCurrentDay()
+            if (trackingList.size> Const.TrackingUser.LIMIT_RECORDS) {
+                Timber.d("MA_getTrackingForCurrentDay")
+                return@map trackingList
+            } else {
+                Timber.d("MA_getTrackingForLastMinutes")
+                return@map db.trackingUserDao().getTrackingForLastMinutes()
+            }*/
             db.trackingUserDao().getTrackingForCurrentDay()
 
         }
@@ -659,7 +668,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
                     apiService.sendTrackingUserLocation(jsonBody).subscribe(
                         {
-                            Timber.d("ОтправилиМаршрут")
+                            Timber.d("ОтправилиМаршрут_MainActivityPresenter")
                             Timber.d("trackingUserLocation=${trackingUserLocation}")
                             updateLocationPoints(trackingUserLocation)
                         },
@@ -672,7 +681,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
                     )
                 } else {
                     Timber.d("Нет данных о маршруте")
-                    otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()}")
+                    otherUtil.writeToFile("Logger_Нет данных о маршруте ${Date()} GPS доступен:${otherUtil.checkOnOffGPS()}")
                 }
             },{throwable ->
                 throwable.printStackTrace()

@@ -12,6 +12,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.api.ApiService
+import ru.bingosoft.teploInspector.util.Const.Network.TIMEOUT
 import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import timber.log.Timber
@@ -75,9 +76,9 @@ class NetworkModule {
                     return response
                 }
             })
-            .connectTimeout(60, TimeUnit.SECONDS) // Увеличим таймаут ретрофита
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(TIMEOUT, TimeUnit.SECONDS) // Увеличим таймаут ретрофита секунд
+            .readTimeout(TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
             .build()
 
         val gson = GsonBuilder()

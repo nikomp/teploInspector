@@ -28,11 +28,6 @@ class FinishAppWorker(appContext: Context, workerParams: WorkerParameters):
 
         if (login!="") {
             otherUtil.writeToFile("Logger_FINISH_FROM_WORKER_${Date()}")
-            /*val intent = Intent(ctx, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            intent.putExtra("EXIT", true)
-            ctx.startActivity(intent)*/
             val intent = Intent("EXIT")
             (ctx as MainActivity).checkFinish(intent)
         }

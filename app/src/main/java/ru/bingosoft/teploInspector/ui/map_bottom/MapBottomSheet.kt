@@ -23,9 +23,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.button.MaterialButton
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner
 import dagger.android.support.AndroidSupportInjection
-import kotlinx.android.synthetic.main.alert_change_date_time.view.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
@@ -161,7 +161,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                 (parentFragment.requireContext() as MainActivity).showDateTimeDialog(Const.Dialog.DIALOG_TIME, newTime)
             }
 
-            dialogView.btnOk.setOnClickListener{
+            dialogView.findViewById<MaterialButton>(R.id.btnOk).setOnClickListener{
                 Timber.d("dialogView.buttonOK")
                 val strDateTimeVisit="${newDate.text} ${newTime.text}"
 
@@ -318,7 +318,7 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
                     )
                 ) {
                     order.typeTransportation=s.toString()
-                    orderPresenter.changeTypeTransortation(order)
+                    orderPresenter.changeTypeTransportation(order)
                 }
             }
 

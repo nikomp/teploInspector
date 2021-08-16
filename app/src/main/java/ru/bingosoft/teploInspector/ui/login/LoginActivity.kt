@@ -10,8 +10,9 @@ import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import com.google.android.material.textfield.TextInputEditText
 import dagger.android.AndroidInjection
-import kotlinx.android.synthetic.main.activity_login.*
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import ru.bingosoft.teploInspector.util.Toaster
@@ -37,22 +38,22 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val toolbar=logintoolbar
+        val toolbar: Toolbar =findViewById(R.id.logintoolbar)
         setSupportActionBar(toolbar)
 
         // Попытка решить ошибку в крашлитикс Editor$SelectionModifierCursorController.getMinTouchOffset()
         // Подробнее тут https://stackoverflow.com/questions/53435237/nullpointerexception-int-android-widget-editorselectionmodifiercursorcontrolle
         // https://question-it.com/questions/1614991/nullpointerexception-int-androidwidgeteditor-selectionmodifiercursorcontrollergetmintouchoffset
-        edUrl.setOnLongClickListener { true }
+        (findViewById<TextInputEditText>(R.id.edUrl)).setOnLongClickListener { true }
 
         val cbEnter=findViewById<CheckBox>(R.id.cbEnter)
 
         if (sharedPref.getLogin().isNotEmpty()) {
             Timber.d("LOGIN_exist")
-            edLogin.setText(sharedPref.getLogin())
+            findViewById<TextInputEditText>(R.id.edLogin).setText(sharedPref.getLogin())
         }
         if (sharedPref.getPassword().isNotEmpty()) {
-            edPassword.setText(sharedPref.getPassword())
+            findViewById<TextInputEditText>(R.id.edPassword).setText(sharedPref.getPassword())
         }
         cbEnter.isChecked = sharedPref.getEnterType().isNotEmpty() && sharedPref.getEnterType()=="directory_service"
     }
@@ -71,12 +72,12 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                         Timber.d("LoginActivity_onClick")
                         isEntering=true
 
-                        stUrl = edUrl.text.toString()
-                        stLogin = edLogin.text.toString()
-                        stPassword = edPassword.text.toString()
+                        stUrl = findViewById<TextInputEditText>(R.id.edUrl).text.toString()
+                        stLogin = findViewById<TextInputEditText>(R.id.edLogin).text.toString()
+                        stPassword = findViewById<TextInputEditText>(R.id.edPassword).text.toString()
 
                         var stEnterType="default"
-                        if (cbEnter.isChecked) {
+                        if (findViewById<CheckBox>(R.id.cbEnter).isChecked) {
                             stEnterType="directory_service"
                         }
                         sharedPref.saveEnterType(stEnterType)
@@ -97,7 +98,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
 
                     } else {
-                        toaster.showToast(R.string.not_internet)
+                        toaster.showErrorToast(R.string.not_internet)
                     }
                 }
             }

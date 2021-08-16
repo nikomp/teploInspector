@@ -1,6 +1,9 @@
 package ru.bingosoft.teploInspector.wsnotification
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -72,10 +75,15 @@ class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
             "messageId",
             notification.id
         )
-        val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(ctx).run {
+
+        /*val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(ctx).run {
             addNextIntentWithParentStack(resultIntent)
             getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
-        }
+        }*/
+
+        //подробнее тут https://stackoverflow.com/questions/28258404/singletask-and-singleinstance-not-respected-when-using-pendingintent
+        //+ переустановка приложения на эмуляторе
+        val resultPendingIntent = PendingIntent.getActivity(ctx, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         val customNotification=notificationBuilder.setAutoCancel(true)
             .setContentTitle(notification.title)

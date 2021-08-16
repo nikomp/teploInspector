@@ -207,7 +207,7 @@ class LoginPresenterTest {
         `when`(mockApiService.saveGCMToken(anyOrNull())).thenReturn(Single.just(mockUnit))
         `when`(mockDb.trackingUserDao()).thenReturn(mockTrackingUserDao)
         val fakeListTrackingUserLocationEmpty = listOf<TrackingUserLocation>()
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenReturn(
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenReturn(
             fakeListTrackingUserLocationEmpty
         )
 
@@ -237,7 +237,7 @@ class LoginPresenterTest {
             TrackingUserLocation(lat=1.0,lon=1.0),
             TrackingUserLocation(lat=2.0,lon=2.0))
 
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenReturn(
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenReturn(
             fakeListTrackingUserLocation
         )
 
@@ -269,7 +269,7 @@ class LoginPresenterTest {
             TrackingUserLocation(lat=1.0,lon=1.0),
             TrackingUserLocation(lat=2.0,lon=2.0))
 
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenReturn(
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenReturn(
             fakeListTrackingUserLocation
         )
 
@@ -304,7 +304,7 @@ class LoginPresenterTest {
             TrackingUserLocation(lat=1.0,lon=1.0),
             TrackingUserLocation(lat=2.0,lon=2.0))
 
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenReturn(
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenReturn(
             fakeListTrackingUserLocation
         )
 
@@ -333,7 +333,7 @@ class LoginPresenterTest {
 
 
         val exception=RuntimeException("error_in_getTrackingForCurrentDay")
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenThrow(exception)
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenThrow(exception)
 
         loginPresenter.authorization("fakeUrl", "fakeLogin", "fakePassword")
         sleep(2000)
@@ -362,7 +362,7 @@ class LoginPresenterTest {
 
 
         val exception=RuntimeException("error_in_getTrackingForCurrentDay")
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenThrow(exception)
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenThrow(exception)
 
         loginPresenter.authorization("fakeUrl", "fakeLogin", "fakePassword")
         sleep(2000)
@@ -393,7 +393,7 @@ class LoginPresenterTest {
         val fakeError=Gson().toJson(Models.Error(error = "user_not_found")).toResponseBody("application/json".toMediaTypeOrNull())
         val fakeHTTPExceptionResponse=Response.error<HttpException>(500, fakeError)
         val fakeHTTPException=HttpException(fakeHTTPExceptionResponse)
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenThrow(fakeHTTPException)
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenThrow(fakeHTTPException)
 
         loginPresenter.authorization("fakeUrl", "fakeLogin", "fakePassword")
         sleep(2000)
@@ -424,7 +424,7 @@ class LoginPresenterTest {
         val fakeError2=Gson().toJson(Models.Error(error = "user_not_found")).toResponseBody("application/json".toMediaTypeOrNull())
         val fakeHTTPExceptionResponse2=Response.error<HttpException>(401, fakeError2)
         val fakeHTTPException2=HttpException(fakeHTTPExceptionResponse2)
-        `when`(mockTrackingUserDao.getTrackingForCurrentDay()).thenThrow(fakeHTTPException2)
+        `when`(mockTrackingUserDao.getTrackingForLastMinutes()).thenThrow(fakeHTTPException2)
         `when`(mockSharedPrefSaver.getLogin()).thenReturn("fakeLogin")
         `when`(mockSharedPrefSaver.getPassword()).thenReturn("fakePassword")
         `when`(mockSharedPrefSaver.getTokenGCM()).thenReturn("fakeToken")
