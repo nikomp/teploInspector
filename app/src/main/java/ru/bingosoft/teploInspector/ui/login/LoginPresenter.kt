@@ -8,6 +8,7 @@ import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,12 +41,13 @@ class LoginPresenter @Inject constructor(
     private var stLogin: String = ""
     private var stPassword: String = ""
 
-    private lateinit var disposable: Disposable
-    private lateinit var disposableFCM: Disposable
+    //private lateinit var disposable: Disposable
+    //private lateinit var disposableFCM: Disposable
     private lateinit var disposableRouteInterval: Disposable
     private lateinit var disposableFinishInterval: Disposable
-    private lateinit var disposableClearOrdersFromDB: Disposable
-    private lateinit var disposableUpdateLocation: Disposable
+    //private lateinit var disposableClearOrdersFromDB: Disposable
+    //private lateinit var disposableUpdateLocation: Disposable
+    private var compositeDisposable= CompositeDisposable()
 
     @Inject
     lateinit var otherUtil: OtherUtil
@@ -55,6 +57,7 @@ class LoginPresenter @Inject constructor(
     }
 
     fun authorization(url: String, stLogin: String?, stPassword: String?){
+        Timber.d("authorization_LoginPresenter $url")
         Timber.d("authorization_LoginPresenter $stLogin _ $stPassword")
         otherUtil.writeToFile("Logger_authorization_from_LoginPresenter")
         if (!stLogin.isNullOrEmpty() && !stPassword.isNullOrEmpty()) {
@@ -65,7 +68,7 @@ class LoginPresenter @Inject constructor(
             val jsonBody = Gson().toJson(Models.LP(login = stLogin, password = stPassword))
                 .toRequestBody("application/json".toMediaType())
 
-            disposable = apiService.getAuthentication(url, jsonBody)
+            val disposable = apiService.getAuthentication(url, jsonBody)
                 .subscribeOn(Schedulers.io())
                 .flatMap { uuid ->
                     Timber.d("uuid=$uuid")
@@ -102,7 +105,7 @@ class LoginPresenter @Inject constructor(
 
                         saveTokenFCM()
 
-                        disposable.dispose()
+                        //disposable.dispose()
 
                     }, { throwable ->
                         throwable.printStackTrace()
@@ -128,9 +131,10 @@ class LoginPresenter @Inject constructor(
                         } else {
                             view?.showAlertNotInternet()
                         }
-                        disposable.dispose()
+                        //disposable.dispose()
                     }
                 )
+            compositeDisposable.add(disposable)
 
         } else {
             view?.errorReceived(Throwable("Не заданы логин или пароль"))
@@ -236,7 +240,7 @@ class LoginPresenter @Inject constructor(
 
     private fun updateLocationPoints(location: List<TrackingUserLocation>) {
         Timber.d("updateLocationPoints")
-        disposableUpdateLocation=Single.fromCallable{
+        val disposableUpdateLocation=Single.fromCallable{
             val ids=location.map { it.dateLocation.time }
             db.trackingUserDao().updateLocationSynced(ids)
         }
@@ -244,20 +248,21 @@ class LoginPresenter @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 Timber.d("updateLocationPoints_OK")
-                disposableUpdateLocation.dispose()
+                //disposableUpdateLocation.dispose()
             },{throwable ->
                 throwable.printStackTrace()
-                disposableUpdateLocation.dispose()
+                //disposableUpdateLocation.dispose()
             })
+        compositeDisposable.add(disposableUpdateLocation)
 
     }
 
 
     fun onDestroy() {
         this.view = null
-        if (this::disposable.isInitialized) {
+        /*if (this::disposable.isInitialized) {
             disposable.dispose()
-        }
+        }*/
         if (this::disposableRouteInterval.isInitialized) {
             Timber.d("disposableRouteInterval_destroy")
             disposableRouteInterval.dispose()
@@ -266,16 +271,17 @@ class LoginPresenter @Inject constructor(
             Timber.d("disposableFinishInterval_destroy")
             disposableFinishInterval.dispose()
         }
+        compositeDisposable.dispose()
     }
 
     fun syncDB() {
         Timber.d("syncDB_x")
-        disposable = syncOrder()
+        val disposable = syncOrder()
             .subscribeOn(Schedulers.io())
             .subscribe({},{
                 it.printStackTrace()
-                //view?.showFailureTextView()
             })
+        compositeDisposable.add(disposable)
 
     }
 
@@ -338,21 +344,22 @@ class LoginPresenter @Inject constructor(
 
     private fun clearOrders() {
         Timber.d("clearOrders")
-        disposableClearOrdersFromDB=Single.fromCallable{
+        val disposableClearOrdersFromDB=Single.fromCallable{
             db.ordersDao().clearOrders()
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe({
             Timber.d("clearOrders_OK")
-            disposableClearOrdersFromDB.dispose()
+            //disposableClearOrdersFromDB.dispose()
             view?.clearOrdersList()
             view?.showOrders()
 
         },{throwable ->
             throwable.printStackTrace()
-            disposableClearOrdersFromDB.dispose()
+            //disposableClearOrdersFromDB.dispose()
         })
+        compositeDisposable.add(disposableClearOrdersFromDB)
     }
 
     private fun syncTechParams(userId:Int) :Completable=apiService.getTechParams(user=userId)
@@ -449,7 +456,7 @@ class LoginPresenter @Inject constructor(
                 Timber.d("Обследования есть")
                 //val data: Models.CheckupList = checkups
 
-                disposable=Single.fromCallable {
+                val disposable=Single.fromCallable {
                     //db.checkupDao().clearCheckup() // Перед вставкой очистим таблицу
                     checkups.forEach {
                         Timber.d("VVV_it=$it")
@@ -467,14 +474,15 @@ class LoginPresenter @Inject constructor(
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe ({
-                        disposable.dispose()
+                        //disposable.dispose()
                         Timber.d("Сохранили обследования в БД")
                         view?.showOrders()
 
                     }, {error ->
                         error.printStackTrace()
-                        disposable.dispose()
+                        //disposable.dispose()
                     })
+                compositeDisposable.add(disposable)
 
                 Timber.d("View123=$view")
                 if (view!=null) {
@@ -554,18 +562,19 @@ class LoginPresenter @Inject constructor(
         val jsonBody = Gson().toJson(fcmToken)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        disposableFCM=apiService.saveGCMToken(jsonBody)
+        val disposableFCM=apiService.saveGCMToken(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe ({response ->
                 Timber.d(response.toString())
-                disposableFCM.dispose()
+                //disposableFCM.dispose()
             },{ throwable ->
                 Timber.d("ошибка!!!")
                 throwable.printStackTrace()
                 view?.errorReceived(throwable)
-                disposableFCM.dispose()
+                //disposableFCM.dispose()
             })
+        compositeDisposable.add(disposableFCM)
 
     }
 

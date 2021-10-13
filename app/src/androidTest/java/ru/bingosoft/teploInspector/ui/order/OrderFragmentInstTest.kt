@@ -76,8 +76,6 @@ class OrderFragmentInstTest {
             onView(withId(R.id.btnGo)).perform(click())
         }
 
-
-
     }
 
     @Test

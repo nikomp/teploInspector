@@ -37,6 +37,7 @@ import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.NEW_NAME_GROUP_
 import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.NUMBER_GROUPS_FIELD_MARK
 import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.NUMBER_GROUPS_QUESTION
 import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.OTHER
+import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.ROUTINE_MAINTENANCE
 import timber.log.Timber
 import java.io.File
 import java.lang.reflect.Type
@@ -51,6 +52,8 @@ import java.util.*
 @Suppress("unused")
 class UICreator(private val parentFragment: CheckupFragment, val checkup: Checkup) {
     lateinit var controlList: MutableList<Models.TemplateControl>
+    var listSubtypeView: MutableList<LinearLayout> = mutableListOf()
+
     private var enabledControls: MutableList<View> = mutableListOf()
     private val dateAndTime: Calendar =Calendar.getInstance()
 
@@ -62,8 +65,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     private var listllArchHour: List<LinearLayout> = listOf()
     private var listllArchDaily: List<LinearLayout> = listOf()
     private var listllGroupOther: MutableList<LinearLayout> = mutableListOf()
+    private var listSubtypeName: MutableList<String> = mutableListOf()
+
 
     val otherUtil=parentFragment.otherUtil
+
 
     // заглушка от долгого нажатия, иначе ошибка Fatal Exception: java.lang.NullPointerException
     //Attempt to invoke virtual method 'int android.widget.Editor$SelectionModifierCursorController.getMinTouchOffset()' on a null object reference
@@ -91,11 +97,16 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Gson().fromJson(checkup.text, listType)
         }
 
+        checkSubtypesOrder() // Проверим возможно есть подтипы у заявки
+
         controlList.forEach controls@ {
             when (it.type) {
                 "combobox", "date", "time", "textinput", "numeric", "photo" -> {
                     Timber.d("генерим ${it.type}")
-                    createWithGrouping(it)
+
+                    createWithSubCheckup(it)
+
+                    //createWithGrouping(it)
                     return@controls
                 }
                 else -> {
@@ -109,6 +120,51 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         return controlList
 
     }
+
+    private fun checkSubtypesOrder() {
+        if (parentFragment.currentOrder.typeOrder==ROUTINE_MAINTENANCE) {
+            val subtypes= parentFragment.currentOrder.subtypes
+            Timber.d("subtypes_$subtypes")
+            if (!subtypes.isNullOrEmpty()) {
+                val result= subtypes.removePrefix("{").removeSuffix("}")
+                val listSubtypeId= result.split(",").toList()
+
+                listSubtypeId.forEach{subtype ->
+                    controlList.firstOrNull{it.subtype==subtype}?.subtype_name?.let {
+                        listSubtypeName.add(
+                            it
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun createWithSubCheckup(control: Models.TemplateControl) {
+        if (!listSubtypeName.isNullOrEmpty() && !control.subtype_name.isNullOrEmpty() && listSubtypeName.contains(control.subtype_name)) {
+            val tempRootView=this.rootView
+            this.rootView=createGroup(control.subtype_name!!,rootView as LinearLayout)
+            createWithGrouping(control)
+            this.rootView=tempRootView
+        } else {
+            createWithGrouping(control)
+        }
+    }
+
+    fun showQuestionCount(layout: LinearLayout) {
+        Timber.d("showQuestionCount")
+        val llGroup=layout.findViewById<LinearLayout>(R.id.container)
+        Timber.d("llGroup_${llGroup.tag}")
+        val groupName=llGroup.tag
+        val tvCountQuestion=layout.findViewById<TextView>(R.id.countQuestion)
+        if (tvCountQuestion!=null && parentFragment.currentOrder.typeOrder==ROUTINE_MAINTENANCE) {
+            val allQuestion=controlList.filter { it.subtype_name==groupName }.size
+            val answeredQuestion=controlList.filter { it.subtype_name==groupName && it.answered }.size
+            tvCountQuestion.text=parentFragment.getString(R.string.question_count,allQuestion,answeredQuestion)
+            tvCountQuestion.visibility=View.VISIBLE
+        }
+    }
+
 
     fun saveUI() {
         Timber.d("saveUI")
@@ -206,7 +262,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     if (it.archival_records!=null) {
                         if (listllArchHour.isNotEmpty()) {
                             val llCurrentNode=listllArchHour[it.archival_records - 1]
-                            //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
                                 "textinput" -> createTextInput(it, llCurrentNode)
@@ -218,7 +273,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                         }
                         if (listllArchDaily.isNotEmpty()) {
                             val llCurrentNode=listllArchDaily[it.archival_records - 1]
-                            //val llGroup=createGroup(it.group_checklist,llCurrentNode,it.archival_records.toString())
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
                                 "textinput" -> createTextInput(it, llCurrentNode)
@@ -253,36 +307,15 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                                 val templateStep=llGroup.parent as LinearLayout
                                 val ivAddGroup=templateStep.findViewById<ImageView>(R.id.ivAddGroup)
                                 ivAddGroup.visibility=View.VISIBLE
-                                addGroupClickListener.templateStep=templateStep
+                                //addGroupClickListener.templateStep=templateStep
+                                ivAddGroup.tag=templateStep
                                 ivAddGroup.setOnClickListener(addGroupClickListener)
                             } else {
-                                Timber.d("groupName_$groupName")
-                                Timber.d("VC_${llGroup}")
-                                Timber.d("VC_${llGroup.parent}")
-                                Timber.d("VC_${llGroup.parent.parent}")
-                                Timber.d("VC_${llGroup.parent.parent.parent}")
-                                Timber.d("VC0_${llGroup.parent.parent.parent.parent}")
 
                                 val ivDeleteGroup=(llGroup.parent as LinearLayout).findViewById<ImageView>(R.id.ivDeleteGroup)
                                 ivDeleteGroup.visibility=View.VISIBLE
 
-                                Timber.d("VC_${ivDeleteGroup}")
-                                Timber.d("VC_${ivDeleteGroup.parent}")
-                                Timber.d("VC1_${ivDeleteGroup.parent.parent}")
-                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent}")
-                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent.parent}")
-                                Timber.d("VC1_${ivDeleteGroup.parent.parent.parent.parent.parent}")
-
-
-                                val templateStep=llGroup.parent.parent.parent as LinearLayout //id/llGroupRoot
-                                //deleteGroupClickListener.templateStep=templateStep
                                 ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
-
-                                /*if (llGroup.parent.parent.parent.parent!=null) {
-                                    val templateStep=llGroup.parent.parent.parent.parent as LinearLayout
-                                    deleteGroupClickListener.templateStep=templateStep
-                                    ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
-                                }*/
 
                             }
 
@@ -381,14 +414,17 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             listLinesWithBreak //it.value
         )
         // Заполним spinner
-        parentFragment.requireActivity().runOnUiThread{
-            materialSpinner.setAdapter(spinnerArrayAdapter)
+        if (parentFragment.isAdded) {
+            parentFragment.requireActivity().runOnUiThread{
+                materialSpinner.setAdapter(spinnerArrayAdapter)
 
-            // Если шаг чеклиста был ранее сохранен восстановим значение
-            if (!it.resvalue.isNullOrEmpty()){
-                materialSpinner.setText(it.resvalue)
+                // Если шаг чеклиста был ранее сохранен восстановим значение
+                if (!it.resvalue.isNullOrEmpty()){
+                    materialSpinner.setText(it.resvalue)
+                }
             }
         }
+
 
         materialSpinner.isEnabled = enabled
         if (enabled) {
@@ -436,9 +472,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            parentFragment.requireActivity().runOnUiThread{
-                textInputEditText.setText(it.resvalue)
+            if (parentFragment.isAdded) {
+                parentFragment.requireActivity().runOnUiThread{
+                    textInputEditText.setText(it.resvalue)
+                }
             }
+
 
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
@@ -489,9 +528,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()) {
-            parentFragment.requireActivity().runOnUiThread{
-                textInputEditText.setText(it.resvalue)
+            if (parentFragment.isAdded) {
+                parentFragment.requireActivity().runOnUiThread{
+                    textInputEditText.setText(it.resvalue)
+                }
             }
+
 
         }
         // Вешаем обработчик на textInputEditText последним, иначе сбрасывается цвет шага
@@ -530,9 +572,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            parentFragment.requireActivity().runOnUiThread{
-                textInputEditText.setText(it.resvalue)
+            if (parentFragment.isAdded) {
+                parentFragment.requireActivity().runOnUiThread{
+                    textInputEditText.setText(it.resvalue)
+                }
             }
+
 
         }
 
@@ -592,10 +637,11 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
         // Если шаг чеклиста был ранее сохранен восстановим значение
         if (!it.resvalue.isNullOrEmpty()){
-            parentFragment.requireActivity().runOnUiThread{
-                textInputEditText.setText(it.resvalue)
+            if (parentFragment.isAdded) {
+                parentFragment.requireActivity().runOnUiThread{
+                    textInputEditText.setText(it.resvalue)
+                }
             }
-
         }
 
         textInputEditText.addTextChangedListener(TextWatcherHelper(it, templateStep))
@@ -605,40 +651,49 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     }
 
 
-    private fun createPhoto(it: Models.TemplateControl, parent: LinearLayout) {
+    private fun createPhoto(templateControl: Models.TemplateControl, parent: LinearLayout) {
         val templateStep=LayoutInflater.from(rootView.context).inflate(
             R.layout.template_photo2, rootView.parent as ViewGroup?, false
         ) as LinearLayout
 
-        templateStep.id=it.results_id
-        templateStep.findViewById<TextView>(R.id.question).text=it.question
-        setQuestionColor(it, templateStep)
+        templateStep.id=templateControl.results_id
+        templateStep.findViewById<TextView>(R.id.question).text=templateControl.question
+        setQuestionColor(templateControl, templateStep)
 
-        templateStep.tag=it
+        templateStep.tag=templateControl
 
         doAssociateParent(templateStep, parent)
-        it.parentView=parent // Сохраним данные о родительской вьюхе
+        templateControl.parentView=parent // Сохраним данные о родительской вьюхе
 
         // Обработчик для кнопки "Добавить фото"
         val btnPhoto=templateStep.findViewById<MaterialButton>(R.id.btnPhoto)
-        parentFragment.requireActivity().runOnUiThread{
-            btnPhoto.isEnabled = enabled
+        if (parentFragment.isAdded) {
+            parentFragment.requireActivity().runOnUiThread{
+                btnPhoto.isEnabled = enabled
+            }
         }
-        val stepCheckup=it
+
+        val stepCheckup=templateControl
         btnPhoto.tag=templateStep
         btnPhoto.setOnClickListener{
             Timber.d("Добавляем фото")
             // Сбрасываем признак Checked
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
-            (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
-            (parentFragment.requireActivity() as MainActivity).photoDir="${curOrder.guid}/${stepCheckup.results_guid}" // Сохраним id контрола для которого делаем фото
+            if (parentFragment.isAdded) {
+                (parentFragment.requireActivity() as MainActivity).photoStep=stepCheckup // Сохраним id контрола для которого делаем фото
+                (parentFragment.requireActivity() as MainActivity).photoDir="${curOrder.guid}/${stepCheckup.results_guid}" // Сохраним id контрола для которого делаем фото
+            }
+
             photoHelper.createPhoto(curOrder.guid, stepCheckup)
         }
 
         val btnDeletePhoto = templateStep.findViewById<MaterialButton>(R.id.btnDeletePhoto)
-        parentFragment.requireActivity().runOnUiThread{
-            btnDeletePhoto.isEnabled = enabled
+        if (parentFragment.isAdded) {
+            parentFragment.requireActivity().runOnUiThread{
+                btnDeletePhoto.isEnabled = enabled
+            }
         }
+
         btnDeletePhoto.tag=templateStep
         btnDeletePhoto.setOnClickListener {
             Timber.d("Удалим фото")
@@ -652,8 +707,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             Timber.d("pager.adapter.count=${pager.adapter?.count}")
             if (pager.adapter?.count!! >0) {
                 // Получим список фоток из папки
-                val imagesPhoto: List<String>
-                imagesPhoto = if (!tc.resvalue.isNullOrEmpty()) {
+                val imagesPhoto: List<String> = if (!tc.resvalue.isNullOrEmpty()) {
                     otherUtil.getFilesFromDir("${DCIM_DIR}/PhotoForApp/${tc.resvalue}")
                 } else {
                     val curOrder=(parentFragment.activity as MainActivity).currentOrder
@@ -667,9 +721,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     imagesNew.addAll(imagesPhoto)
                     imagesNew.removeAt(indexPhoto)
 
-                    parentFragment.requireActivity().runOnUiThread{
-                        parentFragment.refreshPhotoViewer(templateStep, imagesNew, rootView.context)
+                    if (parentFragment.isAdded) {
+                        parentFragment.requireActivity().runOnUiThread{
+                            parentFragment.refreshPhotoViewer(templateStep, imagesNew, rootView.context)
+                        }
                     }
+
 
 
                     // Проверим папку, может она пуста
@@ -690,9 +747,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             }
         }
 
-        val images: List<String>
-        images = if (!it.resvalue.isNullOrEmpty()) {
-            Timber.d("Фото_${it.resvalue}")
+        val images: List<String> = if (!templateControl.resvalue.isNullOrEmpty()) {
+            Timber.d("Фото_${templateControl.resvalue}")
             // Обновим список с фото
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
@@ -705,8 +761,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         Timber.d("images=$images")
 
         // Проверим, если resvalue пусто, а папка с фото есть и содержит старые фото, тогда удалим папку
-        Timber.d("it.resvalue=${it.resvalue}")
-        if (it.resvalue.isNullOrEmpty()) {
+        Timber.d("it.resvalue=${templateControl.resvalue}")
+        if (templateControl.resvalue.isNullOrEmpty()) {
             Timber.d("it.resvalue.isNullOrEmpty()")
             val curOrder=(parentFragment.activity as MainActivity).currentOrder
             val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
@@ -723,8 +779,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         val rightBtn = templateStep.findViewById(R.id.right_nav) as ImageButton
 
         // Обновим вьювер с фотками
-        parentFragment.requireActivity().runOnUiThread{
-            parentFragment.refreshPhotoViewer(templateStep, images, rootView.context)
+        if (parentFragment.isAdded) {
+            parentFragment.requireActivity().runOnUiThread{
+                parentFragment.refreshPhotoViewer(templateStep, images, rootView.context)
+            }
         }
 
 
@@ -936,7 +994,10 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             val llGroup=templateStep.findViewById<LinearLayout>(R.id.container)
             llGroup.tag="$name$node" // Сохраним имя группы
             Timber.d("tag_${llGroup.tag}")
-
+            if (parentFragment.currentOrder.typeOrder==ROUTINE_MAINTENANCE) {
+                showQuestionCount(templateStep)
+                listSubtypeView.add(templateStep)
+            }
 
             val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
@@ -1051,7 +1112,8 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         templateStep.findViewById<TextView>(R.id.question).text=NEW_NAME_GROUP_REPLICATE
         val ivAddGroup=templateStep.findViewById<ImageView>(R.id.ivAddGroup)
         ivAddGroup.visibility=View.VISIBLE
-        addGroupClickListener.templateStep=templateStep
+        //addGroupClickListener.templateStep=templateStep
+        ivAddGroup.tag=templateStep
         ivAddGroup.setOnClickListener(addGroupClickListener)
 
         val pbStepLoad=templateStep.findViewById<ProgressBar>(R.id.pbStepLoad)
@@ -1066,109 +1128,98 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             val newNumberQuestion=this.controlList.size
             parentFragment.currentOrder.questionCount=newNumberQuestion
 
+            if (parentFragment.isAdded) {
+                parentFragment.requireActivity().runOnUiThread {
+                    val tvQuestionCount=parentFragment.view?.findViewWithTag<TextView>("countQuestionChecklist")
+                    if (tvQuestionCount!=null) {
+                        tvQuestionCount.text="${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
+                    }
 
-            parentFragment.requireActivity().runOnUiThread {
-                val tvQuestionCount=parentFragment.view?.findViewWithTag<TextView>("countQuestionChecklist")
-                if (tvQuestionCount!=null) {
-                    tvQuestionCount.text="${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
-                }
-
-                pbStepLoad.visibility=View.INVISIBLE
-                layoutGroup.visibility=View.VISIBLE
-                ivExpand.setImageDrawable(
-                    ContextCompat.getDrawable(
-                        rootView.context,
-                        R.drawable.arrow_down
+                    pbStepLoad.visibility=View.INVISIBLE
+                    layoutGroup.visibility=View.VISIBLE
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_down
+                        )
                     )
-                )
 
-                //Для всех потомков Группы добавим кнопки для удаления
-                Timber.d("layoutGroup.children=${layoutGroup.children.count()}")
-                layoutGroup.children.forEach {
-                    val ivDeleteGroup=it.findViewById<ImageView>(R.id.ivDeleteGroup)
-                    ivDeleteGroup.visibility=View.VISIBLE
-                    //deleteGroupClickListener.templateStep=templateStep
-                    Timber.d("setOnClickListener_deleteGroupClickListener")
-                    ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
+                    //Для всех потомков Группы добавим кнопки для удаления
+                    Timber.d("layoutGroup.children=${layoutGroup.children.count()}")
+                    layoutGroup.children.forEach {
+                        val ivDeleteGroup=it.findViewById<ImageView>(R.id.ivDeleteGroup)
+                        ivDeleteGroup.visibility=View.VISIBLE
+                        //deleteGroupClickListener.templateStep=templateStep
+                        Timber.d("setOnClickListener_deleteGroupClickListener")
+                        ivDeleteGroup.setOnClickListener(deleteGroupClickListener)
+                    }
+
                 }
-
             }
+
         }
         val t=Thread(r)
         t.start()
     }
 
-    private val addGroupClickListener=object: View.OnClickListener {
-        lateinit var templateStep: LinearLayout
-        override fun onClick(v: View?) {
-            Timber.d("Добавим_группу")
-            replicateGroup(templateStep,1)
+    private val addGroupClickListener= View.OnClickListener { v ->
 
-            // Сменим значение атрибута Кол-во групп полей
-            val tvNumberGroup=rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK)
-            val numberGroups=(tvNumberGroup.text.toString()).toIntOrNull()
-            if (numberGroups != null) {
-                tvNumberGroup.text=(numberGroups+1).toString()
-            }
+        //lateinit var templateStep: LinearLayout
+        Timber.d("Добавим_группу")
+        val templateStep= v?.tag as LinearLayout
+        replicateGroup(templateStep,1)
 
+        // Сменим значение атрибута Кол-во групп полей
+        val tvNumberGroup=rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK)
+        val numberGroups=(tvNumberGroup.text.toString()).toIntOrNull()
+        if (numberGroups != null) {
+            tvNumberGroup.text=(numberGroups+1).toString()
         }
     }
 
-    private val deleteGroupClickListener=object: View.OnClickListener{
-        //lateinit var templateStep: LinearLayout
-        @SuppressLint("SetTextI18n")
-        override fun onClick(v: View?) {
+    private val deleteGroupClickListener= View.OnClickListener { v ->
+        val parentView: LinearLayout= if (rootView.findViewWithTag<LinearLayout>(NEW_NAME_GROUP_REPLICATE)!=null) {
+            rootView.findViewWithTag(NEW_NAME_GROUP_REPLICATE)
+        } else {
+            rootView.findViewWithTag(NAME_GROUP_REPLICATE)
+        }
+        val viewForDelete=v?.parent?.parent?.parent?.parent as View
 
-            val parentView=rootView.findViewWithTag<LinearLayout>(NEW_NAME_GROUP_REPLICATE)
-            Timber.d("xxx=$parentView")
-
-            //val parentView=templateStep.findViewById<LinearLayout>(R.id.container)
-            /*Timber.d("parentView=${templateStep.parent}")
-            val parentView=templateStep.parent as LinearLayout
-            Timber.d("parentView=$parentView")*/
-
-
-
-
-            val viewForDelete=v?.parent?.parent?.parent?.parent as View
-            val nameGroup=viewForDelete.findViewById<TextView>(R.id.question).text
-            parentView.removeView(viewForDelete)
-            Timber.d("parentView=${parentView.childCount}")
-            // Сменим нумерацию групп
-            parentView.children.forEachIndexed { index, view ->
-                view.findViewById<TextView>(R.id.question).text="Группа ${index+1}"
-            }
-
-            Timber.d("Удаляем_текущую_группу_$nameGroup")
-            val controlsForDelete=this@UICreator.controlList.filter { it.group_checklist!=null && it.group_checklist!!.contains(nameGroup) }
-            controlList.removeAll(controlsForDelete)
-
-            controlList.filter {
-                it.replicated
-            }.forEach {
-                // Получим новое название группы в которой находится контрол
-                val newNameGroup= (it.parentView?.parent as View).findViewById<TextView>(R.id.question)?.text
-                it.group_checklist="$NEW_NAME_GROUP_REPLICATE#$newNameGroup"
-            }
-
-
-            //Сменим кол-во вопросов в группе
-            val newNumberQuestion=controlList.size
-            parentFragment.currentOrder.questionCount=newNumberQuestion
-            val tvQuestionCount=parentFragment.view?.findViewWithTag<TextView>("countQuestionChecklist")
-            if (tvQuestionCount!=null) {
-                tvQuestionCount.text="${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
-            }
-
-            // Сменим значение атрибута Кол-во групп полей
-            val tvNumberGroup=rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK)
-            val numberGroups=(tvNumberGroup.text.toString()).toIntOrNull()
-            if (numberGroups != null) {
-                tvNumberGroup.text=(numberGroups-1).toString()
-            }
-
+        val nameGroup=viewForDelete.findViewById<TextView>(R.id.question).text
+        parentView.removeView(viewForDelete)
+        Timber.d("parentView=${parentView.childCount}")
+        // Сменим нумерацию групп
+        parentView.children.forEachIndexed { index, view ->
+            view.findViewById<TextView>(R.id.question).text=parentFragment.getString(R.string.name_group,index+1)// "Группа ${index+1}"
         }
 
+        Timber.d("Удаляем_текущую_группу_$nameGroup")
+        val controlsForDelete=this@UICreator.controlList.filter { it.group_checklist!=null && it.group_checklist!!.contains(nameGroup) }
+        controlList.removeAll(controlsForDelete)
+
+        controlList.filter {
+            it.replicated
+        }.forEach {
+            // Получим новое название группы в которой находится контрол
+            val newNameGroup= (it.parentView?.parent as View).findViewById<TextView>(R.id.question)?.text
+            it.group_checklist="$NEW_NAME_GROUP_REPLICATE#$newNameGroup"
+        }
+
+
+        //Сменим кол-во вопросов в группе
+        val newNumberQuestion=controlList.size
+        parentFragment.currentOrder.questionCount=newNumberQuestion
+        val tvQuestionCount=parentFragment.view?.findViewWithTag<TextView>("countQuestionChecklist")
+        if (tvQuestionCount!=null) {
+            tvQuestionCount.text=parentFragment.getString(R.string.question_count,parentFragment.currentOrder.questionCount,parentFragment.currentOrder.answeredCount)
+        }
+
+        // Сменим значение атрибута Кол-во групп полей
+        val tvNumberGroup=rootView.findViewWithTag<TextView>(NUMBER_GROUPS_FIELD_MARK)
+        val numberGroups=(tvNumberGroup.text.toString()).toIntOrNull()
+        if (numberGroups != null) {
+            tvNumberGroup.text=(numberGroups-1).toString()
+        }
     }
 
     private fun updateMainControlList(cl: MutableList<Models.TemplateControl>) {
@@ -1183,8 +1234,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             it.group_checklist= it.group_checklist?.replace("Группа","ВопросыТираж#Группа")
         }
 
-        Timber.d("XZC_${this.controlList.size}_${cl.size}_${position}")
-        Timber.d("XZC_${cl}")
         if (position>0) {
             this.controlList.addAll(position,cl)
         } else {
@@ -1204,7 +1253,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             questionColor=Color.BLUE
         }
         if (parentFragment.isAdded) {
-            Timber.d("isAdded")
             parentFragment.requireActivity().runOnUiThread {
                 templateStep.findViewById<TextView>(R.id.question).setTextColor(questionColor)
             }

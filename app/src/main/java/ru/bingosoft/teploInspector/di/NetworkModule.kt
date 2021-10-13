@@ -16,7 +16,14 @@ import ru.bingosoft.teploInspector.util.Const.Network.TIMEOUT
 import ru.bingosoft.teploInspector.util.OtherUtil
 import ru.bingosoft.teploInspector.util.SharedPrefSaver
 import timber.log.Timber
+import java.security.SecureRandom
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 @Module
@@ -27,7 +34,6 @@ class NetworkModule {
 
         val fileLogger=object:HttpLoggingInterceptor.Logger {
             override fun log(message: String) {
-                //Timber.d("Network_ZXC_$message")
                 otherUtil.writeToFile(message)
             }
 
@@ -40,6 +46,7 @@ class NetworkModule {
 
 
         val client = OkHttpClient.Builder()
+        //val client = getUnsafeOkHttpClient()
             .addInterceptor(interceptorFile)
             .addInterceptor(interceptor)
             .addInterceptor(object : Interceptor {
@@ -95,6 +102,43 @@ class NetworkModule {
 
         return retrofit.create(ApiService::class.java)
 
+    }
+
+    //#Отключение_SSL
+    //Использовать в крайнем случае - дыра в безопасности
+    private fun getUnsafeOkHttpClient(): OkHttpClient.Builder {
+        try {
+            // Создаем менеджера доверия, который не проверяет цепочки сертификатов
+            val trustAllCerts: Array<TrustManager> = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    @Throws(CertificateException::class)
+                    override fun checkClientTrusted(chain: Array<X509Certificate?>?, authType: String?) {
+                    }
+
+                    @Throws(CertificateException::class)
+                    override fun checkServerTrusted(chain: Array<X509Certificate?>?, authType: String?) {
+                    }
+
+                    override fun getAcceptedIssuers(): Array<X509Certificate> {
+                        return arrayOf()
+                    }
+
+                }
+            )
+
+            // Устанавливаем полностью доверительный менеджер
+            val sslContext: SSLContext = SSLContext.getInstance("SSL")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+
+            // Создаем фабрику с полностью доверительным менеджером
+            val sslSocketFactory: SSLSocketFactory = sslContext.getSocketFactory()
+            val builder = OkHttpClient.Builder()
+            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
+            builder.hostnameVerifier{ _, _ -> true }
+            return builder
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
     }
 
 }

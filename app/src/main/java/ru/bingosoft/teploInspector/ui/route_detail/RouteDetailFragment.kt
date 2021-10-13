@@ -35,7 +35,6 @@ import com.yandex.runtime.network.NetworkError
 import com.yandex.runtime.network.RemoteError
 import com.yandex.runtime.ui_view.ViewProvider
 import dagger.android.support.AndroidSupportInjection
-import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
@@ -74,14 +73,17 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
         AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
-        MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
-        MapKitFactory.setLocale("ru_RU")
+        /*MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
+        MapKitFactory.setLocale("ru_RU")*/
         MapKitFactory.initialize(this.context)
         DirectionsFactory.initialize(this.context)
         TransportFactory.initialize(this.context)
 
         directions= DirectionsFactory.getInstance()
         transports= TransportFactory.getInstance()
+
+        /*directions= App.appInstance.directions
+        transports=App.appInstance.transports*/
 
 
     }

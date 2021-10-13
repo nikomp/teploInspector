@@ -40,5 +40,6 @@ interface MainActivityContractView {
 
     fun clearAuthData()
 
+    fun refreshOrderListFromMA()
 
 }

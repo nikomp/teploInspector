@@ -94,6 +94,8 @@ data class Orders (
     var giMasterRtc: String? = null,
     @SerializedName("tech_params_count")
     var techParamsCount: Int=0,
+    @SerializedName("subtypes")
+    var subtypes: String? = null,
 
     var checked: Boolean=false,
     var questionCount: Int=0,

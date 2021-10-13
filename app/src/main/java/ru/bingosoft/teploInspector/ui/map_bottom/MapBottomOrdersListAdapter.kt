@@ -23,11 +23,12 @@ class MapBottomOrdersListAdapter(val orders: List<Orders>, private val itemListe
         position: Int
     ) {
         holder.orderNumber.text = holder.itemView.context.getString(R.string.order_number,orders[position].number)
-        if (orders[position].typeOrder.isNullOrEmpty()){
+        /*if (orders[position].typeOrder.isNullOrEmpty()){
             holder.orderType.text="Тип заявки"
         } else {
             holder.orderType.text=orders[position].typeOrder
-        }
+        }*/
+        holder.orderType.text=orders[position].typeOrder
         holder.listener=itemListener
     }
 

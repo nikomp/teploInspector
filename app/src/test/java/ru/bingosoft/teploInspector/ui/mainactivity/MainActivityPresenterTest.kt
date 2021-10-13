@@ -6,6 +6,7 @@ import io.reactivex.observers.TestObserver
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
@@ -17,6 +18,7 @@ import ru.bingosoft.teploInspector.api.ApiService
 import ru.bingosoft.teploInspector.db.AppDatabase
 import ru.bingosoft.teploInspector.models.Models
 
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class MainActivityPresenterTest {
     lateinit var mainActivityPresenter: MainActivityPresenter
     private var mockView=Mockito.mock(MainActivityContractView::class.java)

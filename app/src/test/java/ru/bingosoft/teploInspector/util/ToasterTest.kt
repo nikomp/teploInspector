@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -17,6 +18,7 @@ import ru.bingosoft.teploInspector.R
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.O_MR1])
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class ToasterTest {
     lateinit var context: Context
     lateinit var toaster: Toaster

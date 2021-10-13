@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const
+import ru.bingosoft.teploInspector.util.Const.LockStateOrder.STATE_IN_WAY
+import ru.bingosoft.teploInspector.util.Const.LockStateOrder.STATE_OPEN
 import ru.bingosoft.teploInspector.util.Const.PositionSteps.ADDITIONAL_LOAD_POSITION
 import ru.bingosoft.teploInspector.util.Const.PositionSteps.CHECKUP_POSITION
 import ru.bingosoft.teploInspector.util.Const.PositionSteps.GENERAL_INFORMATION_POSITION
@@ -51,20 +53,16 @@ class StepsAdapter(
         holder.stepNumber.text="${position+1}"
         holder.stepName.text=lists[position]
         when (position) {
-            0 -> holder.countQuestion.text =
+            GENERAL_INFORMATION_POSITION -> holder.countQuestion.text =
                 "${Const.GeneralInformation.list.size}/${Const.GeneralInformation.list.size}"
-            1 -> {
-                Timber.d("VVV1_${parentFragment.currentOrder.techParamsCount}")
-                Timber.d("VVV1_${parentFragment.currentOrder}")
+            TECHNICAL_CHARACTERISTICS_POSITION -> {
                 holder.countQuestion.text =
                     "${parentFragment.currentOrder.techParamsCount}/${parentFragment.currentOrder.techParamsCount}"
             }
-            2 -> {
-                Timber.d("Дополнительная нагрузка")
+            ADDITIONAL_LOAD_POSITION -> {
                 holder.countQuestion.text ="${parentFragment.currentOrder.addLoadCount}/${parentFragment.currentOrder.addLoadCount}"
             }
-            3 -> {
-                Timber.d("questionCount=${parentFragment.currentOrder.questionCount}")
+            CHECKUP_POSITION -> {
                 holder.countQuestion.text =
                     "${parentFragment.currentOrder.questionCount}/${parentFragment.currentOrder.answeredCount}"
                 holder.countQuestion.tag = "countQuestionChecklist"
@@ -104,9 +102,6 @@ class StepsAdapter(
         holder.details.layoutParams = params
         holder.details.visibility=View.GONE
         if (position==GENERAL_INFORMATION_POSITION && isExpanded) {
-            Timber.d("Общие_сведения")
-            Timber.d("parentFragment.currentOrder=${parentFragment.currentOrder}")
-
             val rvgi=LayoutInflater.from(holder.itemView.context).inflate(
                 R.layout.order_general_information,
                 holder.details,
@@ -119,9 +114,11 @@ class StepsAdapter(
             )
             rvgi.adapter = adapter
             holder.details.addView(rvgi)
+
             holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
         }
         if (position==TECHNICAL_CHARACTERISTICS_POSITION && isExpanded) {
+            println("TECHNICAL_CHARACTERISTICS_POSITION")
             //Генерируем тех характеристики
             if (parentFragment.llMainUiTX.isNotEmpty()) {
                 parentFragment.llMainUiTX.forEach {
@@ -138,18 +135,23 @@ class StepsAdapter(
             } else {
                 if (parentFragment.techParams.isNotEmpty()) {
                     holder.pbStepLoad.visibility=View.VISIBLE
-                    val txCreator=TechnicalCharacteristics(parentFragment, parentFragment.techParams)
-                    val r= Runnable {
-                        txCreator.create(holder.details)
-                        parentFragment.requireActivity().runOnUiThread {
-                            holder.pbStepLoad.visibility=View.INVISIBLE
-                            holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+                    if (parentFragment.isAdded) {
+                        val txCreator=TechnicalCharacteristics(parentFragment, parentFragment.techParams)
+                        val r= Runnable {
+                            txCreator.create(holder.details)
+                            parentFragment.requireActivity().runOnUiThread {
+                                holder.pbStepLoad.visibility=View.INVISIBLE
+                                holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+                            }
                         }
-                    }
-                    val t=Thread(r)
-                    t.start()
+                        val t=Thread(r)
+                        t.start()
 
-                    parentFragment.txCreator=txCreator
+                        parentFragment.txCreator=txCreator
+                    } else {
+                        parentFragment.toaster.showErrorToast(R.string.error_unable_upload_checklist)
+                        parentFragment.otherUtil.writeToFile("Logger_Fragment CheckupFragment not attached to an activity.")
+                    }
 
                 } else {
                     parentFragment.toaster.showToast(R.string.th_is_empty)
@@ -169,6 +171,7 @@ class StepsAdapter(
 
         }
         if (position==CHECKUP_POSITION && isExpanded){
+            println("CHECKUP_POSITION")
             //Генерируем чеклист
             Timber.d("llMainTemp=${parentFragment.llMainUi}")
             if (parentFragment.llMainUi.isNotEmpty()) {
@@ -186,18 +189,24 @@ class StepsAdapter(
             } else {
                 if (parentFragment.isCheckupInitialized() ) {
                     holder.pbStepLoad.visibility=View.VISIBLE
-                    val uiCreator=UICreator(parentFragment, parentFragment.checkup)
-                    val r= Runnable {
-                        uiCreator.create(holder.details)
-                        parentFragment.requireActivity().runOnUiThread {
-                            holder.pbStepLoad.visibility=View.INVISIBLE
-                            holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+                    if (parentFragment.isAdded) {
+                        val uiCreator=UICreator(parentFragment, parentFragment.checkup)
+                        val r= Runnable {
+                            uiCreator.create(holder.details)
+                            parentFragment.requireActivity().runOnUiThread {
+                                holder.pbStepLoad.visibility=View.INVISIBLE
+                                holder.details.visibility = if (isExpanded) View.VISIBLE else View.GONE
+                            }
                         }
-                    }
-                    val t=Thread(r)
-                    t.start()
+                        val t=Thread(r)
+                        t.start()
 
-                    parentFragment.uiCreator=uiCreator
+                        parentFragment.uiCreator=uiCreator
+                    } else {
+                        parentFragment.toaster.showErrorToast(R.string.error_unable_upload_checklist)
+                        parentFragment.otherUtil.writeToFile("Logger_Fragment CheckupFragment not attached to an activity.")
+                    }
+
 
                 } else {
                     parentFragment.toaster.showToast(R.string.checklist_is_empty)
@@ -217,13 +226,11 @@ class StepsAdapter(
         val clickListener= View.OnClickListener {
             it.setOnClickListener(null)
             expandedPosition = if (isExpanded) -1 else position
-            Timber.d("ClickListener_$expandedPosition _$isExpanded")
 
             notifyItemChanged(position)
 
-            Timber.d("pbStepLoad_VISIBLE")
-            if ((!isExpanded) && (parentFragment.currentOrder.status=="Открыта"
-                        || parentFragment.currentOrder.status=="В пути")) {
+            if ((!isExpanded) && (parentFragment.currentOrder.status==STATE_OPEN
+                        || parentFragment.currentOrder.status== STATE_IN_WAY)) {
                 parentFragment.toaster.showToast(R.string.checklist_is_blocked)
 
             }
@@ -236,10 +243,7 @@ class StepsAdapter(
     }
 
     class StepsViewHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
-        override fun onClick(v: View?) {
-            Timber.d("11_recyclerViewListClicked")
-            //listener?.recyclerViewListClicked(v, this.layoutPosition)
-        }
+        override fun onClick(v: View?) {}
 
         var stepNumber:TextView = itemView.findViewById(R.id.stepNumber)
         var stepName:TextView = itemView.findViewById(R.id.stepName)

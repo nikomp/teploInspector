@@ -168,6 +168,7 @@
     <string name="error_date">Требуемый формат даты дд.мм.гггг</string>
     <string name="error_checklist_contains">Сохранение невозможно. Чеклист содержит ошибки</string>
     <string name="btn_is_bloking_yet">Что-то пошло не так при отправке данных</string>
+    <string name="error_unable_upload_checklist">Невозможно загрузить чеклист</string>
 
     <string name="filter_status_all">Все</string>
     <string name="filter_status_without_Done_and_Cancel">Кроме Выполненных и Отмененных</string>
@@ -239,5 +240,10 @@
 
     <string name="max_number_group_limit">Число групп не может превышать 100</string>
     <string name="checkup_fragment_not_attached">Не могу загрузить Обследование</string>
+    <string name="ivExpandDescription">скрыть/раскрыть</string>
+    <string name="ivSyncDescription">повторить синхронизацию</string>
+
+    <string name="name_group">Группа %1$d</string>
+    <string name="question_count">%1$d/%2$d</string>
 
 </resources>

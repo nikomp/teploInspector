@@ -35,6 +35,11 @@ class Const {
                 "Самостоятельно на личном транспорте",
                 "Самостоятельно пешком",
                 "Транспортировка выполняется заказчиком")
+
+        const val TRANSPORTATION_PUBLIC_TRANSPORT="Самостоятельно на общественном транспорте"
+        const val TRANSPORTATION_PRIVATE_TRANSPORT="Самостоятельно на личном транспорте"
+        const val TRANSPORTATION_FOOT="Самостоятельно пешком"
+        const val TRANSPORTATION_PERFORMED_CUSTOMER="Транспортировка выполняется заказчиком"
     }
 
     object StatusOrder {
@@ -46,6 +51,8 @@ class Const {
                 "В пути",
                 "В работе",
                 "Открыта")
+        const val STATE_COMPLETED="Выполнена"
+        const val STATE_CANCELED="Отменена"
     }
 
     object Photo{
@@ -141,6 +148,7 @@ class Const {
         const val NOTIFICATION_SERVICE_NOTIFICATION_ID = 521
         const val LOCATION_SERVICE_NOTIFICATION_ID = 522
         const val GPS_SERVICE_NOTIFICATION_ID = 523
+        const val NOTIFICATION_CHANGE_DATE="Изменилась согласованная дата визита"
     }
 
     object SpecialTypesOrders{
@@ -150,6 +158,7 @@ class Const {
         const val NAME_GROUP_REPLICATE="Вопросы"
         const val NEW_NAME_GROUP_REPLICATE="ВопросыТираж"
         const val MAX_COUNT_REPLICATE_GROUP=100
+        const val ROUTINE_MAINTENANCE="Регламентные работы"
     }
 
     object PositionSteps{
@@ -157,6 +166,11 @@ class Const {
         const val TECHNICAL_CHARACTERISTICS_POSITION=1
         const val ADDITIONAL_LOAD_POSITION=2
         const val CHECKUP_POSITION=3
+    }
+
+    object LockStateOrder{
+        const val STATE_OPEN="Открыта"
+        const val STATE_IN_WAY="В пути"
     }
 
 

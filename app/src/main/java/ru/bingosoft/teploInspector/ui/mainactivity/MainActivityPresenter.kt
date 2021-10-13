@@ -6,6 +6,7 @@ import com.google.gson.JsonArray
 import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
@@ -62,7 +63,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     private lateinit var disposableGetAllMessage: Disposable
     private lateinit var disposableMarkAllMessage: Disposable
     private lateinit var disposableUpdateLocation: Disposable
+    private lateinit var disposableUpdateDateVisit: Disposable
     private lateinit var checkupsWasSync: MutableList<Int>
+
+    private var compositeDisposable= CompositeDisposable()
 
     private var filesToSync: Array<File>? = arrayOf()
 
@@ -184,21 +188,24 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
     fun isCheckupWithResult(msg: String) {
-        disposable=Single.fromCallable{
+        val disposable=Single.fromCallable{
             db.checkupDao().existCheckupWithResult()
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe{ result ->
+            .subscribe({ result ->
                 Timber.d("result_existCheckupWithResult=$result")
                 if (result>0) {
                     view?.showMainActivityMsg("$msg Есть чеклисты с неподтвержденными шагами")
-                    disposable.dispose()
+                    //disposable.dispose()
                 } else {
                     view?.showMainActivityMsg(msg)
-                    disposable.dispose()
+                    //disposable.dispose()
                 }
-            }
+            },{
+                it.printStackTrace()
+            })
+        compositeDisposable.add(disposable)
     }
 
     fun repeatSendData() {
@@ -277,7 +284,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun updateGiOrder(order: Orders) {
         Timber.d("saveDateTime_$order")
-        disposable=Single.fromCallable {
+        val disposable=Single.fromCallable {
             db.ordersDao().update(order)
         }
             .subscribeOn(Schedulers.io())
@@ -285,27 +292,37 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .subscribe({
                 Timber.d("view=$view")
                 sendGiOrder(order.id)
-                disposable.dispose()
+                //disposable.dispose()
                 Timber.d("Обновили_дату_время")
             },{throwable ->
-                disposable.dispose()
+                //disposable.dispose()
                 throwable.printStackTrace()
             })
+        compositeDisposable.add(disposable)
+    }
+
+    fun updateDateVisit(idOrder: Long, newDateVisit: String) {
+        Timber.d("idOrder_$idOrder _newDateVisit_$newDateVisit")
+        val disposableUpdateDateVisit= Single.fromCallable {
+            db.ordersDao().updateDateVisit(idOrder = idOrder, newDate = newDateVisit)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                //disposableUpdateDateVisit.dispose()
+                view?.refreshOrderListFromMA()
+                Timber.d("Обновили_дату_визита")
+            },{throwable ->
+                //disposableUpdateDateVisit.dispose()
+                throwable.printStackTrace()
+            })
+        compositeDisposable.add(disposableUpdateDateVisit)
     }
 
     fun sendGiOrder(idOrder:Long) {
         disposableSendGi =
-            db.ordersDao()
-                .getById(idOrder)
+            db.ordersDao().getById(idOrder)
                 .subscribeOn(Schedulers.io())
-                /*.takeWhile { listResult ->
-                    Timber.d("listResult=$listResult")
-                    if (listResult.isEmpty()) {
-                        throw ThrowHelper("Ошибка! Нет данных для передачи на сервер")
-                    } else {
-                        listResult.isNotEmpty()
-                    }
-                }*/
                 .flatMap { orders ->
                     // Конвертируем строку controls в JsonArray
                     Timber.d("Данные=${Gson().toJson(orders)}")
@@ -597,13 +614,10 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
     fun updData(sync:Int=1) {
-        if (this::disposable.isInitialized) {
+        /*if (this::disposable.isInitialized) {
             disposable.dispose()
-        }
-        Timber.d("updData")
+        }*/
         Single.fromCallable {
-            Timber.d("$checkupsWasSync")
-
             checkupsWasSync.forEach {
                 // sync=1 Данные сохранены и отправлены на сервер,
                 // sync=2 Данные сохранены но не отправлены на сервер
@@ -616,7 +630,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     fun getAllOrderNotSync() {
         Timber.d("getAllOrderNotSync")
-        disposable=Single.fromCallable {
+        val disposable=Single.fromCallable {
             db.checkupDao().getIdAllOrdersNotSync()
         }
             .subscribeOn(Schedulers.io())
@@ -624,11 +638,13 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .subscribe ({ response ->
                 Timber.d("orderIdsNotSync=$response")
                 view?.setIdsOrdersNotSync(response)
-                disposable.dispose()
+                //disposable.dispose()
             },{throwable ->
+                println("ERROR_$db")
                 throwable.printStackTrace()
-                disposable.dispose()
+                //disposable.dispose()
             })
+        compositeDisposable.add(disposable)
     }
 
     //#RxJava #interval
@@ -692,7 +708,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
 
     private fun updateLocationPoints(location: List<TrackingUserLocation>) {
         Timber.d("updateLocationPoints")
-        disposableUpdateLocation=Single.fromCallable{
+        val disposableUpdateLocation=Single.fromCallable{
             val ids=location.map { it.dateLocation.time }
             db.trackingUserDao().updateLocationSynced(ids)
         }
@@ -700,11 +716,12 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 Timber.d("updateLocationPoints_OK")
-                disposableUpdateLocation.dispose()
+                //disposableUpdateLocation.dispose()
             },{throwable ->
                 throwable.printStackTrace()
-                disposableUpdateLocation.dispose()
+                //disposableUpdateLocation.dispose()
             })
+        compositeDisposable.add(disposableUpdateLocation)
 
     }
 
@@ -718,6 +735,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
         if (this::disposableRouteInterval.isInitialized) {
             disposableRouteInterval.dispose()
         }
+        compositeDisposable.dispose()
     }
 
 }

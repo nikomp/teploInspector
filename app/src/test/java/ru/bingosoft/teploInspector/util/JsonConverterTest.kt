@@ -3,8 +3,10 @@ package ru.bingosoft.teploInspector.util
 import com.google.gson.JsonObject
 import org.junit.Assert
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class JsonConverterTest {
     lateinit var jsonConverter: JsonConverter
     @Before

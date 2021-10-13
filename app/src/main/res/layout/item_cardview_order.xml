@@ -46,6 +46,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="8dp"
                     android:visibility="gone"
+                    android:contentDescription="@string/ivExpandDescription"
                     app:srcCompat="@drawable/arrow_down" />
 
                 <ImageView
@@ -55,6 +56,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="8dp"
                     android:visibility="gone"
+                    android:contentDescription="@string/ivSyncDescription"
                     app:srcCompat="@drawable/ic_sync" />
 
                 <TextView

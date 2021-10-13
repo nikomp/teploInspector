@@ -3,7 +3,7 @@ package ru.bingosoft.teploInspector.ui.order
 import com.google.gson.Gson
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -29,12 +29,13 @@ class OrderPresenter @Inject constructor(
 
     private var tempHistory= HistoryOrderState()
     var view: OrderContractView? = null
-    private lateinit var disposable: Disposable
+    /*private lateinit var disposable: Disposable
     private lateinit var disposableUpdateState: Disposable
     private lateinit var disposableSendState: Disposable
     private lateinit var disposableRollbackStateOrder: Disposable
     private lateinit var disposableUpdateOrder: Disposable
-    private lateinit var disposableDeleteOrder: Disposable
+    private lateinit var disposableDeleteOrder: Disposable*/
+    private var compositeDisposable=CompositeDisposable()
 
     @Inject
     lateinit var otherUtil: OtherUtil
@@ -45,17 +46,15 @@ class OrderPresenter @Inject constructor(
     }
 
     private fun addHistoryState(order: Orders) {
-        disposable=Single.fromCallable {
-            //db.ordersDao().update(order)
+        val disposable=Single.fromCallable {
             val date=Date()
             val history=HistoryOrderState(id = date.hashCode(), idOrder = order.id, stateOrder = order.status!!, dateChange = date)
             tempHistory=history
             db.historyOrderStateDao().insert(history)
         }
             .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({id ->
-                disposable.dispose()
+                //disposable.dispose()
                 Timber.d("inserted ID=$id")
                 val history= Models.HistoryOrderOnServer(unique_id=id,
                     idOrder = tempHistory.idOrder,
@@ -64,9 +63,10 @@ class OrderPresenter @Inject constructor(
 
                 sendHistoryToServer(order, history)
             },{throwable ->
-                disposable.dispose()
+                //disposable.dispose()
                 throwable.printStackTrace()
             })
+        compositeDisposable.add(disposable)
 
     }
 
@@ -75,7 +75,7 @@ class OrderPresenter @Inject constructor(
         val jsonBody2 = Gson().toJson(history)
             .toRequestBody("application/json".toMediaType())
 
-        disposableSendState=apiService.sendStatusOrder(jsonBody2)
+        val disposableSendState=apiService.sendStatusOrder(jsonBody2)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
@@ -85,7 +85,7 @@ class OrderPresenter @Inject constructor(
                     deleteOrder(order)
                 }
                 otherUtil.writeToFile("Logger_Отправили_статус_заявки на сервер_$order")
-                disposableSendState.dispose()
+                //disposableSendState.dispose()
             },{ throwable ->
                 Timber.d("throwable.message=${throwable.message}")
                 Timber.d("view=$view")
@@ -98,24 +98,26 @@ class OrderPresenter @Inject constructor(
                     isRollbackChangeStateOrder=false
                 }
 
-                disposableSendState.dispose()
+                //disposableSendState.dispose()
             })
+        compositeDisposable.add(disposableSendState)
 
     }
 
     private fun deleteOrder(order: Orders) {
         Timber.d("deleteOrder")
-        disposableDeleteOrder=Single.fromCallable {
+        val disposableDeleteOrder=Single.fromCallable {
             db.ordersDao().delete(order)
         }
             .subscribeOn(Schedulers.io())
             .subscribe({
                 Timber.d("Удалили_Отмененную_заявку_в_БД")
-                disposableDeleteOrder.dispose()
+                //disposableDeleteOrder.dispose()
             },{
-                disposableDeleteOrder.dispose()
+                //disposableDeleteOrder.dispose()
                 it.printStackTrace()
             })
+        compositeDisposable.add(disposableDeleteOrder)
     }
 
     /*Возврат к предыдущему состоянию Заявки нужен в случае если отправка данных по заявке уже прошла,
@@ -128,7 +130,7 @@ class OrderPresenter @Inject constructor(
         if (order.status=="Выполнена" || order.status=="Отменена") {
             // Получим предыдущее состояние Заявки
             Timber.d("rollbackChangeStateOrder")
-            disposableRollbackStateOrder=Single.fromCallable{
+            val disposableRollbackStateOrder=Single.fromCallable{
                 db.historyOrderStateDao().getPreviousStateByIdOrder(order.id)
             }.subscribeOn(Schedulers.io())
                 .subscribe({
@@ -138,11 +140,12 @@ class OrderPresenter @Inject constructor(
                     order.status=it
                     updateOrderState(order)
                     isRollbackChangeStateOrder=true
-                    disposableRollbackStateOrder.dispose()
+                    //disposableRollbackStateOrder.dispose()
                 },{
-                    disposableRollbackStateOrder.dispose()
+                    //disposableRollbackStateOrder.dispose()
                     it.printStackTrace()
                 })
+            compositeDisposable.add(disposableRollbackStateOrder)
         }
 
     }
@@ -150,7 +153,7 @@ class OrderPresenter @Inject constructor(
     /*Сначала обновляем данные в локальной БД. Должна быть возсожность отслеживать историю изменения статуса по заявки
     * Нельзя блокировать смену статуса если отсутствует Интернет.*/
     fun updateOrderState(order: Orders) {
-        disposableUpdateState=Single.fromCallable {
+        val disposableUpdateState=Single.fromCallable {
             db.ordersDao().update(order)
         }
         .subscribeOn(Schedulers.io())
@@ -158,25 +161,26 @@ class OrderPresenter @Inject constructor(
             otherUtil.writeToFile("Logger_Обновили_в_БД_Телефона_статус_заявки_$order")
             Timber.d("Данные_обновили_в_БД_Телефона")
             addHistoryState(order)
-            disposableUpdateState.dispose()
+            //disposableUpdateState.dispose()
         },{
-            disposableUpdateState.dispose()
+            //disposableUpdateState.dispose()
             it.printStackTrace()
         })
+        compositeDisposable.add(disposableUpdateState)
     }
 
     fun updateOrder(order: Orders) {
-        disposableUpdateOrder=Single.fromCallable {
+        val disposableUpdateOrder=Single.fromCallable {
             db.ordersDao().update(order)
         }
         .subscribeOn(Schedulers.io())
         .subscribe({
             Timber.d("Данные_обновили_в_БД_Телефона")
-            disposableUpdateOrder.dispose()
         },{
-            disposableUpdateOrder.dispose()
             it.printStackTrace()
         })
+        compositeDisposable.add(disposableUpdateOrder)
+
     }
 
     fun changeTypeTransportation(order: Orders) {
@@ -216,29 +220,34 @@ class OrderPresenter @Inject constructor(
 
     fun loadOrders() {
         Timber.d("loadOrders")
-        disposable=db.ordersDao().getAll()
-            .subscribeOn(Schedulers.io())
+        val disposable=db.ordersDao().getAll()
+            //.subscribeOn(Schedulers.io()) не нужно т.к. во Flowable получение данных работает в отдельном потоке
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe {
-                Timber.d("Данные_получили_из_БД")
-                Timber.d(it.toString())
-                Timber.d("view=$view")
-                if (it.isNotEmpty()) {
-                    view?.showOrders(it)
-                } else {
-                    view?.showFailure(R.string.no_requests)
-                }
+            .subscribe(
+                {
+                    Timber.d("Данные_получили_из_БД")
+                    if (it.isNotEmpty()) {
+                        view?.showOrders(it)
+                    } else {
+                        view?.showFailure(R.string.no_requests)
+                    }
 
-                disposable.dispose()
-            }
+                    //disposable.dispose()
+                },{
+                    it.printStackTrace()
+                    //disposable.dispose()
+                }
+            )
+        compositeDisposable.add(disposable)
 
     }
 
     fun onDestroy() {
         this.view = null
-        if (this::disposable.isInitialized) {
+        /*if (this::disposable.isInitialized) {
             disposable.dispose()
-        }
+        }*/
+        compositeDisposable.dispose()
     }
 
 

@@ -10,14 +10,7 @@ import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.db.TechParams.TechParams
 import ru.bingosoft.teploInspector.models.Models
 
-//@Suppress("unused")
 interface ApiService {
-    /*@POST("/defaultauthentication/auth/login")
-    @Headers("Content-Type: application/json")
-    fun getAuthentication(
-        @Body lp: RequestBody
-    ): Single<Models.Uuid>*/
-
     @POST
     @Headers("Content-Type: application/json")
     fun getAuthentication(

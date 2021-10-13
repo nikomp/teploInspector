@@ -19,8 +19,11 @@ import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.models.Models
 import ru.bingosoft.teploInspector.ui.mainactivity.MainActivity
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NORMAL_CLOSURE_STATUS
+import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANGE_DATE
 import ru.bingosoft.teploInspector.util.Const.WebSocketConst.NOTIFICATION_CHANNEL_ID
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 /**
@@ -76,11 +79,6 @@ class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
             notification.id
         )
 
-        /*val resultPendingIntent: PendingIntent? = TaskStackBuilder.create(ctx).run {
-            addNextIntentWithParentStack(resultIntent)
-            getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
-        }*/
-
         //подробнее тут https://stackoverflow.com/questions/28258404/singletask-and-singleinstance-not-respected-when-using-pendingintent
         //+ переустановка приложения на эмуляторе
         val resultPendingIntent = PendingIntent.getActivity(ctx, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT)
@@ -96,6 +94,36 @@ class EchoWebSocketListener(private var ctx: Context) :WebSocketListener() {
             .build()
 
         notificationManager.notify(1000, customNotification)
+        checkNotification(notification)
+    }
+
+    private fun checkNotification(notification: Models.Notification) {
+        if (notification.title==NOTIFICATION_CHANGE_DATE) {
+            /*val newDate=getDateFromContent(notification.content)
+            if (newDate!=null) {
+                Timber.d("обновим дату визиту")
+                val dateVisit=SimpleDateFormat("yyyy-MM-dd", Locale("ru","RU")).format(newDate)
+                val intent=Intent("updateFromNotification")
+
+                intent.putExtra("idOrder", 50368L)
+                intent.putExtra("dateVisit", dateVisit)
+                LocalBroadcastManager.getInstance(ctx).sendBroadcast(intent)
+            }*/
+        }
+    }
+
+    private fun getDateFromContent(content: String) : Date? {
+        val newDatePosition=content.indexOf("Новая согласованная дата:")+26
+        val newDateStr=content.substring(newDatePosition,newDatePosition+10)
+        Timber.d("newDateStr=$newDateStr")
+        var date: Date?=null
+        try {
+            date= SimpleDateFormat("dd.MM.yyyy", Locale("ru","RU")).parse(newDateStr)
+        } catch (e: Exception) {
+            e.printStackTrace()
+
+        }
+        return date
     }
 
     override fun onClosing(

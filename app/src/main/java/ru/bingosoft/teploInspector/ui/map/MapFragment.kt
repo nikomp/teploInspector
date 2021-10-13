@@ -38,7 +38,6 @@ import com.yandex.mapkit.user_location.UserLocationView
 import com.yandex.runtime.image.ImageProvider
 import com.yandex.runtime.ui_view.ViewProvider
 import dagger.android.support.AndroidSupportInjection
-import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.db.Orders.Orders
 import ru.bingosoft.teploInspector.models.Models
@@ -337,8 +336,9 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
         AndroidSupportInjection.inject(this)
         super.onCreate(savedInstanceState)
 
-        MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
-        MapKitFactory.setLocale("ru_RU")
+
+        //MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
+        //MapKitFactory.setLocale("ru_RU")
         MapKitFactory.initialize(this.context)
         DirectionsFactory.initialize(this.context)
         TransportFactory.initialize(this.context)
@@ -347,6 +347,10 @@ class MapFragment : Fragment(), MapContractView, IOnBackPressed, View.OnClickLis
 
         directions=DirectionsFactory.getInstance()
         transports=TransportFactory.getInstance()
+
+        /*mkInstances=App.appInstance.mkInstances
+        directions=App.appInstance.directions
+        transports=App.appInstance.transports*/
 
     }
 

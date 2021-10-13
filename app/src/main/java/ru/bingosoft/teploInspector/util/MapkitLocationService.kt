@@ -15,7 +15,6 @@ import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.DirectionsFactory
 import com.yandex.mapkit.location.*
 import com.yandex.mapkit.transport.TransportFactory
-import ru.bingosoft.teploInspector.BuildConfig
 import ru.bingosoft.teploInspector.R
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.INTERVAL_SAVE_LOCATION
 import ru.bingosoft.teploInspector.util.Const.LocationStatus.LOCATION_UPDATED
@@ -87,14 +86,17 @@ class MapkitLocationService: Service() {
         }
 
 
-        MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
-        MapKitFactory.setLocale("ru_RU")
+
+        //MapKitFactory.setApiKey(BuildConfig.yandex_mapkit_api)
+        //MapKitFactory.setLocale("ru_RU")
         MapKitFactory.initialize(this)
         DirectionsFactory.initialize(this)
         TransportFactory.initialize(this)
-
-
         locationManager= MapKitFactory.getInstance().createLocationManager()
+
+        //locationManager= App.appInstance.mkInstances.createLocationManager()
+        Timber.d("locationManager_CREATE")
+
         locationManager.subscribeForLocationUpdates(
             0.0,
             locationInterval,

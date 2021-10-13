@@ -24,6 +24,7 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
         lists.forEach { th ->
 
             var parentGroup:LinearLayout?=null
+
             if (!th.long_group.isNullOrEmpty()) {
                 val groupList=th.long_group!!.split("#")
 
@@ -87,19 +88,25 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
             R.layout.item_technical_characteristic, rootView.parent as ViewGroup?, false
         ) as LinearLayout //  R.layout.template_textinput
 
-        parentFragment.requireActivity().runOnUiThread {
-            templateStep.findViewById<TextView>(R.id.gi_name).text=th.technical_characteristic
-            templateStep.findViewById<TextView>(R.id.gi_value_edit).text = th.value
+        if (parentFragment.isAdded) {
+            parentFragment.requireActivity().runOnUiThread {
+                templateStep.findViewById<TextView>(R.id.gi_name).text=th.technical_characteristic
+                templateStep.findViewById<TextView>(R.id.gi_value_edit).text = th.value
 
-            val layoutParams= LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+                val layoutParams= LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
 
-            layoutParams.bottomMargin=4
+                layoutParams.bottomMargin=4
 
-            templateStep.findViewById<LinearLayout>(R.id.txll).layoutParams=layoutParams
+                templateStep.findViewById<LinearLayout>(R.id.txll).layoutParams=layoutParams
+            }
+        } else {
+            parentFragment.toaster.showErrorToast(R.string.error_unable_upload_checklist)
+            parentFragment.otherUtil.writeToFile("Logger_Fragment CheckupFragment not attached to an activity.")
         }
+
 
 
         return templateStep
@@ -158,7 +165,7 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
     /**
      * Метод, в котором осуществляется привязка дочернего View к родительскому
      */
-    private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
+    /*private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
         parentFragment.requireActivity().runOnUiThread{
             if (mainView is LinearLayout) {
                 if (index!=null) {
@@ -167,6 +174,15 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
                     mainView.addView(v)
                 }
 
+            }
+        }
+
+    }*/
+
+    private fun doAssociateParent(v: View, mainView: View){
+        parentFragment.requireActivity().runOnUiThread{
+            if (mainView is LinearLayout) {
+                mainView.addView(v)
             }
         }
 

@@ -44,6 +44,8 @@ import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_HOURS
 import ru.bingosoft.teploInspector.util.Const.FinishTime.FINISH_MINUTES
 import ru.bingosoft.teploInspector.util.Const.MessageCode.USER_LOGIN
 import ru.bingosoft.teploInspector.util.Const.SharedPrefConst.ENTER_TYPE
+import ru.bingosoft.teploInspector.util.Const.StatusOrder.STATE_CANCELED
+import ru.bingosoft.teploInspector.util.Const.StatusOrder.STATE_COMPLETED
 import ru.bingosoft.teploInspector.wsnotification.NotificationService
 import timber.log.Timber
 import java.net.UnknownHostException
@@ -96,6 +98,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         savedInstanceState: Bundle?
     ): View {
         Timber.d("OrderFragment_onCreateView")
+        println("OrderFragment_onCreateView22")
         root = inflater.inflate(R.layout.fragment_order, container, false)
 
         Timber.d("supportActionBar_${(this.requireActivity() as AppCompatActivity).supportActionBar}")
@@ -499,9 +502,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val pb=root.findViewById<ProgressBar>(R.id.progressBar)
         pb.visibility= View.INVISIBLE
 
-        //this.orders=orders
         (activity as MainActivity).filteredOrders=orders
-
 
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
@@ -606,6 +607,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
     fun filteredOrderByState(filter: String) {
         Timber.d("filteredOrderByState")
+
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         var filteredOrderByState: List<Orders> = listOf()
         when (filter) {
@@ -615,7 +617,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             }
             "all_without_Done_and_Cancel" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status != "Выполнена" && it.status != "Отменена" }
+                    (requireContext() as MainActivity).orders.filter { it.status != STATE_COMPLETED && it.status != STATE_CANCELED }
                 if ((root.context as MainActivity).isDialogFilterStateOrderInit()) {
                     val rbWithoutDone =
                         (root.context as MainActivity).dialogFilterStateOrder.findViewById<RadioButton>(

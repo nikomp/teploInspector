@@ -30,6 +30,7 @@ data class Checkup (
     var typeOrder: String="",
     @SerializedName("controls")
     var text: JsonArray? = null,
+
     var textResult: JsonArray? = null,
     var sync: Boolean = false
 )

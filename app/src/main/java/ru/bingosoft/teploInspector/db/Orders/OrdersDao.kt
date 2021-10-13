@@ -36,6 +36,9 @@ interface OrdersDao {
     @Query("UPDATE orders SET addLoadCount=:count WHERE id = :idOrder")
     fun updateAddLoadCount(idOrder: Long?, count: Int)
 
+    @Query("UPDATE orders SET dateVisit=:newDate WHERE id = :idOrder")
+    fun updateDateVisit(idOrder: Long?, newDate: String)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE) //В этом режиме будет оставлена старая запись
     fun insert(orders: Orders)
 

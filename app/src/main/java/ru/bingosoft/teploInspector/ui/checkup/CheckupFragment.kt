@@ -40,6 +40,7 @@ import ru.bingosoft.teploInspector.ui.mainactivity.UserLocationReceiver
 import ru.bingosoft.teploInspector.ui.order.OrderPresenter
 import ru.bingosoft.teploInspector.util.*
 import ru.bingosoft.teploInspector.util.Const.Photo.DCIM_DIR
+import ru.bingosoft.teploInspector.util.Const.SpecialTypesOrders.ROUTINE_MAINTENANCE
 import ru.bingosoft.teploInspector.util.photoSliderHelper.GalleryPagerAdapter
 import ru.bingosoft.teploInspector.util.photoSliderHelper.HorizontalAdapter
 import timber.log.Timber
@@ -90,13 +91,18 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     var errorControls= mutableListOf<View>()
     lateinit var btnSave: MaterialButton
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        AndroidSupportInjection.inject(this)
+        super.onCreate(savedInstanceState)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        AndroidSupportInjection.inject(this)
         Timber.d("CheckupFragment.onCreateView")
+        println("CheckupFragment.onCreateView")
         Timber.d("MainActivity_orders_CheckupFragment=${(requireContext() as MainActivity).orders}")
 
         rootView = inflater.inflate(R.layout.fragment_gallery2, container, false)
@@ -116,6 +122,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         val typeOrderTag = arguments?.getString("typeOrder")
         if (typeOrderTag!=null) {
             checkupSteps.add("$typeOrderTag")
+            Timber.d("typeOrderTag_$typeOrderTag")
         }
 
 
@@ -184,6 +191,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         rootView.findViewById<TextView>(R.id.number).text=getString(R.string.order_number,order.number)//"№ ${order.number}"
         rootView.findViewById<TextView>(R.id.count_node).text=getString(R.string.count_node,order.countNode)
         rootView.findViewById<TextView>(R.id.order_type).text=order.typeOrder
+        println(rootView.findViewById<TextView>(R.id.number))
         if (order.typeOrder.isNullOrEmpty()){
             rootView.findViewById<TextView>(R.id.order_type).text="Тип заявки"
         } else {
@@ -207,7 +215,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
 
         val mbsOrderState=rootView.findViewById<MaterialBetterSpinner>(R.id.order_state)
-        mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
+        mbsOrderState.setText(order.status?.uppercase(Locale.ROOT))
         changeColorMBSState(mbsOrderState, order.status)
 
         val btnChangeDateTime=rootView.findViewById<Button>(R.id.btnChangeDateTime)
@@ -292,12 +300,13 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     if (order.answeredCount==0 && s.toString()=="Выполнена") {
                         toaster.showToast(R.string.checklist_not_changed_status)
                         mbsOrderState.removeTextChangedListener(this)
-                        mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
+                        mbsOrderState.setText(order.status?.uppercase(Locale.ROOT))
                         mbsOrderState.addTextChangedListener(this)
                     }
 
-                    if (s.toString().toUpperCase(Locale.ROOT) != order.status?.toUpperCase(Locale.ROOT)) {
-                        order.status=s.toString().toLowerCase(Locale.ROOT).capitalize()
+                    if (s.toString().uppercase(Locale.ROOT) != order.status?.uppercase(Locale.ROOT)) {
+                        order.status= s.toString().lowercase(Locale.ROOT)
+                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                         currentOrder=order
                         changeColorMBSState(mbsOrderState, order.status)
                         try {
@@ -311,7 +320,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                     uiCreator?.checkEnabled()
 
                     mbsOrderState.removeTextChangedListener(this)
-                    mbsOrderState.setText(s.toString().toUpperCase(Locale.ROOT))
+                    mbsOrderState.setText(s.toString().uppercase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
 
 
@@ -329,7 +338,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 } else {
                     toaster.showToast(R.string.wait_data_uploaded)
                     mbsOrderState.removeTextChangedListener(this)
-                    mbsOrderState.setText(order.status?.toUpperCase(Locale.ROOT))
+                    mbsOrderState.setText(order.status?.uppercase(Locale.ROOT))
                     mbsOrderState.addTextChangedListener(this)
                 }
 
@@ -432,7 +441,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
                 }
 
 
-                if (s.toString().toUpperCase(Locale.ROOT) != order.typeTransportation?.toUpperCase(
+                if (s.toString().uppercase(Locale.ROOT) != order.typeTransportation?.uppercase(
                         Locale.ROOT
                     )
                 ) {
@@ -478,22 +487,25 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     }
 
     private fun setVisibleMenuItems(visible: Boolean) {
-        val searchItem=(this.activity as MainActivity).menu.findItem(R.id.action_search)
-        if (searchItem!=null) {
-            searchItem.isVisible=visible
+        if ((this.activity as MainActivity).isInitMenu()) {
+            val searchItem=(this.activity as MainActivity).menu.findItem(R.id.action_search)
+            if (searchItem!=null) {
+                searchItem.isVisible=visible
+            }
+            val filterItem=(this.activity as MainActivity).menu.findItem(R.id.menu_buttons)
+            if (filterItem!=null) {
+                filterItem.isVisible=visible
+            }
+            val filterDate=(this.activity as MainActivity).menu.findItem(R.id.date_filter)
+            if (filterDate!=null) {
+                filterDate.isVisible=visible
+            }
+            val filterState=(this.activity as MainActivity).menu.findItem(R.id.status_filter)
+            if (filterState!=null) {
+                filterState.isVisible=visible
+            }
         }
-        val filterItem=(this.activity as MainActivity).menu.findItem(R.id.menu_buttons)
-        if (filterItem!=null) {
-            filterItem.isVisible=visible
-        }
-        val filterDate=(this.activity as MainActivity).menu.findItem(R.id.date_filter)
-        if (filterDate!=null) {
-            filterDate.isVisible=visible
-        }
-        val filterState=(this.activity as MainActivity).menu.findItem(R.id.status_filter)
-        if (filterState!=null) {
-            filterState.isVisible=visible
-        }
+
     }
 
 
@@ -541,9 +553,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
     override fun setAnsweredCount(count: Int) {
         Timber.d("setAnsweredCount")
 
-        //rootView.findViewWithTag<TextView>("countQuestionChecklist").text="${currentOrder.questionCount}/${count}"
         rootView.findViewWithTag<TextView>("countQuestionChecklist").text=getString(R.string.count_question_checklist,currentOrder.questionCount,count)
         currentOrder.answeredCount=count
+
+        if (currentOrder.typeOrder== ROUTINE_MAINTENANCE) {
+            uiCreator?.listSubtypeView?.forEach{
+                uiCreator?.showQuestionCount(it)
+            }
+        }
 
     }
 
@@ -662,6 +679,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     }
 
+
     override fun onStop() {
         Timber.d("CheckupFragment_onStop")
         super.onStop()
@@ -715,6 +733,7 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
 
     private fun setCheckup(order: Orders) {
         Timber.d("showCheckupOrder ${order.status}")
+        println("setCheckup")
         currentOrder=order
         checkupPresenter.loadCheckupByOrder(order.id)
     }

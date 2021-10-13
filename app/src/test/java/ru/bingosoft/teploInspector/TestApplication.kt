@@ -13,6 +13,11 @@ class TestApplication: Application(), HasAndroidInjector {
     override fun onCreate() {
         super.onCreate()
         setTheme(R.style.AppTheme)
+
+/*        DaggerTestAppComponent.builder()
+            .application(this)
+            .build()
+            .inject(this)*/
     }
 
     override fun androidInjector(): AndroidInjector<Any> = androidInjector

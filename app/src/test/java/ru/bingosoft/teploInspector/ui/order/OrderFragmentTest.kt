@@ -4,6 +4,7 @@ import android.os.Build
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -17,6 +18,7 @@ import ru.bingosoft.teploInspector.util.Toaster
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.O_MR1])
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class OrderFragmentTest {
     private lateinit var orderFragment: OrderFragment
     lateinit var mockToaster: Toaster

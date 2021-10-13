@@ -101,12 +101,15 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     @Inject
     lateinit var userLocationReceiver: UserLocationReceiver
+    @Inject
+    lateinit var updateFromNotificationReceiver: UpdateOrderFromNotificationReceiver
 
     private val dateAndTime: Calendar =Calendar.getInstance()
 
     private val shutdownReceiver= ShutdownReceiver()
     private val airplaneModeReceiver=AirplaneModeReceiver()
     private val dozeReceiver= DozeReceiver()
+
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private val defaultNetworkCallback= CustomNetworkCallback()
@@ -147,6 +150,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     var alertDialogRepeatSync: AlertDialog?=null
     var routeIntervalFlag=false
+    var registerReceiverFlag=false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -399,9 +403,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
     }
 
-    private fun refreshOrderListFromMA() {
+    override fun refreshOrderListFromMA() {
         val navHostFragment: NavHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        Timber.d("VCVC23_${navHostFragment.childFragmentManager.fragments.size}")
+        Timber.d("VCVC23_${navHostFragment.childFragmentManager.fragments}")
         val of = navHostFragment.childFragmentManager.fragments[0] as? OrderFragment
         of?.refreshOrdersList()
     }
@@ -409,6 +415,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     fun isInitCurrentOrder() :Boolean {
         return ::currentOrder.isInitialized
+    }
+
+    fun isInitMenu() :Boolean {
+        return ::menu.isInitialized
     }
 
 
@@ -860,12 +870,15 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         }
 
         try {
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
-            unregisterReceiver(shutdownReceiver)
-            unregisterReceiver(airplaneModeReceiver)
-            unregisterReceiver(dozeReceiver)
-            unregisterCustomNetworkCallback()
+            if (registerReceiverFlag) {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(userLocationReceiver)
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(unauthorizedReceiver)
+                unregisterReceiver(shutdownReceiver)
+                unregisterReceiver(airplaneModeReceiver)
+                unregisterReceiver(dozeReceiver)
+                unregisterCustomNetworkCallback()
+                unregisterReceiver(updateFromNotificationReceiver)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -1287,7 +1300,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
     override fun refreshRecyclerView() {
         ordersIdsNotSync.clear()
         val rv=findViewById<RecyclerView>(R.id.orders_recycler_view)
+        Timber.d("$rv")
         if (rv!=null) {
+            Timber.d("notifyDataSetChanged")
             rv.adapter?.notifyDataSetChanged()
         }
     }
@@ -1306,11 +1321,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
              )
          )
 
+
          registerReceiver(shutdownReceiver, IntentFilter(Intent.ACTION_SHUTDOWN))
          registerReceiver(airplaneModeReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
          registerReceiver(dozeReceiver, IntentFilter(ACTION_DEVICE_IDLE_MODE_CHANGED))
          registerCustomDefaultNetworkCallback()
+         updateFromNotificationReceiver.setMainActivity(this)
+         LocalBroadcastManager.getInstance(this).registerReceiver(updateFromNotificationReceiver,
+             IntentFilter("updateFromNotification")
+         )
 
+         registerReceiverFlag=true
 
      }
 
@@ -1532,9 +1553,9 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         Timber.d("setCountFiltersGroup")
 
         if (orders.isNotEmpty())  { //(::orders.isInitialized)
-            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder==this.getString(
+            dialogFilterGroupOrder.findViewById<TextView>(R.id.countType1).text=orders.filter { it.groupOrder== this.getString(
                 R.string.orderType1
-            ).toLowerCase(
+            ).lowercase(
                 Locale.ROOT
             )
             }.size.toString()
@@ -1572,11 +1593,11 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         var filterCount=0
         if (cb1.isChecked) {
             filterCount+=1
-            filterGroupList.add(getString(R.string.orderType1).toLowerCase(Locale.ROOT))
+            filterGroupList.add(getString(R.string.orderType1).lowercase(Locale.ROOT))
         }
         if (cb2.isChecked) {
             filterCount+=1
-            filterGroupList.add(getString(R.string.orderType2).toLowerCase(Locale.ROOT))
+            filterGroupList.add(getString(R.string.orderType2).lowercase(Locale.ROOT))
         }
         if (cb3.isChecked) {
             filterCount+=1
@@ -1723,6 +1744,5 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
              ).show()
          }
      }
-
 
 }

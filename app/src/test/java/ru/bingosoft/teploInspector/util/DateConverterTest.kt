@@ -3,9 +3,11 @@ package ru.bingosoft.teploInspector.util
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import java.util.*
 
+@Ignore("Долгая отладка других тестов, убрать как будут разработаны остальные тесты")
 class DateConverterTest {
     lateinit var dateConverter: DateConverter
     @Before

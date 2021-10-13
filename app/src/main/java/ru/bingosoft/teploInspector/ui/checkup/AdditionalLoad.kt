@@ -37,8 +37,12 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
             // Создадим группу по назначению
             if (al.purpose.isNotEmpty()) {
-                println("parentGroup_$parentGroup")
-                val llGroup=createGroup(al.purpose, parentGroup!!, al.code.toString())
+                val llGroup=if (parentGroup==null) {
+                    createGroup(al.purpose, rootView.findViewById(R.id.llMain))
+                } else {
+                    createGroup(al.purpose, parentGroup, al.code.toString())
+                }
+
                 parentGroup=llGroup
             }
 
@@ -66,7 +70,14 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
                 val templateStepLoad=fillData(ctx.getString(R.string.load), String.format("%.4f", al.loading))
                 doAssociateParent(templateStepLoad, llGroup)
             } else {
-                val llGroup=createGroup(ctx.getString(R.string.contractors), parentGroup!!, al.code.toString())
+                // Выводим строки Код, Принадлежность, Нагрузка
+                val llGroup=if (parentGroup==null) {
+                    rootView.findViewById(R.id.llMain)
+                }else {
+                    createGroup(ctx.getString(R.string.contractors), parentGroup, al.code.toString())
+                }
+
+                //val llGroup=createGroup(ctx.getString(R.string.contractors), parentGroup!!, al.code.toString())
                 val templateStepCode=fillData(ctx.getString(R.string.contractor), al.contractor.toString())
                 doAssociateParent(templateStepCode, llGroup)
                 val templateStepAffiliation=fillData(ctx.getString(R.string.load), String.format("%.4f", al.loading))
@@ -146,17 +157,22 @@ class AdditionalLoad(private val lists: List<AddLoad>, private val rootView: Vie
 
     }
 
-    /**
-     * Метод, в котором осуществляется привязка дочернего View к родительскому
-     */
-    private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
+    //index не используется в классе AdditionalLoad
+   /* private fun doAssociateParent(v: View, mainView: View, index: Int? = null){
         if (mainView is LinearLayout) {
+
             if (index!=null) {
                 mainView.addView(v, index)
             } else {
                 mainView.addView(v)
             }
 
+        }
+    }*/
+
+    private fun doAssociateParent(v: View, mainView: View){
+        if (mainView is LinearLayout) {
+            mainView.addView(v)
         }
     }
 }

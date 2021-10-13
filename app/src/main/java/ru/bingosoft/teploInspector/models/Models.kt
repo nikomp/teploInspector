@@ -104,6 +104,11 @@ class Models {
 
         @Expose @SerializedName("replicated") var replicated: Boolean=false,
 
+        @Expose @SerializedName("subtype")
+        var subtype: String? = null,
+        @Expose @SerializedName("subtype_name")
+        var subtype_name: String? = null,
+
         var parentView: View?=null
 
     )

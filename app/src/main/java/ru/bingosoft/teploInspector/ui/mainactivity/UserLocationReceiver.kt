@@ -12,7 +12,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -34,8 +34,11 @@ class UserLocationReceiver @Inject constructor(
     private val apiService: ApiService,
     private val db: AppDatabase
 ): BroadcastReceiver() {
-    private lateinit var disposable: Disposable
-    private lateinit var disposableSendMsg: Disposable
+    //private lateinit var disposable: Disposable
+    //private lateinit var disposableSendMsg: Disposable
+    private var compositeDisposable= CompositeDisposable()
+
+    var activity: MainActivity?=null
 
     var lastKnownLocation=Location(LocationManager.GPS_PROVIDER)
 
@@ -69,12 +72,12 @@ class UserLocationReceiver @Inject constructor(
                 sendMessageToAdmin(DISABLE_LOCATION)
             }
             if (status== PROVIDER_ENABLED) {
-                Timber.d("ENABLE_LOCATION")
                 sendMessageToAdmin(ENABLE_LOCATION)
             }
             Timber.d("UserLocationReceiver=${lat}_${lon}_ ${accuracy}_${speed}")
             if (provider != null && status != null && accuracy<MAX_ACCURACY) {
                 saveLocation(lat,lon,provider,status)
+                //(activity as MainActivity).mainPresenter.saveLocation(lat,lon,provider,status)
             }
         }
 
@@ -85,22 +88,27 @@ class UserLocationReceiver @Inject constructor(
         return true
     }
 
+    fun setMainActivity(activity: MainActivity) {
+        this.activity=activity
+    }
+
     private fun saveLocation(lat: Double?, lon: Double?, provider: String, status: String) {
         Timber.d("saveLocation_${Date()}")
         val movingUser=TrackingUserLocation(lat=lat,lon=lon,dateLocation = Date(),provider = provider, status = status)
 
-        disposable=Single.fromCallable{
+        val disposable=Single.fromCallable{
             db.trackingUserDao().insert(movingUser)
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 Timber.d("Сохранили локацию пользователя в БД")
-                disposable.dispose()
+                //disposable.dispose()
             },{throwable ->
                 throwable.printStackTrace()
-                disposable.dispose()
+                //disposable.dispose()
             })
+        compositeDisposable.add(disposable)
 
     }
 
@@ -146,20 +154,21 @@ class UserLocationReceiver @Inject constructor(
         val jsonBody = Gson().toJson(messageData)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        disposableSendMsg=apiService.sendMessageToAdmin(jsonBody)
+        val disposableSendMsg=apiService.sendMessageToAdmin(jsonBody)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
                     Timber.d("Сообщение_отправлено")
-                    disposableSendMsg.dispose()
+                    //disposableSendMsg.dispose()
                 },
                 {
                     Timber.d(it.printStackTrace().toString())
                     ctx.sendBroadcast(Intent("unauthorized"))
-                    disposableSendMsg.dispose()
+                    //disposableSendMsg.dispose()
                 }
             )
+        compositeDisposable.add(disposableSendMsg)
 
     }
 
@@ -206,8 +215,9 @@ class UserLocationReceiver @Inject constructor(
     }
 
     fun onDestroy() {
-        if (this::disposable.isInitialized) {
+        /*if (this::disposable.isInitialized) {
             disposable.dispose()
-        }
+        }*/
+        compositeDisposable.dispose()
     }
 }

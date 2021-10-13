@@ -15,10 +15,6 @@ interface CheckupDao {
     @Query("SELECT * FROM checkup WHERE idOrder = :id")
     fun getCheckupByOrder(id: Long): Checkup
 
-    /*@Query("SELECT * FROM checkup where textResult is not null and sync=0 and textResult not like '%\"checked\":false%'")
-    fun getResultAll(): Flowable<List<Checkup>>*/
-
-
     @Query("SELECT c.idOrder id_order, c.textResult as controls,'['||group_concat('{\"unique_id\":'||h.id||', \"idOrder\":'||h.idOrder||', \"stateOrder\":\"'||h.stateOrder||'\", \"dateChange\":'||h.dateChange||'}')||']' as history_order_state from Checkup c\n" +
             "left join HistoryOrderState h on h.idOrder=c.idOrder \n" +
             "where textResult is not null and sync=2 \n" +
