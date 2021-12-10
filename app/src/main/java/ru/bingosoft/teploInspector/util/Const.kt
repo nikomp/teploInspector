@@ -9,6 +9,7 @@ class Const {
         const val PHOTO = 1
         const val AUTH = 2
         const val PERMISSION = 123
+        const val BACKGROUND_LOCATION = 124
     }
 
     object SharedPrefConst {

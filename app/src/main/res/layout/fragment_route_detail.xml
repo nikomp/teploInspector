@@ -30,60 +30,58 @@
         android:textSize="13sp"
         tools:text="Обследование территории мукомольного завода" />
 
-        <LinearLayout
-            android:id="@+id/linearLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/routeButtonPanel"
-            android:orientation="horizontal">
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:orientation="horizontal">
 
-            <!--View для выравнивания-->
-            <!--<View
+        <!--View для выравнивания-->
+        <!--<View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />-->
 
-            <Button
-                android:id="@+id/btnCar"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:drawableTop="@drawable/btn_car_selector"
-                app:backgroundTint="@color/routeButtonPanel" />
+        <Button
+            android:id="@+id/btnCar"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:drawableTop="@drawable/btn_car_selector"
+            app:backgroundTint="@color/routeButtonPanel" />
 
 
-            <Button
-                android:id="@+id/btnBus"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:drawableTop="@drawable/btn_bus_selector"
-                app:backgroundTint="@color/routeButtonPanel" />
+        <Button
+            android:id="@+id/btnBus"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:drawableTop="@drawable/btn_bus_selector"
+            app:backgroundTint="@color/routeButtonPanel" />
 
 
-            <Button
-                android:id="@+id/btnFoot"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:drawableTop="@drawable/btn_foot_selector"
-                app:backgroundTint="@color/routeButtonPanel" />
+        <Button
+            android:id="@+id/btnFoot"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:drawableTop="@drawable/btn_foot_selector"
+            app:backgroundTint="@color/routeButtonPanel" />
 
-            <!--View для выравнивания-->
-            <!--<View
+        <!--View для выравнивания-->
+        <!--<View
                android:layout_width="0dp"
                android:layout_height="0dp"
                android:layout_weight="1" />-->
-        </LinearLayout>
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/routers_recycler_view"

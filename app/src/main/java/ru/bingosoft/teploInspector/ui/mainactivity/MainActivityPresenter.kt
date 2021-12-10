@@ -1,5 +1,6 @@
 package ru.bingosoft.teploInspector.ui.mainactivity
 
+import android.annotation.SuppressLint
 import android.view.View
 import com.google.gson.Gson
 import com.google.gson.JsonArray
@@ -648,6 +649,7 @@ class MainActivityPresenter @Inject constructor(val db: AppDatabase) {
     }
 
     //#RxJava #interval
+    @SuppressLint("CheckResult")
     fun sendRoute() {
         //Нет обновления координат в БД, стартуем при каждой автоматической авторизации
         Timber.d("test_sendRoute_MainActivityPresenter")

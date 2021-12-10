@@ -221,7 +221,6 @@ class OrderPresenter @Inject constructor(
     fun loadOrders() {
         Timber.d("loadOrders")
         val disposable=db.ordersDao().getAll()
-            //.subscribeOn(Schedulers.io()) не нужно т.к. во Flowable получение данных работает в отдельном потоке
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
@@ -232,10 +231,8 @@ class OrderPresenter @Inject constructor(
                         view?.showFailure(R.string.no_requests)
                     }
 
-                    //disposable.dispose()
                 },{
                     it.printStackTrace()
-                    //disposable.dispose()
                 }
             )
         compositeDisposable.add(disposable)

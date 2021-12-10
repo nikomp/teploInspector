@@ -167,6 +167,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        //window.setBackgroundDrawable(null) // Убираем лишнее наложение цвета GPU overdraw
+
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -450,32 +452,54 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     private fun requestPermission() {
         // Проверим разрешения
-        Timber.d("requestPermission")
+        Timber.d("MA_requestPermission")
+        Timber.d("MA_requestPermission_${ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED}")
+        Timber.d("MA_requestPermission_${ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_BACKGROUND_LOCATION)) != PackageManager.PERMISSION_GRANTED}")
+        Timber.d("MA_requestPermission_${ContextCompat.checkSelfPermission(this, (Manifest.permission.READ_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED}")
+        Timber.d("MA_requestPermission_${ContextCompat.checkSelfPermission(this, (WRITE_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED}")
+
+        val permissions= mutableListOf<String>()
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.Q) {
+            Timber.d("SDK_INT_${Build.VERSION.SDK_INT}")
+            /*if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_BACKGROUND_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+                Timber.d("requestPermissions_ACCESS_BACKGROUND_LOCATION")
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),Const.RequestCodes.BACKGROUND_LOCATION)
+            }*/
+            permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
+
         if (ContextCompat.checkSelfPermission(this, (Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                this,
-                (Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-            ) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, (Manifest.permission.READ_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, (WRITE_EXTERNAL_STORAGE)) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
-                requestPermissions(
+            Timber.d("requestPermissions_OTHERS")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                permissions.add(WRITE_EXTERNAL_STORAGE)
+                requestPermissions(permissions.toTypedArray(),Const.RequestCodes.PERMISSION)
+                /*requestPermissions(
                     arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
                         Manifest.permission.READ_EXTERNAL_STORAGE,
                         WRITE_EXTERNAL_STORAGE
                     ),
                     Const.RequestCodes.PERMISSION
-                )
+                )*/
             }
         } else {
             Timber.d("startService_MainActivity1")
             // Стартуем фоновый сервис для отслеживания пользователя
             // Сервис стартуем сразу (до авторизации), чтоб можно было локацию для фоток получить
-            otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService")
-            startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
-            startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_startForegroundService")
+                startForegroundService(Intent(this, UserLocationService::class.java))
+                startForegroundService(Intent(this, MapkitLocationService::class.java))
+            } else {
+                otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_startService")
+                startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
+                startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
+            }
+
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -497,7 +521,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        Timber.d("onRequestPermissionsResult")
+        Timber.d("onRequestPermissionsResult_$requestCode")
         when (requestCode) {
             Const.RequestCodes.PERMISSION -> {
                 if (grantResults.isNotEmpty()
@@ -506,8 +530,17 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
                     // Разрешения выданы
                     Timber.d("startService_MainActivity2")
                     otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_from_onRequestPermissionsResult")
-                    startService(Intent(this, UserLocationService::class.java))
-                    startService(Intent(this, MapkitLocationService::class.java))
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_startForegroundService_from_onRequestPermissionsResult")
+                        startForegroundService(Intent(this, UserLocationService::class.java))
+                        startForegroundService(Intent(this, MapkitLocationService::class.java))
+                    } else {
+                        otherUtil.writeToFile("Logger_стартуем_сервисы_MainActivity_UserLocationService_MapkitLocationService_startService_from_onRequestPermissionsResult")
+                        startService(Intent(this, UserLocationService::class.java)) // Отслеживаем состояние GPS
+                        startService(Intent(this, MapkitLocationService::class.java)) // Отслеживаем координаты
+                    }
+                    /*startService(Intent(this, UserLocationService::class.java))
+                    startService(Intent(this, MapkitLocationService::class.java))*/
                 } else {
                     // Разрешения не выданы оповестим юзера
                     toaster.showToast(R.string.not_permissions)

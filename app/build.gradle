@@ -43,7 +43,7 @@ android {
             // Сбрасывает список ABI, для которых Gradle должен создавать APKS, на none
             reset()
             // Указывает список ABI, для которых Gradle должен создавать APK-файлы.
-            include 'armeabi-v7a'
+            include 'armeabi-v7a','x86'
 
             // Указывает, что мы хотим(true)/не хотим(false) создать универсальный APK, который включает в себя все ABI.
             universalApk false

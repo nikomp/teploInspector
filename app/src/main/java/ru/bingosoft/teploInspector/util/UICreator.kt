@@ -61,11 +61,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     private lateinit var rootView:View
     private var enabled: Boolean=true
     private var llGroupNodes: LinearLayout?=null
+    private var listllGroupNodes: MutableList<LinearLayout> = mutableListOf()
     private var listllNode: List<LinearLayout> = listOf()
     private var listllArchHour: List<LinearLayout> = listOf()
     private var listllArchDaily: List<LinearLayout> = listOf()
     private var listllGroupOther: MutableList<LinearLayout> = mutableListOf()
     private var listSubtypeName: MutableList<String> = mutableListOf()
+    private var mapllNode: MutableMap<String, List<LinearLayout>> = mutableMapOf()
 
 
     val otherUtil=parentFragment.otherUtil
@@ -140,10 +142,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         }
     }
 
-    fun createWithSubCheckup(control: Models.TemplateControl) {
+    private fun createWithSubCheckup(control: Models.TemplateControl) {
+        Timber.d("createWithSubCheckup")
         if (!listSubtypeName.isNullOrEmpty() && !control.subtype_name.isNullOrEmpty() && listSubtypeName.contains(control.subtype_name)) {
             val tempRootView=this.rootView
             this.rootView=createGroup(control.subtype_name!!,rootView as LinearLayout)
+            Timber.d("rootView_${this.rootView}")
             createWithGrouping(control)
             this.rootView=tempRootView
         } else {
@@ -173,16 +177,12 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     }
 
     private fun createWithGrouping(it: Models.TemplateControl) {
-
+        Timber.d("createWithGrouping")
         if (it.replication_nodes==true) {
             // Создаем группу Узлы
-            if (llGroupNodes==null) {
-                llGroupNodes=createGroupNodes("Узлы")
-            }
+            llGroupNodes=createGroupNodes("Узлы",it.subtype_name)
             // Создаем Узлы в группе
-            if (listllNode.isEmpty()) {
-                listllNode=createNodes(llGroupNodes!!)
-            }
+            listllNode=createNodes(llGroupNodes!!)
 
             if (it.group_checklist==null) {
                 // Тиражируем по узлам
@@ -226,9 +226,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             if (it.replicating_archival_records==true) {
                 Timber.d("Тиражирование_Арх_Зап")
                 // Создаем группу Архивные записи
-                if (llGroupNodes==null) {
-                    llGroupNodes=createGroupNodes("Архивные записи")
-                }
+                llGroupNodes=createGroupNodes("Архивные записи",it.subtype_name)
                 // Создаем группы Часовые, Суточные по 5 штук
                 /*if (listllNode.isEmpty()) {
                     listllArchHour=createArchGroup(llGroupNodes!!,"Часовые")
@@ -764,15 +762,18 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         Timber.d("it.resvalue=${templateControl.resvalue}")
         if (templateControl.resvalue.isNullOrEmpty()) {
             Timber.d("it.resvalue.isNullOrEmpty()")
-            val curOrder=(parentFragment.activity as MainActivity).currentOrder
-            val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
+            if (parentFragment.activity!=null) {
+                val curOrder=(parentFragment.activity as MainActivity).currentOrder
+                val stDir = "${DCIM_DIR}/PhotoForApp/${curOrder.guid}/${stepCheckup.results_guid}"
 
-            val listPhoto=otherUtil.getFilesFromDir(stDir)
-            Timber.d("listPhoto=${listPhoto}")
-            if (File(stDir).exists() && listPhoto.isNotEmpty()) {
-                Timber.d("папка_есть")
-                otherUtil.deleteDir(stDir)
+                val listPhoto=otherUtil.getFilesFromDir(stDir)
+                Timber.d("listPhoto=${listPhoto}")
+                if (File(stDir).exists() && listPhoto.isNotEmpty()) {
+                    Timber.d("папка_есть")
+                    otherUtil.deleteDir(stDir)
+                }
             }
+
         }
 
         val leftBtn = templateStep.findViewById(R.id.left_nav) as ImageButton
@@ -832,61 +833,72 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     @SuppressLint("UseRequireInsteadOfGet")
     private fun createNodes(llContainer: LinearLayout): List<LinearLayout> {
         Timber.d("генерим узлы")
-        val listNodesView= mutableListOf<LinearLayout>()
-        if (parentFragment.currentOrder.countNode!=null) {
-            for (i in 1..parentFragment.currentOrder.countNode!!) {
-                val templateStep=LayoutInflater.from(rootView.context).inflate(
-                    R.layout.template_group, rootView.parent as ViewGroup?, false
-                ) as LinearLayout
+        return mapllNode.getOrElse(llContainer.tag.toString(),{
+            val listNodesView= mutableListOf<LinearLayout>()
+            if (parentFragment.currentOrder.countNode!=null) {
+                for (i in 1..parentFragment.currentOrder.countNode!!) {
+                    val templateStep=LayoutInflater.from(rootView.context).inflate(
+                        R.layout.template_group, rootView.parent as ViewGroup?, false
+                    ) as LinearLayout
 
-                Timber.d("Узел $i")
-                templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
-                    R.string.name_node,
-                    i
-                )
+                    Timber.d("Узел $i")
+                    templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
+                        R.string.name_node,
+                        i
+                    )
 
-                val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
-                val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
-                val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
+                    val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
+                    val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
+                    val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
-                clTitle.setOnClickListener {
-                    if (llNode.visibility==View.VISIBLE) {
-                        llNode.visibility=View.GONE
-                        ivExpand.setImageDrawable(
-                            ContextCompat.getDrawable(
-                                rootView.context,
-                                R.drawable.arrow_up
+                    clTitle.setOnClickListener {
+                        if (llNode.visibility==View.VISIBLE) {
+                            llNode.visibility=View.GONE
+                            ivExpand.setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    rootView.context,
+                                    R.drawable.arrow_up
+                                )
                             )
-                        )
-                    } else {
-                        llNode.visibility=View.VISIBLE
-                        ivExpand.setImageDrawable(
-                            ContextCompat.getDrawable(
-                                rootView.context,
-                                R.drawable.arrow_down
+                        } else {
+                            llNode.visibility=View.VISIBLE
+                            ivExpand.setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    rootView.context,
+                                    R.drawable.arrow_down
+                                )
                             )
-                        )
+                        }
                     }
+
+                    listNodesView.add(llNode)
+
+                    doAssociateParent(templateStep, llContainer)
+                }
+                mapllNode[llContainer.tag.toString()] = listNodesView
+            } else {
+                Timber.d("parentFragment.currentOrder.countNode==null")
+                parentFragment.requireActivity().runOnUiThread {
+                    parentFragment.toaster.showErrorToast(R.string.not_count_node)
                 }
 
-                listNodesView.add(llNode)
-
-                doAssociateParent(templateStep, llContainer)
-            }
-        } else {
-            Timber.d("parentFragment.currentOrder.countNode==null")
-            parentFragment.requireActivity().runOnUiThread {
-                parentFragment.toaster.showErrorToast(R.string.not_count_node)
             }
 
-        }
-
-        return listNodesView
+            return listNodesView
+        })
 
     }
 
     private fun createArchGroup(llContainer: LinearLayout, name: String): List<LinearLayout> {
         Timber.d("генерим группы $name")
+        if (parentFragment.isAdded) {
+            // Сообщение отправляем не в UI потоке, requireActivity не используем т.к.isAdded=false
+            Handler(Looper.getMainLooper()).post{
+                parentFragment.toaster.showErrorToast(R.string.checkup_fragment_not_attached)
+            }
+            return listOf()
+        }
+
         val listNodesView= mutableListOf<LinearLayout>()
         for (i in 1..5) {
             val templateStep=LayoutInflater.from(rootView.context).inflate(
@@ -934,46 +946,58 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
     }
 
-    private fun createGroupNodes(name: String) :LinearLayout {
+    private fun createGroupNodes(name: String, subtype: String?="") :LinearLayout {
         Timber.d("генерим группу для Узлов")
 
-        val templateStep=LayoutInflater.from(rootView.context).inflate(
-            R.layout.template_group, rootView.parent as ViewGroup?, false
-        ) as LinearLayout
+        // Проверим, возможно группа уже создана
+        val ll=listllGroupNodes.filter { it.tag=="$name$subtype" }
+        if (ll.isNotEmpty()) {
+            return ll[0]
+        } else {
+            val templateStep=LayoutInflater.from(rootView.context).inflate(
+                R.layout.template_group, rootView.parent as ViewGroup?, false
+            ) as LinearLayout
 
-        //attachListenerToFab(templateStep,it)
+            templateStep.findViewById<TextView>(R.id.question).text=name//"Узлы"
 
-        //templateStep.id=it.id
-        templateStep.findViewById<TextView>(R.id.question).text=name//"Узлы"
+            val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
+            val llGroup=templateStep.findViewById<LinearLayout>(R.id.container)
+            val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
+            llGroup.tag="$name$subtype" // Сохраним имя группы
 
-        val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
-        val llGroup=templateStep.findViewById<LinearLayout>(R.id.container)
-        val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
-
-        clTitle.setOnClickListener {
-            if (llGroup.visibility==View.VISIBLE) {
-                llGroup.visibility=View.GONE
-                ivExpand.setImageDrawable(
-                    ContextCompat.getDrawable(
-                        rootView.context,
-                        R.drawable.arrow_up
+            clTitle.setOnClickListener {
+                if (llGroup.visibility==View.VISIBLE) {
+                    llGroup.visibility=View.GONE
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_up
+                        )
                     )
-                )
-            } else {
-                llGroup.visibility=View.VISIBLE
-                ivExpand.setImageDrawable(
-                    ContextCompat.getDrawable(
-                        rootView.context,
-                        R.drawable.arrow_down
+                } else {
+                    llGroup.visibility=View.VISIBLE
+                    ivExpand.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            rootView.context,
+                            R.drawable.arrow_down
+                        )
                     )
-                )
+                }
             }
+
+            if (rootView.findViewById<View>(R.id.llMain)!=null) {
+                doAssociateParent(templateStep, rootView.findViewById(R.id.llMain))
+            } else {
+                doAssociateParent(templateStep, rootView)
+            }
+
+
+            Timber.d("llGroup=$llGroup")
+            listllGroupNodes.add(llGroup)
+
+            return llGroup
         }
 
-        doAssociateParent(templateStep, rootView.findViewById(R.id.llMain))
-        Timber.d("llGroup=$llGroup")
-
-        return llGroup
     }
 
     private fun createGroup(name: String, parent: LinearLayout, node: String = ""): LinearLayout {
@@ -1261,7 +1285,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     }
 
     fun refresh() {
-        //val llMain= rootView.findViewById(R.id.llMain) as LinearLayout
         val llMain=rootView as LinearLayout
         if(llMain.childCount>0) {
             llGroupNodes= null
