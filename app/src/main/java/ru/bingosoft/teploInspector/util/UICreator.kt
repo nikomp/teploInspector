@@ -258,7 +258,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     }
                     // Есть еще и группа
                     if (it.archival_records!=null) {
-                        if (listllArchHour.isNotEmpty()) {
+                        if (listllArchHour.isNotEmpty() && it.group_checklist=="Часовые") {
                             val llCurrentNode=listllArchHour[it.archival_records - 1]
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
@@ -269,7 +269,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                                 "photo" -> createPhoto(it, llCurrentNode)
                             }
                         }
-                        if (listllArchDaily.isNotEmpty()) {
+                        if (listllArchDaily.isNotEmpty() && it.group_checklist=="Суточные") {
                             val llCurrentNode=listllArchDaily[it.archival_records - 1]
                             when (it.type) {
                                 "combobox" -> createCombobox(it, llCurrentNode)
@@ -892,6 +892,52 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
     private fun createArchGroup(llContainer: LinearLayout, name: String): List<LinearLayout> {
         Timber.d("генерим группы $name")
         if (parentFragment.isAdded) {
+            val listNodesView= mutableListOf<LinearLayout>()
+            for (i in 1..5) {
+                val templateStep=LayoutInflater.from(rootView.context).inflate(
+                    R.layout.template_group, rootView.parent as ViewGroup?, false
+                ) as LinearLayout
+
+                Timber.d("$name $i")
+                templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
+                    R.string.question,
+                    name,
+                    i
+                )
+
+                val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
+                val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
+                val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
+
+                clTitle.setOnClickListener {
+                    if (llNode.visibility==View.VISIBLE) {
+                        llNode.visibility=View.GONE
+                        ivExpand.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                rootView.context,
+                                R.drawable.arrow_up
+                            )
+                        )
+                    } else {
+                        llNode.visibility=View.VISIBLE
+                        ivExpand.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                rootView.context,
+                                R.drawable.arrow_down
+                            )
+                        )
+                    }
+                }
+
+                listNodesView.add(llNode)
+
+                doAssociateParent(templateStep, llContainer)
+            }
+
+
+            return listNodesView
+
+        } else {
             // Сообщение отправляем не в UI потоке, requireActivity не используем т.к.isAdded=false
             Handler(Looper.getMainLooper()).post{
                 parentFragment.toaster.showErrorToast(R.string.checkup_fragment_not_attached)
@@ -899,50 +945,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             return listOf()
         }
 
-        val listNodesView= mutableListOf<LinearLayout>()
-        for (i in 1..5) {
-            val templateStep=LayoutInflater.from(rootView.context).inflate(
-                R.layout.template_group, rootView.parent as ViewGroup?, false
-            ) as LinearLayout
 
-            Timber.d("$name $i")
-            templateStep.findViewById<TextView>(R.id.question).text=parentFragment.requireContext().getString(
-                R.string.question,
-                name,
-                i
-            )
-
-            val ivExpand=templateStep.findViewById<ImageView>(R.id.ivExpand)
-            val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
-            val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
-
-            clTitle.setOnClickListener {
-                if (llNode.visibility==View.VISIBLE) {
-                    llNode.visibility=View.GONE
-                    ivExpand.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            rootView.context,
-                            R.drawable.arrow_up
-                        )
-                    )
-                } else {
-                    llNode.visibility=View.VISIBLE
-                    ivExpand.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            rootView.context,
-                            R.drawable.arrow_down
-                        )
-                    )
-                }
-            }
-
-            listNodesView.add(llNode)
-
-            doAssociateParent(templateStep, llContainer)
-        }
-
-
-        return listNodesView
 
     }
 
