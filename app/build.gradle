@@ -201,7 +201,6 @@ repositories {
     }
 }
 
-apply from: "$project.rootDir/build_scripts/counterCompilation.gradle"
 
 //Определяет стратегии, связанные с разрешением зависимостей. Например, принудительное использование определенных версий зависимостей,
 //Без этой настройки нет некоторых assert методов в тестах, например asserThrows см. OrderPresenterTest
