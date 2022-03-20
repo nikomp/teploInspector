@@ -423,6 +423,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             }
         }
 
+        //Вешаем обработчик для кнопки очищения
+        val ivClearSpinner=templateStep.findViewById<ImageView>(R.id.iv_clear_spinner)
+        ivClearSpinner.setOnClickListener {
+            Timber.d("ivClearSpinner")
+            materialSpinner.setText("")
+        }
+
 
         materialSpinner.isEnabled = enabled
         if (enabled) {

@@ -765,6 +765,7 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        Timber.d("resultCode_$resultCode _$requestCode")
         if (resultCode == Activity.RESULT_OK) {
             when (requestCode) {
                 PHOTO -> {

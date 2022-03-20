@@ -3,7 +3,18 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_clear_replicate_group.xml" value="0.2203125" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_delete_replicate_group.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/activity_login.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_al.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_tx.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_material_spinner.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_multiline_spinner_item_state_order.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_multiline_spinner_type_transportation.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_numeric.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_photo.xml" value="0.17527173913043478" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_photo2.xml" value="0.17527173913043478" />
       </map>
     </option>
   </component>

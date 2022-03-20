@@ -110,7 +110,7 @@ class OrderListAdapterTest {
 
         activityController.get().filteredOrders=listOf(
             Orders(id = 44731,number = "тест4",status = "В работе"),
-            Orders(id = 44731,number = "тест4",status = "Проверена"),
+            //Orders(id = 44731,number = "тест4",status = "Проверена"),
             Orders(id = 44731,number = "тест4",status = "Отменена"),
             Orders(id = 44731,number = "тест4",status = "Выполнена"),
             Orders(id = 44731,number = "тест4",status = "Приостановлена"),
