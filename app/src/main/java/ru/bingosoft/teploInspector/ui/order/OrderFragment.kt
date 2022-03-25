@@ -123,7 +123,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             (activity as MainActivity).isDefaultFilter=false
         }*/
 
-        Timber.d("filteredOrders=${(requireContext() as MainActivity).filteredOrders}")
+        Timber.d("filteredOrders=${(requireContext() as MainActivity).filteredOrders.size}")
         if ((requireContext() as MainActivity).filteredOrders.isNotEmpty()) {
             showFilterOrders((requireContext() as MainActivity).filteredOrders)
         }
@@ -507,7 +507,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
 
-        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
+        Timber.d("filteredOrders1=${(activity as MainActivity).filteredOrders.size}")
         val adapter=OrderListAdapter(
             (activity as MainActivity).filteredOrders,
             this,
@@ -534,7 +534,7 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
         val ordersRecyclerView = root.findViewById(R.id.orders_recycler_view) as RecyclerView
         ordersRecyclerView.layoutManager = LinearLayoutManager(this.activity)
 
-        Timber.d("filteredOrders=${(activity as MainActivity).filteredOrders}")
+        Timber.d("filteredOrders2=${(activity as MainActivity).filteredOrders.size}")
         val adapter=OrderListAdapter(
             (activity as MainActivity).filteredOrders,
             this,
@@ -568,7 +568,14 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     fun filteredOrderByGroup(filterGroupList: List<String>) {
         Timber.d("filteredOrderByGroup")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        val filteredOrderByGroup=(requireContext() as MainActivity).orders.filter { it.groupOrder in filterGroupList }
+
+        val orders=if ((requireContext() as MainActivity).filteredOrders.isNullOrEmpty()) {
+            (requireContext() as MainActivity).orders
+        } else {
+            (requireContext() as MainActivity).filteredOrders
+        }
+
+        val filteredOrderByGroup=orders.filter { it.groupOrder in filterGroupList }
         (requireContext() as MainActivity).filteredOrders=filteredOrderByGroup
 
         val adapter = OrderListAdapter(
@@ -585,10 +592,17 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
     fun filteredOrderByDate(strDate: String) {
         Timber.d("filteredOrderByDate")
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
-        val filteredOrderByDate = if (strDate=="all") {
-            (requireContext() as MainActivity).orders.filter { it.dateVisit !=null }
+
+        val orders=if ((requireContext() as MainActivity).filteredOrders.isNullOrEmpty()) {
+            (requireContext() as MainActivity).orders
         } else {
-            (requireContext() as MainActivity).orders.filter { it.dateVisit ==strDate }
+            (requireContext() as MainActivity).filteredOrders
+        }
+
+        val filteredOrderByDate = if (strDate=="all") {
+            orders.filter { it.dateVisit !=null }
+        } else {
+            orders.filter { it.dateVisit ==strDate }
         }
         (requireContext() as MainActivity).filteredOrders=filteredOrderByDate
 
@@ -610,14 +624,20 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
 
         val rcv=root.findViewById(R.id.orders_recycler_view) as RecyclerView
         var filteredOrderByState: List<Orders> = listOf()
+        val orders=if ((requireContext() as MainActivity).filteredOrders.isNullOrEmpty()) {
+            (requireContext() as MainActivity).orders
+        } else {
+            (requireContext() as MainActivity).filteredOrders
+        }
+
         when (filter) {
             "all" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status != null }
+                    orders.filter { it.status != null }
             }
             "all_without_Done_and_Cancel" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status != STATE_COMPLETED && it.status != STATE_CANCELED }
+                    orders.filter { it.status != STATE_COMPLETED && it.status != STATE_CANCELED }
                 if ((root.context as MainActivity).isDialogFilterStateOrderInit()) {
                     val rbWithoutDone =
                         (root.context as MainActivity).dialogFilterStateOrder.findViewById<RadioButton>(
@@ -628,15 +648,15 @@ class OrderFragment : Fragment(), LoginContractView, OrderContractView, OrdersRV
             }
             "on_way" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status == "В пути" }
+                    orders.filter { it.status == "В пути" }
             }
             "in_progress" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status == "В работе" }
+                    orders.filter { it.status == "В работе" }
             }
             "open" -> {
                 filteredOrderByState =
-                    (requireContext() as MainActivity).orders.filter { it.status == "Открыта" }
+                    orders.filter { it.status == "Открыта" }
             }
         }
 

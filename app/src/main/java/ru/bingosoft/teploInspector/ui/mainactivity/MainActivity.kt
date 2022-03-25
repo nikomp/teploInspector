@@ -978,8 +978,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             supportActionBar?.setTitle(R.string.menu_orders)
 
             // Выделим кнопку Список
-            findViewById<Button>(R.id.btnList)?.isEnabled=false
-            findViewById<Button>(R.id.btnMap)?.isEnabled=true
+            /*findViewById<Button>(R.id.btnList)?.isEnabled=false
+            findViewById<Button>(R.id.btnMap)?.isEnabled=true*/
 
             //navController.navigate(R.id.nav_home)
             if (isBackPressed) {

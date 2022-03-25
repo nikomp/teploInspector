@@ -2,12 +2,13 @@ package ru.bingosoft.teploInspector.db.Orders
 
 import androidx.room.*
 import io.reactivex.Flowable
+import io.reactivex.Single
 
 
 @Dao
 interface OrdersDao {
     @Query("SELECT * FROM orders order by number")
-    fun getAll(): Flowable<List<Orders>>
+    fun getAll(): Single<List<Orders>>//Flowable<List<Orders>>
 
     @Query("SELECT * FROM orders WHERE id = :id")
     fun getById(id: Long): Flowable<Orders>

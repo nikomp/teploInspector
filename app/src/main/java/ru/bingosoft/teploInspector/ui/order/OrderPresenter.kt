@@ -221,6 +221,7 @@ class OrderPresenter @Inject constructor(
     fun loadOrders() {
         Timber.d("loadOrders")
         val disposable=db.ordersDao().getAll()
+            .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
