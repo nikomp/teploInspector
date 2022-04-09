@@ -150,14 +150,14 @@ class CheckupFragment : Fragment(), CheckupContractView, View.OnClickListener {
         stepsRecyclerView.adapter = adapter
 
         val titleOrder=rootView.findViewById<LinearLayout>(R.id.titleOrder)
-        titleOrder.setOnClickListener {
+        ivExpand.setOnClickListener {
             val dataOrder=rootView.findViewById<ConstraintLayout>(R.id.dataOrder)
             if (dataOrder.visibility==View.VISIBLE) {
                 dataOrder.visibility=View.GONE
-                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_up))
+                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.ic_arrow_up))
             } else {
                 dataOrder.visibility=View.VISIBLE
-                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.arrow_down))
+                ivExpand.setImageDrawable(ContextCompat.getDrawable(rootView.context,R.drawable.ic_arrow_down))
             }
         }
 

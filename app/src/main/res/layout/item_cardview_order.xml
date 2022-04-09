@@ -41,13 +41,13 @@
 
                 <ImageView
                     android:id="@+id/ivExpand"
-                    android:layout_width="20dp"
-                    android:layout_height="12dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="8dp"
-                    android:visibility="gone"
                     android:contentDescription="@string/ivExpandDescription"
-                    app:srcCompat="@drawable/arrow_down" />
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_arrow_down" />
 
                 <ImageView
                     android:id="@+id/ivSync"

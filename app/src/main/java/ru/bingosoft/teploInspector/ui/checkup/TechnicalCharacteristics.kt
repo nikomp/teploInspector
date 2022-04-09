@@ -131,13 +131,13 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
             llGroup.tag="$name$node" // Сохраним имя группы
             val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
-            clTitle.setOnClickListener {
+            ivExpand.setOnClickListener {
                 if (llGroup.visibility==View.VISIBLE) {
                     llGroup.visibility=View.GONE
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_up
+                            R.drawable.ic_arrow_up
                         )
                     )
                 } else {
@@ -145,7 +145,7 @@ class TechnicalCharacteristics(private val parentFragment: CheckupFragment, priv
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_down
+                            R.drawable.ic_arrow_down
                         )
                     )
                 }

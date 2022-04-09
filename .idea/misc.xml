@@ -3,14 +3,19 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/arrow_down.xml" value="0.2203125" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_arrow_down2.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_clear_replicate_group.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_delete_replicate_group.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/activity_login.xml" value="0.1" />
-        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/fragment_gallery2.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/alert_not_internet.xml" value="0.22" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/fragment_gallery2.xml" value="0.33" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/fragment_order.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/item_cardview_order.xml" value="0.33" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/item_cardview_step.xml" value="0.33" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group.xml" value="0.17527173913043478" />
-        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_al.xml" value="0.1" />
-        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_tx.xml" value="0.1" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_al.xml" value="0.75" />
+        <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_group_tx.xml" value="0.25" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_material_spinner.xml" value="0.17527173913043478" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_multiline_spinner_item_state_order.xml" value="0.17527173913043478" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_multiline_spinner_type_transportation.xml" value="0.17527173913043478" />

@@ -124,7 +124,7 @@ class LoginPresenter @Inject constructor(
                                 if (errorBody.error=="user_password_is_invalid") {
                                     view?.showFailureTextView("Неверный пароль")
                                 }
-                             } catch (e: IOException) {
+                            } catch (e: IOException) {
                                 Timber.d("${e.printStackTrace()}")
                                 view?.showFailureTextView("Ошибка при авторизации")
                             }

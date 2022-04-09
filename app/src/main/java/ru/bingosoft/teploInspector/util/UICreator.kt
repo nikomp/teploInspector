@@ -858,13 +858,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
                     val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
-                    clTitle.setOnClickListener {
+                    ivExpand.setOnClickListener {
                         if (llNode.visibility==View.VISIBLE) {
                             llNode.visibility=View.GONE
                             ivExpand.setImageDrawable(
                                 ContextCompat.getDrawable(
                                     rootView.context,
-                                    R.drawable.arrow_up
+                                    R.drawable.ic_arrow_up
                                 )
                             )
                         } else {
@@ -872,7 +872,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                             ivExpand.setImageDrawable(
                                 ContextCompat.getDrawable(
                                     rootView.context,
-                                    R.drawable.arrow_down
+                                    R.drawable.ic_arrow_down
                                 )
                             )
                         }
@@ -916,13 +916,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                 val llNode=templateStep.findViewById<LinearLayout>(R.id.container)
                 val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
-                clTitle.setOnClickListener {
+                ivExpand.setOnClickListener {
                     if (llNode.visibility==View.VISIBLE) {
                         llNode.visibility=View.GONE
                         ivExpand.setImageDrawable(
                             ContextCompat.getDrawable(
                                 rootView.context,
-                                R.drawable.arrow_up
+                                R.drawable.ic_arrow_up
                             )
                         )
                     } else {
@@ -930,7 +930,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                         ivExpand.setImageDrawable(
                             ContextCompat.getDrawable(
                                 rootView.context,
-                                R.drawable.arrow_down
+                                R.drawable.ic_arrow_down
                             )
                         )
                     }
@@ -975,13 +975,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
             val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
             llGroup.tag="$name$subtype" // Сохраним имя группы
 
-            clTitle.setOnClickListener {
+            ivExpand.setOnClickListener {
                 if (llGroup.visibility==View.VISIBLE) {
                     llGroup.visibility=View.GONE
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_up
+                            R.drawable.ic_arrow_up
                         )
                     )
                 } else {
@@ -989,7 +989,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_down
+                            R.drawable.ic_arrow_down
                         )
                     )
                 }
@@ -1035,13 +1035,13 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
 
             val clTitle=templateStep.findViewById<ConstraintLayout>(R.id.titleGroup)
 
-            clTitle.setOnClickListener {
+            ivExpand.setOnClickListener {
                 if (llGroup.visibility==View.VISIBLE) {
                     llGroup.visibility=View.GONE
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_up
+                            R.drawable.ic_arrow_up
                         )
                     )
                 } else {
@@ -1076,7 +1076,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                         ivExpand.setImageDrawable(
                             ContextCompat.getDrawable(
                                 rootView.context,
-                                R.drawable.arrow_down
+                                R.drawable.ic_arrow_down
                             )
                         )
                     }
@@ -1146,7 +1146,6 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
         templateStep.findViewById<TextView>(R.id.question).text=NEW_NAME_GROUP_REPLICATE
         val ivAddGroup=templateStep.findViewById<ImageView>(R.id.ivAddGroup)
         ivAddGroup.visibility=View.VISIBLE
-        //addGroupClickListener.templateStep=templateStep
         ivAddGroup.tag=templateStep
         ivAddGroup.setOnClickListener(addGroupClickListener)
 
@@ -1174,7 +1173,7 @@ class UICreator(private val parentFragment: CheckupFragment, val checkup: Checku
                     ivExpand.setImageDrawable(
                         ContextCompat.getDrawable(
                             rootView.context,
-                            R.drawable.arrow_down
+                            R.drawable.ic_arrow_down
                         )
                     )
 
