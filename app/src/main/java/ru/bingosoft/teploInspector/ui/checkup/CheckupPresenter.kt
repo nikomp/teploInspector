@@ -133,7 +133,7 @@ class CheckupPresenter @Inject constructor(
     }
 
     fun getAddLoads(idOrder: Long) {
-        Timber.d("getAddLoads")
+        Timber.d("getAddLoads_$idOrder")
         val disposableAL=Single.fromCallable {
             db.addLoadDao().getAddLoadOrder(idOrder)
         }

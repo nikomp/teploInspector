@@ -49,7 +49,7 @@ class StepsAdapter(
 
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
-        Timber.d("onBindViewHolder_lists[position]")
+        Timber.d("onBindViewHolder_lists[position]_$position")
         holder.stepNumber.text="${position+1}"
         holder.stepName.text=lists[position]
         when (position) {

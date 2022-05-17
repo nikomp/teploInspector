@@ -23,7 +23,7 @@ data class Checkup (
     @SerializedName("id_order")
     var idOrder: Long =0,
     @SerializedName("number_order")
-    var numberOrder: String,
+    var numberOrder: String? = null,
     @SerializedName("order_guid")
     var orderGuid: String,
     @SerializedName("type_order")
