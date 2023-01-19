@@ -18,7 +18,7 @@ interface ApiService {
         @Body lp: RequestBody
     ): Single<Models.Uuid>
 
-    @POST("/accesseditor/login/authorize")
+    @POST("v2/accesseditor/login/authorize")
     @Headers("Content-Type: application/json")
     fun getAuthorization(
         @Body uuid: RequestBody
