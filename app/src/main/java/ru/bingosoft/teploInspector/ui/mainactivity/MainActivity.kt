@@ -244,6 +244,10 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
             when (destination.id) {
                 R.id.nav_home -> {
                     Timber.d("DestinationChangedListener_OrderFragment")
+                    // Сбросим текущую заявку, только когда переходим к Списку
+                    currentOrder= Orders(guid = "")
+                    photoDir=""
+                    photoStep=null
                 }
                 R.id.nav_checkup -> {
                     Timber.d("DestinationChangedListener_CheckupFragment")
