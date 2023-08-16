@@ -967,7 +967,8 @@ class MainActivity : AppCompatActivity(), FragmentsContractActivity,
         val newCurrentFragmentClassName = (navController.currentDestination as FragmentNavigator.Destination).className
         Timber.d("VVV_$newCurrentFragmentClassName}")
         // Если попали на экран Заявки
-        if (newCurrentFragmentClassName==getString(R.string.order_fragment_className)){ //(supportFragmentManager.backStackEntryCount==0)
+        if (newCurrentFragmentClassName==getString(R.string.order_fragment_className)||
+            newCurrentFragmentClassName==getString(R.string.map_fragment_className)){
             Timber.d("onBackPressed_Заявки")
 
             // Сбросим текущую заявку, только когда переходим к Списку

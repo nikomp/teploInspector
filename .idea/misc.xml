@@ -3,6 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/ANDROID/AndroidProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/fragment_order.xml" value="0.1" />
+        <entry key="..\:/ANDROID/AndroidProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/item_cardview_order.xml" value="0.18072916666666666" />
+        <entry key="..\:/ANDROID/AndroidProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/map_bottom_sheet.xml" value="0.18072916666666666" />
+        <entry key="..\:/ANDROID/AndroidProject/MapQuestYandex_teplo_Inspect/app/src/main/res/layout/template_photo2.xml" value="0.1" />
+        <entry key="..\:/ANDROID/AndroidProject/MapQuestYandex_teplo_Inspect/app/src/main/res/menu/main.xml" value="0.3333333333333333" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/arrow_down.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_arrow_down2.xml" value="0.2203125" />
         <entry key="..\:/OurPrograms/AndroidStudioProject/MapQuestYandex_teplo_Inspect/app/src/main/res/drawable/ic_clear_replicate_group.xml" value="0.2203125" />
@@ -25,7 +30,7 @@
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

@@ -17,7 +17,7 @@ import java.io.File
 
 class GalleryPagerAdapter(val _images: List<String>, val _pager: ViewPager, val ctx: Context) :
     PagerAdapter() {
-    val _inflater: LayoutInflater =
+    private val _inflater: LayoutInflater =
         ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
@@ -34,9 +34,9 @@ class GalleryPagerAdapter(val _images: List<String>, val _pager: ViewPager, val 
         thumbView.layoutParams = params
         thumbView.minimumHeight = 260
 
-        thumbView.setOnClickListener(View.OnClickListener {
+        thumbView.setOnClickListener {
             _pager.currentItem = position
-        })
+        }
 
         val imageView: ImageView = itemView.findViewById<View>(R.id.image) as ImageView
 

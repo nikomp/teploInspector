@@ -14,3 +14,4 @@
 .externalNativeBuild
 .cxx
 /build_scripts/counterCompilation.gradle
+/keystore6.jks

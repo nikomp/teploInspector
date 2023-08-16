@@ -464,7 +464,7 @@ class RouteDetailFragment(val order: Orders, val parentFragment: MapFragment): B
     override fun setupDialog(dialog: Dialog, style: Int) {
         super.setupDialog(dialog, style)
 
-        Timber.d("MapBottomSheet_setupDialog")
+        Timber.d("RouteDetailFragment_setupDialog")
 
         root=View.inflate(requireContext(), R.layout.fragment_route_detail, null)
         dialog.setContentView(root)

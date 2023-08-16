@@ -19,6 +19,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -94,6 +95,22 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
             rcv?.visibility=View.GONE
             fillOrderData(orders.last())
             currentOrder=orders.last()
+            cv?.setOnClickListener {
+                Timber.d("Order_CLICK!");
+                if (currentOrder != null) {
+                    currentOrder!!.checked = !currentOrder!!.checked
+                    (activity as MainActivity).currentOrder = this.currentOrder!!
+
+                    val bundle = Bundle()
+                    bundle.putBoolean("checkUpForOrder", true)
+                    bundle.putLong("idOrder", currentOrder!!.id)
+                    bundle.putString("typeOrder", currentOrder!!.typeOrder)
+
+                    Navigation.findNavController(parentFragment.requireView()).navigate(R.id.nav_checkup, bundle)
+                    dismiss();
+                }
+
+            }
         }
     }
 

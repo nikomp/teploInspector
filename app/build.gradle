@@ -28,7 +28,7 @@ static def versionNameDate() {
 android {
     signingConfigs {
         config {
-            storeFile file('D:\\РАБОТА\\keystore6.jks')
+            storeFile file('D:\\ANDROID\\AndroidProject\\MapQuestYandex_teplo_Inspect\\keystore6.jks')
             storePassword 'QPmIN3'
             keyAlias 'teplo'
             keyPassword 'QPmIN3'
