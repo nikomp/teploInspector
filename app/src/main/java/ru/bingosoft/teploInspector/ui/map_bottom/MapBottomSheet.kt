@@ -389,6 +389,22 @@ class MapBottomSheet(val orders: List<Orders>, private val parentFragment: MapFr
         rcv?.visibility=View.GONE
         fillOrderData(orders[position])
         currentOrder=orders[position]
+        cv?.setOnClickListener {
+            Timber.d("Order_CLICK!");
+            if (currentOrder != null) {
+                currentOrder!!.checked = !currentOrder!!.checked
+                (activity as MainActivity).currentOrder = this.currentOrder!!
+
+                val bundle = Bundle()
+                bundle.putBoolean("checkUpForOrder", true)
+                bundle.putLong("idOrder", currentOrder!!.id)
+                bundle.putString("typeOrder", currentOrder!!.typeOrder)
+
+                Navigation.findNavController(parentFragment.requireView()).navigate(R.id.nav_checkup, bundle)
+                dismiss();
+            }
+
+        }
     }
 
 }
